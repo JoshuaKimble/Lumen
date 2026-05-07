@@ -10,6 +10,8 @@ changes how Lumen is built.
 - The app package name is `lumen`.
 - The initial native app id is `com.joshuakimble.lumen`.
 - Flutter is pinned by the local toolchain to stable `3.35.7` with Dart `3.9.2`.
+- Lumen is planned as a monorepo with `apps/mobile` for Flutter, `apps/api` for
+  the AI backend gateway, and `packages/api_contracts` for OpenAPI contracts.
 
 ## Required Commands
 
@@ -87,6 +89,8 @@ unless the task includes code changes.
 
 ## Project Memory
 
+- `docs/product-requirements.md` is the canonical product context and MVP scope.
+- `docs/technical-plan.md` is the canonical build roadmap.
 - `docs/architecture.md` is the canonical architecture overview.
 - `docs/principles.md` is the canonical clean-code principles guide.
 - `docs/decisions/` contains architecture decision records.
