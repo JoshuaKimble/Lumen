@@ -1,0 +1,36 @@
+#!/bin/sh
+
+set -eu
+
+message_file="$1"
+
+first_line="$(
+  sed -n '/^[[:space:]]*#/d; /^[[:space:]]*$/d; p; q' "$message_file"
+)"
+
+allowed_types='feat|fix|docs|test|refactor|style|build|ci|chore|perf|revert'
+pattern="^(${allowed_types})(\\([a-z0-9._/-]+\\))?(!)?: .+"
+
+if printf '%s\n' "$first_line" | grep -Eq "$pattern"; then
+  exit 0
+fi
+
+cat >&2 <<'EOF'
+Commit message does not follow Lumen Conventional Commits rules.
+
+Expected:
+  <type>[optional scope]: <description>
+
+Examples:
+  feat(journal): add entry list
+  fix: prevent empty entry save
+  docs: update architecture notes
+  feat(sync)!: change sync protocol
+
+Allowed types:
+  feat, fix, docs, test, refactor, style, build, ci, chore, perf, revert
+
+Use BREAKING CHANGE: in the footer or ! before the colon for breaking changes.
+EOF
+
+exit 1

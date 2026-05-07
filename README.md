@@ -28,6 +28,17 @@ flutter test
 flutter run -d chrome
 ```
 
+## Git Hooks
+
+This repo keeps Git hooks in `.githooks`. Enable them after cloning:
+
+```sh
+git config core.hooksPath .githooks
+```
+
+The `commit-msg` hook enforces the Conventional Commits format documented in
+`AGENTS.md`.
+
 ## Project Memory
 
 - Read `AGENTS.md` before changing code.

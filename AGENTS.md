@@ -31,7 +31,7 @@ unless the task includes code changes.
 - Use lowercase commit types consistently.
 - Use `feat` for user-facing features and `fix` for bug fixes.
 - Prefer these supporting types when they fit: `docs`, `test`, `refactor`,
-  `style`, `build`, `ci`, `chore`, and `perf`.
+  `style`, `build`, `ci`, `chore`, `perf`, and `revert`.
 - Add a scope when it clarifies the affected area, for example
   `feat(journal): add entry list`.
 - Mark breaking changes with `!` before the colon or a `BREAKING CHANGE:`
@@ -40,6 +40,8 @@ unless the task includes code changes.
 - Use a commit body when the reason for the change is not obvious from the
   summary.
 - Split unrelated changes into separate commits when practical.
+- Commit messages are enforced by `.githooks/commit-msg`. Keep
+  `git config core.hooksPath .githooks` set for this repo.
 
 ## Architecture Standards
 

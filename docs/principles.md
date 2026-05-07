@@ -18,7 +18,7 @@ without needing the original author nearby.
 - Commit messages use `<type>[optional scope]: <description>`.
 - Use `feat` for features and `fix` for bug fixes.
 - Use supporting types such as `docs`, `test`, `refactor`, `style`, `build`,
-  `ci`, `chore`, and `perf` when they fit the change.
+  `ci`, `chore`, `perf`, and `revert` when they fit the change.
 - Use `!` or a `BREAKING CHANGE:` footer for breaking API or behavior changes.
 - Keep each commit focused on one coherent change.
 - Prefer multiple commits over one mixed commit when the changes are unrelated.

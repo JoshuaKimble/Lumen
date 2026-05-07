@@ -17,7 +17,9 @@ imperative descriptions.
 
 - Use `feat` for features and `fix` for bug fixes.
 - Use supporting types such as `docs`, `test`, `refactor`, `style`, `build`,
-  `ci`, `chore`, and `perf` when they describe the change.
+  `ci`, `chore`, `perf`, and `revert` when they describe the change.
 - Mark breaking changes with `!` in the type/scope prefix or a
   `BREAKING CHANGE:` footer.
 - Split unrelated work into separate commits when practical.
+- Enforce commit message format locally with the tracked `.githooks/commit-msg`
+  hook and `core.hooksPath=.githooks`.
