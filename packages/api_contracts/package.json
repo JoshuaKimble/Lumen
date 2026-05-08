@@ -1,0 +1,10 @@
+{
+  "name": "@lumen/api-contracts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "npm run validate",
+    "validate": "node scripts/validate-openapi.mjs"
+  }
+}

@@ -1,0 +1,271 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Lumen API",
+    "version": "0.1.0",
+    "description": "Contracts for the Lumen Flutter app and AI backend gateway."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Local development API"
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "getHealth",
+        "summary": "Check API health",
+        "responses": {
+          "200": {
+            "description": "The API is available.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/entries/rewrite": {
+      "post": {
+        "operationId": "rewriteEntry",
+        "summary": "Rewrite a journal entry for clarity",
+        "description": "Returns an AI-assisted rewrite that preserves the user's meaning and perspective.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RewriteEntryRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Generated rewrite.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RewriteEntryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          }
+        }
+      }
+    },
+    "/v1/entries/themes/detect": {
+      "post": {
+        "operationId": "detectEntryThemes",
+        "summary": "Detect high-level journal themes",
+        "description": "Returns meaningful, high-level themes without overwhelming the user with overly specific tags.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DetectThemesRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Detected themes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetectThemesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          }
+        }
+      }
+    },
+    "/v1/transcriptions": {
+      "post": {
+        "operationId": "createTranscription",
+        "summary": "Transcribe recorded journal audio",
+        "description": "Accepts audio captured by the Flutter app and returns transcript text for user review before saving.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TranscriptionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Generated transcript.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TranscriptionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "responses": {
+      "BadRequest": {
+        "description": "Invalid request.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiError"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "HealthResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["status", "service"],
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "ok"
+          },
+          "service": {
+            "type": "string",
+            "const": "lumen-api"
+          }
+        }
+      },
+      "RewriteEntryRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["originalText"],
+        "properties": {
+          "originalText": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "RewriteEntryResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["rewrittenText"],
+        "properties": {
+          "rewrittenText": {
+            "type": "string",
+            "minLength": 1
+          },
+          "title": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          }
+        }
+      },
+      "DetectThemesRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["text"],
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "DetectThemesResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["themes"],
+        "properties": {
+          "themes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JournalTheme"
+            }
+          }
+        }
+      },
+      "JournalTheme": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name", "displayName"],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "weight": {
+            "type": "number",
+            "minimum": 0
+          }
+        }
+      },
+      "TranscriptionRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["audioBase64", "mimeType"],
+        "properties": {
+          "audioBase64": {
+            "type": "string",
+            "minLength": 1
+          },
+          "mimeType": {
+            "type": "string",
+            "examples": ["audio/mp4", "audio/mpeg", "audio/wav"]
+          }
+        }
+      },
+      "TranscriptionResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["transcript"],
+        "properties": {
+          "transcript": {
+            "type": "string"
+          }
+        }
+      },
+      "ApiError": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["error"],
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

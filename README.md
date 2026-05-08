@@ -31,6 +31,13 @@ Known local setup items:
 `./scripts/check.sh` runs Flutter analysis/tests now and will also run API and
 contract checks as those packages are added.
 
+API contract commands:
+
+```sh
+cd packages/api_contracts
+npm test
+```
+
 Flutter app commands:
 
 ```sh

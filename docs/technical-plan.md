@@ -167,8 +167,8 @@ representations of the same journal entry.
 
 ### 5. OpenAPI Contracts
 
-- Create `packages/api_contracts`.
-- Define backend request/response contracts in OpenAPI.
+- Keep backend request/response contracts in
+  `packages/api_contracts/openapi/openapi.json`.
 - Generate or maintain typed Flutter API client code from the OpenAPI spec.
 - Add contract checks so backend and Flutter changes do not drift.
 - Treat OpenAPI as the source of truth for the app/backend boundary.
