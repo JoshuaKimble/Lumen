@@ -23,8 +23,8 @@ class JournalHomeScreen extends ConsumerWidget {
 
               return ListTile(
                 contentPadding: EdgeInsets.zero,
-                title: Text(entry.title),
-                subtitle: Text(entry.body),
+                title: Text(entry.displayTitle),
+                subtitle: Text(entry.previewText),
               );
             },
           ),
