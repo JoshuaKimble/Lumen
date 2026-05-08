@@ -19,11 +19,11 @@ changes how Lumen is built.
 Run these before handing off code changes when relevant:
 
 ```sh
-cd apps/mobile
-flutter pub get
-flutter analyze
-flutter test
+./scripts/check.sh
 ```
+
+`./scripts/check.sh` runs Flutter checks today and has slots for API and
+contract checks once `apps/api` and `packages/api_contracts` exist.
 
 Use `dart format .` from `apps/mobile` for Flutter formatting. Do not run
 formatters that rewrite files unless the task includes code changes.

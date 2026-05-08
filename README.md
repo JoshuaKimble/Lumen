@@ -25,10 +25,16 @@ Known local setup items:
 ## Commands
 
 ```sh
+./scripts/check.sh
+```
+
+`./scripts/check.sh` runs Flutter analysis/tests now and will also run API and
+contract checks as those packages are added.
+
+Flutter app commands:
+
+```sh
 cd apps/mobile
-flutter pub get
-flutter analyze
-flutter test
 flutter run -d chrome
 ```
 

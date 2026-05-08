@@ -256,7 +256,8 @@ analytics in the MVP.
 
 ### Monorepo
 
-- Add root commands that check all apps and packages.
+- Use `./scripts/check.sh` as the root command that checks all available apps
+  and packages.
 - Keep `.githooks/commit-msg` active for Conventional Commits.
 - Add CI later to run Flutter checks, API checks, and contract checks together.
 
