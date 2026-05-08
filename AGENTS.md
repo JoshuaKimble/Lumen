@@ -91,6 +91,8 @@ unless the task includes code changes.
 
 - `docs/product-requirements.md` is the canonical product context and MVP scope.
 - `docs/technical-plan.md` is the canonical build roadmap.
+- `docs/github-task-backlog.md` is the GitHub-ready task backlog when issues
+  need to be created or reviewed.
 - `docs/architecture.md` is the canonical architecture overview.
 - `docs/principles.md` is the canonical clean-code principles guide.
 - `docs/decisions/` contains architecture decision records.

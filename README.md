@@ -47,5 +47,6 @@ The `commit-msg` hook enforces the Conventional Commits format documented in
 - Read `AGENTS.md` before changing code.
 - Read `docs/product-requirements.md` before changing product behavior.
 - Read `docs/technical-plan.md` before changing the implementation roadmap.
+- Read `docs/github-task-backlog.md` before creating or revising GitHub tasks.
 - Read `docs/architecture.md` before changing structure.
 - Add decision records under `docs/decisions/` for durable architecture changes.
