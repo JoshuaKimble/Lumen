@@ -13,8 +13,8 @@ fi
 cd "$contracts_dir"
 
 if [ -f package.json ]; then
+  npm install
   npm test
 else
   echo "Skipping contract checks: packages/api_contracts/package.json does not exist yet."
 fi
-

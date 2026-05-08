@@ -13,9 +13,9 @@ fi
 cd "$api_dir"
 
 if [ -f package.json ]; then
+  npm install
   npm run typecheck
   npm test
 else
   echo "Skipping API checks: apps/api/package.json does not exist yet."
 fi
-
