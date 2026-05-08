@@ -4,7 +4,7 @@ import 'package:lumen/src/features/journal/domain/entry_source.dart';
 
 void main() {
   test('returns the starter journal entry', () async {
-    const repository = InMemoryJournalRepository();
+    final repository = InMemoryJournalRepository();
 
     final entries = await repository.listEntries();
 

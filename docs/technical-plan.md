@@ -280,7 +280,6 @@ MVP is ready for user testing when:
 
 These need ADRs before implementation:
 
-- Local database choice.
 - Whether and when to encrypt local journal data.
 - Authentication and cloud sync strategy.
 - Backend deployment platform.
