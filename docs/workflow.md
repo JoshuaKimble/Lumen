@@ -1,0 +1,55 @@
+# Lumen Workflow
+
+Lumen uses GitHub Issues as the project task list and works directly on
+`master` by default.
+
+## Source Of Work
+
+- GitHub Issues are the active task tracker.
+- `docs/github-task-backlog.md` is the source backlog used to seed and review
+  GitHub Issues.
+- Product and technical context lives in the repo docs; issues should link back
+  to those docs when the broader context matters.
+
+## Working On Issues
+
+Before starting meaningful work:
+
+1. Read the relevant GitHub Issue.
+2. Read any referenced docs.
+3. Confirm the working tree is clean.
+4. Work on `master` unless the change is risky enough to isolate.
+
+Reference the issue in commits when practical. Use `Closes #<issue>` when a
+commit fully completes the issue.
+
+## Master-First Development
+
+Working directly on `master` is acceptable when:
+
+- The work is small or well understood.
+- The change can be validated locally before commit.
+- The work does not block other active work.
+- The change can be reverted cleanly if needed.
+
+Create a branch or pull request when:
+
+- The work is risky or experimental.
+- The change spans many unrelated areas.
+- A long-running implementation would leave `master` unstable.
+- Review, CI isolation, or side-by-side comparison would materially reduce risk.
+
+## Completion Criteria
+
+An issue is ready to close when:
+
+- Acceptance criteria are met.
+- Relevant checks have passed or skipped checks are documented.
+- Docs are updated when conventions, product behavior, or architecture changed.
+- The issue is referenced by the final commit or closed with a clear GitHub
+  comment.
+
+## Commit Standards
+
+Use Conventional Commits for every commit. The local `commit-msg` hook enforces
+the format documented in `AGENTS.md`.

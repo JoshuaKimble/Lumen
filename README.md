@@ -42,11 +42,22 @@ git config core.hooksPath .githooks
 The `commit-msg` hook enforces the Conventional Commits format documented in
 `AGENTS.md`.
 
+## Workflow
+
+Lumen uses GitHub Issues as the active task tracker and works directly on
+`master` by default. Create a branch or pull request when the change is risky,
+long-running, or benefits from review/CI isolation.
+
+Before starting work, read the relevant issue and linked docs. Reference issues
+in commits when practical, and use `Closes #<issue>` when a commit completes an
+issue.
+
 ## Project Memory
 
 - Read `AGENTS.md` before changing code.
 - Read `docs/product-requirements.md` before changing product behavior.
 - Read `docs/technical-plan.md` before changing the implementation roadmap.
+- Read `docs/workflow.md` before changing the GitHub issue workflow.
 - Read `docs/github-task-backlog.md` before creating or revising GitHub tasks.
 - Read `docs/architecture.md` before changing structure.
 - Add decision records under `docs/decisions/` for durable architecture changes.

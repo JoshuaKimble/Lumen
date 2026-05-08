@@ -45,6 +45,16 @@ unless the task includes code changes.
 - Commit messages are enforced by `.githooks/commit-msg`. Keep
   `git config core.hooksPath .githooks` set for this repo.
 
+## GitHub Issue Workflow
+
+- GitHub Issues are the active task tracker.
+- Work directly on `master` by default.
+- Create a branch or PR when risk, review needs, long-running work, or CI
+  isolation make that useful.
+- Read `docs/workflow.md` before changing the project workflow.
+- Reference the relevant issue in commits when practical; use `Closes #<issue>`
+  when a commit fully completes the issue.
+
 ## Architecture Standards
 
 - Keep app-wide composition in `lib/src/app`.
@@ -91,6 +101,7 @@ unless the task includes code changes.
 
 - `docs/product-requirements.md` is the canonical product context and MVP scope.
 - `docs/technical-plan.md` is the canonical build roadmap.
+- `docs/workflow.md` is the canonical GitHub Issues and master-first workflow.
 - `docs/github-task-backlog.md` is the GitHub-ready task backlog when issues
   need to be created or reviewed.
 - `docs/architecture.md` is the canonical architecture overview.
