@@ -4,8 +4,8 @@ Lumen is a Flutter journal application foundation for Android, iOS, and web.
 The project is optimized for iterative development with Codex by keeping
 architecture and coding standards in repo-canonical documentation.
 
-The planned project shape is a monorepo with a Flutter app, Node TypeScript AI
-backend gateway, and shared OpenAPI contracts.
+The project is a monorepo with a Flutter app in `apps/mobile`, a planned Node
+TypeScript AI backend gateway, and planned shared OpenAPI contracts.
 
 ## Toolchain
 
@@ -25,6 +25,7 @@ Known local setup items:
 ## Commands
 
 ```sh
+cd apps/mobile
 flutter pub get
 flutter analyze
 flutter test

@@ -10,9 +10,9 @@ configuration or abstraction.
 
 ## Application Shape
 
-- `lib/main.dart` only bootstraps Flutter and Riverpod.
-- `lib/src/app` owns app composition, routing, and theme.
-- `lib/src/features` owns product behavior, grouped by feature.
+- `apps/mobile/lib/main.dart` only bootstraps Flutter and Riverpod.
+- `apps/mobile/lib/src/app` owns app composition, routing, and theme.
+- `apps/mobile/lib/src/features` owns product behavior, grouped by feature.
 - Each feature uses `domain`, `data`, and `presentation` folders when those
   boundaries exist.
 

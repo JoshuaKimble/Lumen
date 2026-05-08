@@ -10,21 +10,23 @@ changes how Lumen is built.
 - The app package name is `lumen`.
 - The initial native app id is `com.joshuakimble.lumen`.
 - Flutter is pinned by the local toolchain to stable `3.35.7` with Dart `3.9.2`.
-- Lumen is planned as a monorepo with `apps/mobile` for Flutter, `apps/api` for
-  the AI backend gateway, and `packages/api_contracts` for OpenAPI contracts.
+- Lumen is a monorepo with `apps/mobile` for Flutter, `apps/api` for the planned
+  AI backend gateway, and `packages/api_contracts` for planned OpenAPI
+  contracts.
 
 ## Required Commands
 
 Run these before handing off code changes when relevant:
 
 ```sh
+cd apps/mobile
 flutter pub get
 flutter analyze
 flutter test
 ```
 
-Use `dart format .` for formatting. Do not run formatters that rewrite files
-unless the task includes code changes.
+Use `dart format .` from `apps/mobile` for Flutter formatting. Do not run
+formatters that rewrite files unless the task includes code changes.
 
 ## Git Conventions
 
@@ -57,8 +59,9 @@ unless the task includes code changes.
 
 ## Architecture Standards
 
-- Keep app-wide composition in `lib/src/app`.
-- Keep product code feature-first under `lib/src/features/<feature>`.
+- Keep Flutter app-wide composition in `apps/mobile/lib/src/app`.
+- Keep Flutter product code feature-first under
+  `apps/mobile/lib/src/features/<feature>`.
 - Use Riverpod for state and dependency injection.
 - Use GoRouter for navigation.
 - Put domain models and repository contracts in `domain`.
@@ -69,7 +72,8 @@ unless the task includes code changes.
 
 ## Coding Standards
 
-- Follow `analysis_options.yaml`; do not silence lints without a specific reason.
+- Follow `apps/mobile/analysis_options.yaml`; do not silence lints without a
+  specific reason.
 - Optimize for clean code: code should be easy for another engineer to read,
   change, extend, and maintain.
 - Prefer the simplest design that satisfies the current requirement. Do not add

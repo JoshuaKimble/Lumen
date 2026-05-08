@@ -27,8 +27,7 @@ detection, validation, and mock AI responses.
 
 - App and backend changes can evolve together in one Git history.
 - OpenAPI becomes the source of truth for the Flutter/backend boundary.
-- The current Flutter-root project should migrate into `apps/mobile` before
-  major MVP feature work.
+- The Flutter project lives in `apps/mobile`.
 - Root-level commands and CI should eventually validate Flutter, API, and
   contract packages together.
 - Cloud sync, auth, encryption, backend deployment, and AI provider selection

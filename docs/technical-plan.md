@@ -1,6 +1,6 @@
 # Lumen Technical Plan
 
-This is the canonical build roadmap for turning the current Flutter scaffold
+This is the canonical build roadmap for turning the current monorepo scaffold
 into the product described in `docs/product-requirements.md`.
 
 ## Summary
@@ -25,8 +25,7 @@ Technical defaults:
 
 ## Target Repository Shape
 
-The current Flutter-root repo should migrate into this layout before major MVP
-feature work:
+The repository should retain this layout as major MVP feature work proceeds:
 
 ```text
 apps/
@@ -60,8 +59,9 @@ future CI. App-specific tooling should stay inside the relevant app directory.
 
 Keep the current Flutter architecture principles:
 
-- `lib/src/app` owns app shell, routing, theme, and app-wide composition.
-- `lib/src/features/<feature>` owns product behavior by feature.
+- `apps/mobile/lib/src/app` owns app shell, routing, theme, and app-wide
+  composition.
+- `apps/mobile/lib/src/features/<feature>` owns product behavior by feature.
 - Feature folders use `domain`, `data`, and `presentation` boundaries when they
   reduce complexity.
 - Riverpod owns state and dependency injection.
@@ -125,12 +125,13 @@ representations of the same journal entry.
 
 ### 1. Monorepo Migration
 
-- Move the current Flutter project into `apps/mobile`.
+- Keep the Flutter project in `apps/mobile`.
 - Preserve package name, bundle id, tests, generated platform folders, and
-  current feature-first structure.
-- Update root docs, Git hooks, README commands, and future scripts for the new
-  layout.
-- Add an ADR if the migration changes project commands or package boundaries.
+  current feature-first structure during later migrations.
+- Keep root docs, Git hooks, README commands, and future scripts aligned with
+  the monorepo layout.
+- Add an ADR if future migrations change project commands or package
+  boundaries.
 
 ### 2. Domain And Local Persistence
 
@@ -234,8 +235,8 @@ analytics in the MVP.
 
 ### Flutter
 
-- Run `flutter analyze`.
-- Run `flutter test`.
+- Run `flutter analyze` from `apps/mobile`.
+- Run `flutter test` from `apps/mobile`.
 - Add domain tests for entry source handling, text preservation, and theme
   aggregation.
 - Add repository tests for create, update, delete, list by date, and list by
@@ -287,4 +288,3 @@ These need ADRs before implementation:
 - Generated client tooling for OpenAPI.
 - Related resources source and policy.
 - Export format and data portability.
-
