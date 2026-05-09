@@ -1,0 +1,104 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
+import 'package:lumen/src/api/generated/lumen_api_client.dart';
+import 'package:lumen/src/features/journal/data/api_journal_ai_service.dart';
+
+void main() {
+  test('calls typed rewrite endpoint', () async {
+    final client = LumenApiClient(
+      baseUri: Uri.parse('http://localhost:3000'),
+      httpClient: MockClient((request) async {
+        expect(request.method, 'POST');
+        expect(request.url.path, '/v1/entries/rewrite');
+        expect(request.body, '{"originalText":"raw note"}');
+
+        return http.Response(
+          '{"rewrittenText":"clear note","title":"Generated","summary":"Short"}',
+          200,
+        );
+      }),
+    );
+
+    final response = await client.rewriteEntry(
+      const RewriteEntryRequest(originalText: 'raw note'),
+    );
+
+    expect(response.rewrittenText, 'clear note');
+    expect(response.title, 'Generated');
+    expect(response.summary, 'Short');
+  });
+
+  test('calls typed theme endpoint', () async {
+    final client = LumenApiClient(
+      baseUri: Uri.parse('http://localhost:3000'),
+      httpClient: MockClient((request) async {
+        expect(request.method, 'POST');
+        expect(request.url.path, '/v1/entries/themes/detect');
+        expect(request.body, '{"text":"work note"}');
+
+        return http.Response(
+          '{"themes":[{"id":"work","name":"work","displayName":"Work","weight":1}]}',
+          200,
+        );
+      }),
+    );
+
+    final response = await client.detectEntryThemes(
+      const DetectThemesRequest(text: 'work note'),
+    );
+
+    expect(response.themes.single.id, 'work');
+    expect(response.themes.single.displayName, 'Work');
+    expect(response.themes.single.weight, 1);
+  });
+
+  test('throws typed exception for API errors', () async {
+    final client = LumenApiClient(
+      baseUri: Uri.parse('http://localhost:3000'),
+      httpClient: MockClient((request) async {
+        return http.Response(
+          '{"error":"bad_request","message":"Expected text."}',
+          400,
+        );
+      }),
+    );
+
+    await expectLater(
+      client.rewriteEntry(const RewriteEntryRequest(originalText: '')),
+      throwsA(
+        isA<LumenApiException>()
+            .having((error) => error.statusCode, 'statusCode', 400)
+            .having((error) => error.error.error, 'error', 'bad_request'),
+      ),
+    );
+  });
+
+  test('adapts API client responses to journal AI service results', () async {
+    final service = ApiJournalAiService(
+      client: LumenApiClient(
+        baseUri: Uri.parse('http://localhost:3000'),
+        httpClient: MockClient((request) async {
+          if (request.url.path.endsWith('/rewrite')) {
+            return http.Response(
+              '{"rewrittenText":"clear note","title":"Generated","summary":"Short"}',
+              200,
+            );
+          }
+
+          return http.Response(
+            '{"themes":[{"id":"work","name":"work","displayName":"Work"}]}',
+            200,
+          );
+        }),
+      ),
+    );
+
+    final rewrite = await service.rewriteEntry(originalText: 'raw note');
+    final themes = await service.detectThemes(text: 'work note');
+
+    expect(rewrite.rewrittenText, 'clear note');
+    expect(rewrite.title, 'Generated');
+    expect(themes.themes.single.displayName, 'Work');
+  });
+}

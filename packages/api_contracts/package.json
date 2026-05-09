@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "npm run validate",
+    "check:flutter-client": "node scripts/generate-dart-client.mjs --check",
+    "generate:flutter": "node scripts/generate-dart-client.mjs",
+    "test": "npm run validate && npm run check:flutter-client",
     "validate": "node scripts/validate-openapi.mjs"
   }
 }
