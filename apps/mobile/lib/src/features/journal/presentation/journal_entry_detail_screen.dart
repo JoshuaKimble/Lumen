@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../app/router.dart';
+import '../data/journal_repository_provider.dart';
 import '../domain/journal_entry.dart';
 import '../domain/related_resource.dart';
+import 'journal_entries_provider.dart';
 import 'journal_entry_provider.dart';
 import 'journal_formatters.dart';
 import 'journal_theme_chips.dart';
@@ -15,9 +19,32 @@ class JournalEntryDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final entry = ref.watch(journalEntryProvider(entryId));
+    final loadedEntry = switch (entry) {
+      AsyncData(value: final value) => value,
+      _ => null,
+    };
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Journal entry')),
+      appBar: AppBar(
+        title: const Text('Journal entry'),
+        actions: [
+          if (loadedEntry != null) ...[
+            IconButton(
+              tooltip: 'Edit entry',
+              onPressed: () => context.goNamed(
+                journalEntryEditRouteName,
+                pathParameters: {'entryId': entryId},
+              ),
+              icon: const Icon(Icons.edit_outlined),
+            ),
+            IconButton(
+              tooltip: 'Delete entry',
+              onPressed: () => _confirmDelete(context, ref),
+              icon: const Icon(Icons.delete_outline),
+            ),
+          ],
+        ],
+      ),
       body: SafeArea(
         child: entry.when(
           data: (item) {
@@ -33,6 +60,38 @@ class JournalEntryDetailScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete entry?'),
+        content: const Text('This removes the journal entry from this device.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDelete != true) {
+      return;
+    }
+
+    await ref.read(journalRepositoryProvider).deleteEntry(entryId);
+    ref.invalidate(journalEntriesProvider);
+    ref.invalidate(journalEntryProvider(entryId));
+
+    if (context.mounted) {
+      context.goNamed(journalHomeRouteName);
+    }
   }
 }
 
@@ -73,7 +132,17 @@ class _JournalEntryDetail extends StatelessWidget {
           title: 'AI rewrite',
           text: entry.rewrittenText,
           icon: Icons.auto_awesome_outlined,
+          emptyText: 'No rewrite yet.',
           emphasized: true,
+        ),
+        const SizedBox(height: 12),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: OutlinedButton.icon(
+            onPressed: null,
+            icon: const Icon(Icons.auto_awesome_outlined),
+            label: const Text('Regenerate rewrite'),
+          ),
         ),
         const SizedBox(height: 16),
         _ResourcesSection(resources: entry.resources),
@@ -87,12 +156,14 @@ class _EntryTextSection extends StatelessWidget {
     required this.title,
     required this.text,
     required this.icon,
+    this.emptyText,
     this.emphasized = false,
   });
 
   final String title;
   final String text;
   final IconData icon;
+  final String? emptyText;
   final bool emphasized;
 
   @override
@@ -129,7 +200,10 @@ class _EntryTextSection extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            Text(text, style: Theme.of(context).textTheme.bodyLarge),
+            Text(
+              text.isEmpty ? emptyText ?? '' : text,
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
           ],
         ),
       ),

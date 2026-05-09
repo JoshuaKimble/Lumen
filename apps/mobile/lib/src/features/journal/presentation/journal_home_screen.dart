@@ -33,7 +33,7 @@ class JournalHomeScreen extends ConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton(
         tooltip: 'New entry',
-        onPressed: () {},
+        onPressed: () => context.goNamed(journalEntryCreateRouteName),
         child: const Icon(Icons.edit_outlined),
       ),
     );

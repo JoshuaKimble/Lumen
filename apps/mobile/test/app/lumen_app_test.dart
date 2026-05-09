@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lumen/src/app/lumen_app.dart';
@@ -79,6 +80,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Morning reflection prompt'), findsOneWidget);
+    expect(find.text('Regenerate rewrite'), findsOneWidget);
   });
 
   testWidgets('renders a calm empty state', (tester) async {
@@ -99,6 +101,88 @@ void main() {
       find.text('Your reflections will appear here after you save them.'),
       findsOneWidget,
     );
+  });
+
+  testWidgets('creates a typed journal entry', (tester) async {
+    final repository = InMemoryJournalRepository(seedEntries: const []);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [journalRepositoryProvider.overrideWithValue(repository)],
+        child: const LumenApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    const originalText = '  These are my exact typed words.  ';
+
+    await tester.tap(find.byTooltip('New entry'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField).at(0), 'Typed entry');
+    await tester.enterText(find.byType(TextFormField).at(1), originalText);
+    await tester.tap(find.text('Save entry'));
+    await tester.pumpAndSettle();
+
+    final entries = await repository.listEntries();
+
+    expect(entries, hasLength(1));
+    expect(entries.single.title, 'Typed entry');
+    expect(entries.single.originalText, originalText);
+    expect(find.text('Typed entry'), findsOneWidget);
+    expect(find.text(originalText), findsOneWidget);
+  });
+
+  testWidgets('edits a typed journal entry', (tester) async {
+    final repository = InMemoryJournalRepository(seedEntries: [_sampleEntry]);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [journalRepositoryProvider.overrideWithValue(repository)],
+        child: const LumenApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('A difficult but honest morning'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Edit entry'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField).at(0), 'Updated title');
+    await tester.enterText(
+      find.byType(TextFormField).at(1),
+      'Updated original text.',
+    );
+    await tester.tap(find.text('Save entry'));
+    await tester.pumpAndSettle();
+
+    final entry = await repository.getEntry('entry-1');
+
+    expect(entry?.title, 'Updated title');
+    expect(entry?.originalText, 'Updated original text.');
+    expect(find.text('Updated title'), findsOneWidget);
+    expect(find.text('Updated original text.'), findsOneWidget);
+  });
+
+  testWidgets('deletes a journal entry', (tester) async {
+    final repository = InMemoryJournalRepository(seedEntries: [_sampleEntry]);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [journalRepositoryProvider.overrideWithValue(repository)],
+        child: const LumenApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('A difficult but honest morning'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Delete entry'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
+    await tester.pumpAndSettle();
+
+    expect(await repository.listEntries(), isEmpty);
+    expect(find.text('No journal entries yet'), findsOneWidget);
   });
 }
 
