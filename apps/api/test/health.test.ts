@@ -21,6 +21,9 @@ before(async () => {
 });
 
 after(async () => {
+  server.closeAllConnections();
+  server.closeIdleConnections();
+
   await new Promise<void>((resolve, reject) => {
     server.close((error) => {
       if (error) {

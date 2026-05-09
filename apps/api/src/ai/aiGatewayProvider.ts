@@ -13,14 +13,23 @@ export interface RewriteRequest {
 
 export interface RewriteResult {
   readonly rewrittenText: string;
+  readonly title?: string;
+  readonly summary?: string;
 }
 
 export interface ThemeDetectionRequest {
   readonly text: string;
 }
 
+export interface JournalTheme {
+  readonly id: string;
+  readonly name: string;
+  readonly displayName: string;
+  readonly weight?: number;
+}
+
 export interface ThemeDetectionResult {
-  readonly themes: readonly string[];
+  readonly themes: readonly JournalTheme[];
 }
 
 export interface AiGatewayProvider {

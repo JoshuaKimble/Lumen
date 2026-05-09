@@ -14,6 +14,8 @@ test('mock provider returns deterministic rewrite output', async () => {
     result.rewrittenText,
     'Mock rewrite: I am thinking about work today.',
   );
+  assert.equal(result.title, 'I am thinking about work today');
+  assert.equal(result.summary, 'I am thinking about work today.');
 });
 
 test('mock provider detects simple themes', async () => {
@@ -23,5 +25,8 @@ test('mock provider detects simple themes', async () => {
     text: 'I feel gratitude for my family after a long work week.',
   });
 
-  assert.deepEqual(result.themes, ['Work', 'Family', 'Gratitude']);
+  assert.deepEqual(
+    result.themes.map((theme) => theme.displayName),
+    ['Work', 'Family', 'Gratitude'],
+  );
 });
