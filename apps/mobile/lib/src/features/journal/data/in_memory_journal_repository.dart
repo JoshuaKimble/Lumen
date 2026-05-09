@@ -5,7 +5,7 @@ import '../domain/journal_theme.dart';
 
 class InMemoryJournalRepository implements JournalRepository {
   InMemoryJournalRepository({List<JournalEntry>? seedEntries})
-    : _entries = [...?seedEntries];
+    : _entries = seedEntries == null ? _starterEntries() : [...seedEntries];
 
   final List<JournalEntry> _entries;
 
@@ -27,31 +27,7 @@ class InMemoryJournalRepository implements JournalRepository {
 
   @override
   Future<List<JournalEntry>> listEntries() async {
-    if (_entries.isNotEmpty) {
-      return _sortedEntries(_entries);
-    }
-
-    final createdAt = DateTime.utc(2026, 5, 6, 22, 12);
-
-    return _sortedEntries([
-      JournalEntry(
-        id: 'welcome',
-        createdAt: createdAt,
-        updatedAt: createdAt,
-        source: EntrySource.text,
-        originalText: 'A quiet place for daily reflection.',
-        rewrittenText: 'A quiet place for daily reflection.',
-        themes: [
-          JournalTheme(
-            id: 'reflection',
-            name: 'reflection',
-            displayName: 'Reflection',
-          ),
-        ],
-        resources: [],
-        title: 'Welcome to Lumen',
-      ),
-    ]);
+    return _sortedEntries(_entries);
   }
 
   @override
@@ -72,5 +48,29 @@ class InMemoryJournalRepository implements JournalRepository {
   List<JournalEntry> _sortedEntries(List<JournalEntry> entries) {
     return [...entries]
       ..sort((left, right) => right.createdAt.compareTo(left.createdAt));
+  }
+
+  static List<JournalEntry> _starterEntries() {
+    final createdAt = DateTime.utc(2026, 5, 6, 22, 12);
+
+    return [
+      JournalEntry(
+        id: 'welcome',
+        createdAt: createdAt,
+        updatedAt: createdAt,
+        source: EntrySource.text,
+        originalText: 'A quiet place for daily reflection.',
+        rewrittenText: 'A quiet place for daily reflection.',
+        themes: [
+          JournalTheme(
+            id: 'reflection',
+            name: 'reflection',
+            displayName: 'Reflection',
+          ),
+        ],
+        resources: [],
+        title: 'Welcome to Lumen',
+      ),
+    ];
   }
 }
