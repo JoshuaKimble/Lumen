@@ -66,6 +66,7 @@ class JournalEntry {
     required RewriteResult rewrite,
     required ThemeDetectionResult themeDetection,
     required DateTime updatedAt,
+    bool preserveTitle = false,
   }) {
     return JournalEntry(
       id: id,
@@ -76,7 +77,7 @@ class JournalEntry {
       rewrittenText: rewrite.rewrittenText,
       themes: themeDetection.themes,
       resources: resources,
-      title: rewrite.title ?? title,
+      title: preserveTitle ? title : rewrite.title ?? title,
       summary: rewrite.summary ?? summary,
       lastRegeneratedAt: updatedAt,
     );

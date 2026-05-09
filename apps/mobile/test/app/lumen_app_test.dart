@@ -165,7 +165,49 @@ void main() {
     expect(entry?.title, 'Updated title');
     expect(entry?.originalText, 'Updated original text.');
     expect(find.text('Updated title'), findsOneWidget);
-    expect(find.text('Updated original text.'), findsOneWidget);
+    expect(find.text('Updated original text.'), findsWidgets);
+  });
+
+  testWidgets('regenerates rewrite and themes when edited text changes', (
+    tester,
+  ) async {
+    final repository = InMemoryJournalRepository(seedEntries: [_sampleEntry]);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          journalRepositoryProvider.overrideWithValue(repository),
+          journalAiServiceProvider.overrideWithValue(
+            _ImmediateAiService(
+              rewrittenText: 'Updated generated rewrite.',
+              theme: const JournalTheme(
+                id: 'stress',
+                name: 'stress',
+                displayName: 'Stress',
+              ),
+            ),
+          ),
+        ],
+        child: const LumenApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('A difficult but honest morning'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Edit entry'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField).at(1), 'Changed text.');
+    await tester.tap(find.text('Save entry'));
+    await tester.pumpAndSettle();
+
+    final entry = await repository.getEntry('entry-1');
+
+    expect(entry?.originalText, 'Changed text.');
+    expect(entry?.rewrittenText, 'Updated generated rewrite.');
+    expect(entry?.themes.single.displayName, 'Stress');
+    expect(find.text('Updated generated rewrite.'), findsOneWidget);
+    expect(find.text('Stress'), findsOneWidget);
   });
 
   testWidgets('deletes a journal entry', (tester) async {
@@ -314,6 +356,27 @@ class _ControlledAiService implements JournalAiService {
   @override
   Future<RewriteResult> rewriteEntry({required String originalText}) async {
     return _rewrite.future;
+  }
+}
+
+class _ImmediateAiService implements JournalAiService {
+  const _ImmediateAiService({required this.rewrittenText, required this.theme});
+
+  final String rewrittenText;
+  final JournalTheme theme;
+
+  @override
+  Future<ThemeDetectionResult> detectThemes({required String text}) async {
+    return ThemeDetectionResult(themes: [theme]);
+  }
+
+  @override
+  Future<RewriteResult> rewriteEntry({required String originalText}) async {
+    return RewriteResult(
+      rewrittenText: rewrittenText,
+      title: 'Updated generated title',
+      summary: 'Updated generated summary',
+    );
   }
 }
 

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router.dart';
+import '../data/journal_ai_service_provider.dart';
 import '../data/journal_repository_provider.dart';
 import '../domain/entry_source.dart';
 import '../domain/journal_entry.dart';
@@ -155,11 +156,12 @@ class _JournalEntryEditorScaffoldState
     });
 
     final repository = ref.read(journalRepositoryProvider);
+    final aiService = ref.read(journalAiServiceProvider);
     final now = DateTime.now().toUtc();
     final originalText = _originalTextController.text;
     final title = _titleController.text.trim();
     final existingEntry = widget.entry;
-    final entry = existingEntry == null
+    var entry = existingEntry == null
         ? _newTypedEntry(
             now: now,
             originalText: originalText,
@@ -172,6 +174,17 @@ class _JournalEntryEditorScaffoldState
             title: title.isEmpty ? null : title,
           );
 
+    if (_shouldRegenerateAfterEdit(existingEntry, originalText)) {
+      final rewrite = await aiService.rewriteEntry(originalText: originalText);
+      final themeDetection = await aiService.detectThemes(text: originalText);
+      entry = entry.applyAiResults(
+        rewrite: rewrite,
+        themeDetection: themeDetection,
+        updatedAt: now,
+        preserveTitle: true,
+      );
+    }
+
     await repository.saveEntry(entry);
     ref.invalidate(journalEntriesProvider);
     ref.invalidate(journalEntryProvider(entry.id));
@@ -182,6 +195,13 @@ class _JournalEntryEditorScaffoldState
         pathParameters: {'entryId': entry.id},
       );
     }
+  }
+
+  bool _shouldRegenerateAfterEdit(
+    JournalEntry? existingEntry,
+    String originalText,
+  ) {
+    return existingEntry != null && existingEntry.originalText != originalText;
   }
 
   JournalEntry _newTypedEntry({
