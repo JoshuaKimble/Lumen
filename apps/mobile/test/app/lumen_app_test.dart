@@ -1,10 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lumen/src/app/lumen_app.dart';
+import 'package:lumen/src/features/journal/data/journal_ai_service_provider.dart';
 import 'package:lumen/src/features/journal/data/in_memory_journal_repository.dart';
 import 'package:lumen/src/features/journal/data/journal_repository_provider.dart';
+import 'package:lumen/src/features/journal/domain/ai_results.dart';
 import 'package:lumen/src/features/journal/domain/entry_source.dart';
+import 'package:lumen/src/features/journal/domain/journal_ai_service.dart';
 import 'package:lumen/src/features/journal/domain/journal_entry.dart';
 import 'package:lumen/src/features/journal/domain/journal_theme.dart';
 import 'package:lumen/src/features/journal/domain/related_resource.dart';
@@ -184,6 +189,73 @@ void main() {
     expect(await repository.listEntries(), isEmpty);
     expect(find.text('No journal entries yet'), findsOneWidget);
   });
+
+  testWidgets('generates mock rewrite and themes for an entry', (tester) async {
+    final repository = InMemoryJournalRepository(
+      seedEntries: [_unprocessedEntry],
+    );
+    final aiService = _ControlledAiService();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          journalRepositoryProvider.overrideWithValue(repository),
+          journalAiServiceProvider.overrideWithValue(aiService),
+        ],
+        child: const LumenApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('A raw work note'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Regenerate rewrite'));
+    await tester.pump();
+
+    expect(find.text('Generating rewrite'), findsOneWidget);
+
+    aiService.completeRewrite();
+    await tester.pumpAndSettle();
+
+    final entry = await repository.getEntry('entry-2');
+
+    expect(entry?.rewrittenText, 'A clearer mock rewrite.');
+    expect(entry?.themes.single.displayName, 'Work');
+    expect(find.text('A clearer mock rewrite.'), findsOneWidget);
+    expect(find.text('Work'), findsOneWidget);
+  });
+
+  testWidgets('shows an error when mock rewrite generation fails', (
+    tester,
+  ) async {
+    final repository = InMemoryJournalRepository(
+      seedEntries: [_unprocessedEntry],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          journalRepositoryProvider.overrideWithValue(repository),
+          journalAiServiceProvider.overrideWithValue(const _FailingAiService()),
+        ],
+        child: const LumenApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('A raw work note'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Regenerate rewrite'));
+    await tester.pumpAndSettle();
+
+    final entry = await repository.getEntry('entry-2');
+
+    expect(entry?.rewrittenText, isEmpty);
+    expect(
+      find.text('Unable to generate a rewrite right now.'),
+      findsOneWidget,
+    );
+  });
 }
 
 final _sampleEntry = JournalEntry(
@@ -206,3 +278,55 @@ final _sampleEntry = JournalEntry(
   title: 'A difficult but honest morning',
   summary: 'A morning reflection about family stress.',
 );
+
+final _unprocessedEntry = JournalEntry(
+  id: 'entry-2',
+  createdAt: DateTime.utc(2026, 5, 8, 16),
+  updatedAt: DateTime.utc(2026, 5, 8, 16),
+  source: EntrySource.text,
+  originalText: 'I had a rushed work meeting.',
+  rewrittenText: '',
+  themes: const [],
+  resources: const [],
+  title: 'A raw work note',
+);
+
+class _ControlledAiService implements JournalAiService {
+  final _rewrite = Completer<RewriteResult>();
+
+  void completeRewrite() {
+    _rewrite.complete(
+      const RewriteResult(
+        rewrittenText: 'A clearer mock rewrite.',
+        title: 'Generated title',
+        summary: 'Generated summary',
+      ),
+    );
+  }
+
+  @override
+  Future<ThemeDetectionResult> detectThemes({required String text}) async {
+    return const ThemeDetectionResult(
+      themes: [JournalTheme(id: 'work', name: 'work', displayName: 'Work')],
+    );
+  }
+
+  @override
+  Future<RewriteResult> rewriteEntry({required String originalText}) async {
+    return _rewrite.future;
+  }
+}
+
+class _FailingAiService implements JournalAiService {
+  const _FailingAiService();
+
+  @override
+  Future<ThemeDetectionResult> detectThemes({required String text}) async {
+    return const ThemeDetectionResult(themes: []);
+  }
+
+  @override
+  Future<RewriteResult> rewriteEntry({required String originalText}) async {
+    throw StateError('AI unavailable');
+  }
+}

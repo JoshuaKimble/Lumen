@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router.dart';
+import '../data/journal_ai_service_provider.dart';
 import '../data/journal_repository_provider.dart';
 import '../domain/journal_entry.dart';
 import '../domain/related_resource.dart';
@@ -95,14 +96,24 @@ class JournalEntryDetailScreen extends ConsumerWidget {
   }
 }
 
-class _JournalEntryDetail extends StatelessWidget {
+class _JournalEntryDetail extends ConsumerStatefulWidget {
   const _JournalEntryDetail({required this.entry});
 
   final JournalEntry entry;
 
   @override
+  ConsumerState<_JournalEntryDetail> createState() =>
+      _JournalEntryDetailState();
+}
+
+class _JournalEntryDetailState extends ConsumerState<_JournalEntryDetail> {
+  bool _isGenerating = false;
+  String? _generationError;
+
+  @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final entry = widget.entry;
 
     return ListView(
       padding: const EdgeInsets.all(20),
@@ -139,15 +150,71 @@ class _JournalEntryDetail extends StatelessWidget {
         Align(
           alignment: Alignment.centerLeft,
           child: OutlinedButton.icon(
-            onPressed: null,
-            icon: const Icon(Icons.auto_awesome_outlined),
-            label: const Text('Regenerate rewrite'),
+            onPressed: _isGenerating ? null : _generateRewrite,
+            icon: _isGenerating
+                ? const SizedBox.square(
+                    dimension: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.auto_awesome_outlined),
+            label: Text(
+              _isGenerating ? 'Generating rewrite' : 'Regenerate rewrite',
+            ),
           ),
         ),
+        if (_generationError case final message?) ...[
+          const SizedBox(height: 8),
+          Text(
+            message,
+            style: textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.error,
+            ),
+          ),
+        ],
         const SizedBox(height: 16),
         _ResourcesSection(resources: entry.resources),
       ],
     );
+  }
+
+  Future<void> _generateRewrite() async {
+    setState(() {
+      _isGenerating = true;
+      _generationError = null;
+    });
+
+    try {
+      final aiService = ref.read(journalAiServiceProvider);
+      final repository = ref.read(journalRepositoryProvider);
+      final entry = widget.entry;
+      final rewrite = await aiService.rewriteEntry(
+        originalText: entry.originalText,
+      );
+      final themeDetection = await aiService.detectThemes(
+        text: entry.originalText,
+      );
+      final updatedEntry = entry.applyAiResults(
+        rewrite: rewrite,
+        themeDetection: themeDetection,
+        updatedAt: DateTime.now().toUtc(),
+      );
+
+      await repository.saveEntry(updatedEntry);
+      ref.invalidate(journalEntriesProvider);
+      ref.invalidate(journalEntryProvider(entry.id));
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _generationError = 'Unable to generate a rewrite right now.';
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isGenerating = false;
+        });
+      }
+    }
   }
 }
 

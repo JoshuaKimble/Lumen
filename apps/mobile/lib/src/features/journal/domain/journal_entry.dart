@@ -61,4 +61,24 @@ class JournalEntry {
       lastRegeneratedAt: updatedAt,
     );
   }
+
+  JournalEntry applyAiResults({
+    required RewriteResult rewrite,
+    required ThemeDetectionResult themeDetection,
+    required DateTime updatedAt,
+  }) {
+    return JournalEntry(
+      id: id,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+      source: source,
+      originalText: originalText,
+      rewrittenText: rewrite.rewrittenText,
+      themes: themeDetection.themes,
+      resources: resources,
+      title: rewrite.title ?? title,
+      summary: rewrite.summary ?? summary,
+      lastRegeneratedAt: updatedAt,
+    );
+  }
 }
