@@ -267,6 +267,65 @@ AI should not:
 
 ---
 
+## Product Consideration: Sensitive Journaling vs Thought Exploration
+
+The product team needs to carefully explore an unresolved UX and product
+distinction between:
+
+1. Thought exploration / idea development.
+2. Personal journaling / emotional processing.
+
+The current AI rewrite-first experience works well for stream-of-consciousness
+topical exploration. Users may dump raw thoughts about subjects like theology,
+scripture study, philosophy, creative ideas, or personal frameworks. In these
+cases, AI-generated rewrites can be highly valuable because they:
+
+- Organize fragmented thoughts.
+- Improve readability and coherence.
+- Help users reflect on and internalize their own ideas.
+- Surface themes worth exploring further.
+
+However, this interaction model may not translate well to emotionally sensitive
+or deeply personal journaling.
+
+Examples of sensitive journaling contexts include:
+
+- Marriage struggles.
+- Parenting frustrations.
+- Depression or anxiety.
+- Job stress.
+- Trauma or grief.
+- Highly vulnerable emotional processing.
+
+In these cases, an AI rewrite could potentially:
+
+- Feel emotionally distancing.
+- Over-formalize vulnerable thoughts.
+- Remove emotional authenticity.
+- Make the entry feel less personal or human.
+- Create discomfort around exposing sensitive information to AI processing.
+
+The current rewrite-first experience should not be assumed to be universally
+appropriate across both thought exploration and sensitive personal journaling.
+This is an open product concern, not a finalized solution.
+
+Open product questions:
+
+- When is rewriting genuinely valuable?
+- When should entries remain untouched?
+- Should rewriting be optional?
+- Should users choose between "journal mode" and "idea exploration mode"?
+- Should AI offer lighter-touch transformations, such as summaries,
+  organization, tagging, or theme extraction, instead of full rewrites for
+  sensitive entries?
+- How should user trust and emotional safety influence the UX?
+- How do we communicate privacy and AI-processing expectations clearly?
+
+Future product decisions should account for emotional sensitivity, trust, and
+the fact that users may bring different journaling intents into the same app.
+
+---
+
 ## Tone and Feel
 
 The app should feel:
