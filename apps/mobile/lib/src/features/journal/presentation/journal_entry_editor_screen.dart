@@ -174,15 +174,21 @@ class _JournalEntryEditorScaffoldState
             title: title.isEmpty ? null : title,
           );
 
-    if (_shouldRegenerateAfterEdit(existingEntry, originalText)) {
-      final rewrite = await aiService.rewriteEntry(originalText: originalText);
-      final themeDetection = await aiService.detectThemes(text: originalText);
-      entry = entry.applyAiResults(
-        rewrite: rewrite,
-        themeDetection: themeDetection,
-        updatedAt: now,
-        preserveTitle: true,
-      );
+    if (_shouldGenerateAfterSave(existingEntry, originalText)) {
+      try {
+        final rewrite = await aiService.rewriteEntry(
+          originalText: originalText,
+        );
+        final themeDetection = await aiService.detectThemes(text: originalText);
+        entry = entry.applyAiResults(
+          rewrite: rewrite,
+          themeDetection: themeDetection,
+          updatedAt: now,
+          preserveTitle: title.isNotEmpty,
+        );
+      } catch (_) {
+        entry = entry.withoutAiResults(updatedAt: now);
+      }
     }
 
     await repository.saveEntry(entry);
@@ -197,11 +203,11 @@ class _JournalEntryEditorScaffoldState
     }
   }
 
-  bool _shouldRegenerateAfterEdit(
+  bool _shouldGenerateAfterSave(
     JournalEntry? existingEntry,
     String originalText,
   ) {
-    return existingEntry != null && existingEntry.originalText != originalText;
+    return existingEntry == null || existingEntry.originalText != originalText;
   }
 
   JournalEntry _newTypedEntry({

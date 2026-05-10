@@ -113,7 +113,19 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [journalRepositoryProvider.overrideWithValue(repository)],
+        overrides: [
+          journalRepositoryProvider.overrideWithValue(repository),
+          journalAiServiceProvider.overrideWithValue(
+            const _ImmediateAiService(
+              rewrittenText: 'Generated typed rewrite.',
+              theme: JournalTheme(
+                id: 'reflection',
+                name: 'reflection',
+                displayName: 'Reflection',
+              ),
+            ),
+          ),
+        ],
         child: const LumenApp(),
       ),
     );
@@ -133,8 +145,47 @@ void main() {
     expect(entries, hasLength(1));
     expect(entries.single.title, 'Typed entry');
     expect(entries.single.originalText, originalText);
+    expect(entries.single.rewrittenText, 'Generated typed rewrite.');
+    expect(entries.single.themes.single.displayName, 'Reflection');
     expect(find.text('Typed entry'), findsOneWidget);
     expect(find.text(originalText), findsOneWidget);
+    expect(find.text('Generated typed rewrite.'), findsOneWidget);
+  });
+
+  testWidgets('saves a new entry when initial rewrite generation fails', (
+    tester,
+  ) async {
+    final repository = InMemoryJournalRepository(seedEntries: const []);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          journalRepositoryProvider.overrideWithValue(repository),
+          journalAiServiceProvider.overrideWithValue(const _FailingAiService()),
+        ],
+        child: const LumenApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('New entry'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField).at(0), 'Fallback entry');
+    await tester.enterText(
+      find.byType(TextFormField).at(1),
+      'Original still saves.',
+    );
+    await tester.tap(find.text('Save entry'));
+    await tester.pumpAndSettle();
+
+    final entries = await repository.listEntries();
+
+    expect(entries, hasLength(1));
+    expect(entries.single.title, 'Fallback entry');
+    expect(entries.single.originalText, 'Original still saves.');
+    expect(entries.single.rewrittenText, isEmpty);
+    expect(entries.single.themes, isEmpty);
+    expect(find.text('No rewrite yet.'), findsOneWidget);
   });
 
   testWidgets('edits a typed journal entry', (tester) async {

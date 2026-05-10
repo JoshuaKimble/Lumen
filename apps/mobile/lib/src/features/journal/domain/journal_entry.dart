@@ -82,4 +82,19 @@ class JournalEntry {
       lastRegeneratedAt: updatedAt,
     );
   }
+
+  JournalEntry withoutAiResults({required DateTime updatedAt}) {
+    return JournalEntry(
+      id: id,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+      source: source,
+      originalText: originalText,
+      rewrittenText: '',
+      themes: const [],
+      resources: resources,
+      title: title,
+      summary: null,
+    );
+  }
 }
