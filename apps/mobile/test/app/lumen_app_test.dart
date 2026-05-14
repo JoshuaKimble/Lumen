@@ -15,7 +15,9 @@ import 'package:lumen/src/features/journal/domain/journal_theme.dart';
 import 'package:lumen/src/features/journal/domain/related_resource.dart';
 import 'package:lumen/src/features/journal/domain/voice_recorder.dart';
 import 'package:lumen/src/features/journal/domain/voice_recording.dart';
+import 'package:lumen/src/features/journal/domain/voice_transcription_service.dart';
 import 'package:lumen/src/features/journal/data/voice_recorder_provider.dart';
+import 'package:lumen/src/features/journal/data/voice_transcription_service_provider.dart';
 
 void main() {
   testWidgets('renders the journal home screen', (tester) async {
@@ -414,7 +416,9 @@ void main() {
     );
   });
 
-  testWidgets('starts and stops a voice recording', (tester) async {
+  testWidgets('starts, stops, and transcribes a voice recording', (
+    tester,
+  ) async {
     final recorder = _FakeVoiceRecorder();
 
     await tester.pumpWidget(
@@ -424,6 +428,11 @@ void main() {
             InMemoryJournalRepository(seedEntries: const []),
           ),
           voiceRecorderProvider.overrideWithValue(recorder),
+          voiceTranscriptionServiceProvider.overrideWithValue(
+            const _FakeVoiceTranscriptionService(
+              transcript: 'This is the reviewed transcript.',
+            ),
+          ),
         ],
         child: const LumenApp(),
       ),
@@ -442,9 +451,70 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(recorder.didStop, isTrue);
-    expect(find.text('Recording captured'), findsOneWidget);
+    expect(find.text('Review transcript'), findsOneWidget);
+    expect(find.text('This is the reviewed transcript.'), findsOneWidget);
+    await tester.drag(find.byType(Scrollable).last, const Offset(0, -320));
+    await tester.pumpAndSettle();
     expect(find.text('Temporary audio saved'), findsOneWidget);
     expect(find.text('memory://recording.m4a'), findsOneWidget);
+  });
+
+  testWidgets('saves reviewed voice transcript as a journal entry', (
+    tester,
+  ) async {
+    final repository = InMemoryJournalRepository(seedEntries: const []);
+    final recorder = _FakeVoiceRecorder();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          journalRepositoryProvider.overrideWithValue(repository),
+          journalAiServiceProvider.overrideWithValue(
+            const _ImmediateAiService(
+              rewrittenText: 'Generated voice rewrite.',
+              theme: JournalTheme(
+                id: 'reflection',
+                name: 'reflection',
+                displayName: 'Reflection',
+              ),
+            ),
+          ),
+          voiceRecorderProvider.overrideWithValue(recorder),
+          voiceTranscriptionServiceProvider.overrideWithValue(
+            const _FakeVoiceTranscriptionService(
+              transcript: 'Rough voice transcript.',
+            ),
+          ),
+        ],
+        child: const LumenApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Record voice entry'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Start recording'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Stop recording'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byType(TextFormField),
+      'Edited voice transcript.',
+    );
+    await tester.drag(find.byType(Scrollable).last, const Offset(0, -240));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save voice entry'));
+    await tester.pumpAndSettle();
+
+    final entries = await repository.listEntries();
+
+    expect(entries, hasLength(1));
+    expect(entries.single.source, EntrySource.voice);
+    expect(entries.single.originalText, 'Edited voice transcript.');
+    expect(entries.single.rewrittenText, 'Generated voice rewrite.');
+    expect(entries.single.themes.single.displayName, 'Reflection');
+    expect(find.text('Edited voice transcript.'), findsOneWidget);
+    expect(find.text('Generated voice rewrite.'), findsOneWidget);
   });
 
   testWidgets('handles denied microphone permission', (tester) async {
@@ -569,6 +639,17 @@ class _FailingAiService implements JournalAiService {
   @override
   Future<RewriteResult> rewriteEntry({required String originalText}) async {
     throw StateError('AI unavailable');
+  }
+}
+
+class _FakeVoiceTranscriptionService implements VoiceTranscriptionService {
+  const _FakeVoiceTranscriptionService({required this.transcript});
+
+  final String transcript;
+
+  @override
+  Future<String> transcribe(VoiceRecording recording) async {
+    return transcript;
   }
 }
 

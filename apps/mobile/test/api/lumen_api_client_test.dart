@@ -1,8 +1,14 @@
+import 'dart:typed_data';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:lumen/src/api/generated/lumen_api_client.dart';
 import 'package:lumen/src/features/journal/data/api_journal_ai_service.dart';
+import 'package:lumen/src/features/journal/data/api_voice_transcription_service.dart';
+import 'package:lumen/src/features/journal/data/voice_recording_audio_reader.dart';
+import 'package:lumen/src/features/journal/domain/voice_recording.dart';
+import 'package:lumen/src/features/journal/domain/voice_recording_audio.dart';
 
 void main() {
   test('calls typed rewrite endpoint', () async {
@@ -126,4 +132,45 @@ void main() {
     expect(rewrite.title, 'Generated');
     expect(themes.themes.single.displayName, 'Work');
   });
+
+  test('adapts recorded audio to transcription API request', () async {
+    final service = ApiVoiceTranscriptionService(
+      audioReader: const _FakeAudioReader(),
+      client: LumenApiClient(
+        baseUri: Uri.parse('http://localhost:3000'),
+        httpClient: MockClient((request) async {
+          expect(request.method, 'POST');
+          expect(request.url.path, '/v1/transcriptions');
+          expect(
+            request.body,
+            '{"audioBase64":"AQIDBA==","mimeType":"audio/mp4"}',
+          );
+
+          return http.Response('{"transcript":"transcribed audio"}', 200);
+        }),
+      ),
+    );
+
+    final transcript = await service.transcribe(
+      VoiceRecording(
+        uri: 'memory://recording.m4a',
+        startedAt: DateTime.utc(2026, 5, 14, 12),
+        stoppedAt: DateTime.utc(2026, 5, 14, 12, 1),
+      ),
+    );
+
+    expect(transcript, 'transcribed audio');
+  });
+}
+
+class _FakeAudioReader implements VoiceRecordingAudioReader {
+  const _FakeAudioReader();
+
+  @override
+  Future<VoiceRecordingAudio> read(VoiceRecording recording) async {
+    return VoiceRecordingAudio(
+      bytes: Uint8List.fromList([1, 2, 3, 4]),
+      mimeType: 'audio/mp4',
+    );
+  }
 }
