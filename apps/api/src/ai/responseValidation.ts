@@ -2,7 +2,20 @@ import type {
   JournalTheme,
   RewriteResult,
   ThemeDetectionResult,
+  TranscriptionResult,
 } from './aiGatewayProvider.js';
+
+export function validateTranscriptionResult(
+  result: TranscriptionResult,
+): TranscriptionResult {
+  if (typeof result.transcript !== 'string') {
+    throw new Error('AI transcription response must include transcript.');
+  }
+
+  return {
+    transcript: result.transcript,
+  };
+}
 
 export function validateRewriteResult(result: RewriteResult): RewriteResult {
   if (result.rewrittenText.trim().length === 0) {

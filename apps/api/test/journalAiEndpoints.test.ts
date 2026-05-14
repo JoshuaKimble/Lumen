@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { Buffer } from 'node:buffer';
 import { after, before, test } from 'node:test';
 
 import { createApiServer } from '../src/app.js';
@@ -66,6 +67,19 @@ test('theme endpoint returns OpenAPI response shape', async () => {
   });
 });
 
+test('transcription endpoint returns OpenAPI response shape', async () => {
+  const response = await postJson('/v1/transcriptions', {
+    audioBase64: Buffer.from('recorded audio').toString('base64'),
+    mimeType: 'audio/mp4',
+  });
+  const body = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(body, {
+    transcript: 'Mock transcript from recorded audio.',
+  });
+});
+
 test('rewrite endpoint rejects malformed requests', async () => {
   const response = await postJson('/v1/entries/rewrite', {
     originalText: '',
@@ -90,6 +104,34 @@ test('theme endpoint rejects unknown fields', async () => {
   assert.deepEqual(body, {
     error: 'bad_request',
     message: 'Unexpected field "extra".',
+  });
+});
+
+test('transcription endpoint rejects invalid audio uploads', async () => {
+  const response = await postJson('/v1/transcriptions', {
+    audioBase64: 'not base64',
+    mimeType: 'audio/mp4',
+  });
+  const body = await response.json();
+
+  assert.equal(response.status, 400);
+  assert.deepEqual(body, {
+    error: 'bad_request',
+    message: 'Expected valid base64 audio.',
+  });
+});
+
+test('transcription endpoint rejects unsupported audio types', async () => {
+  const response = await postJson('/v1/transcriptions', {
+    audioBase64: Buffer.from('recorded audio').toString('base64'),
+    mimeType: 'text/plain',
+  });
+  const body = await response.json();
+
+  assert.equal(response.status, 400);
+  assert.deepEqual(body, {
+    error: 'bad_request',
+    message: 'Unsupported audio mime type "text/plain".',
   });
 });
 

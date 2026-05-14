@@ -235,11 +235,19 @@
         "properties": {
           "audioBase64": {
             "type": "string",
-            "minLength": 1
+            "contentEncoding": "base64",
+            "minLength": 1,
+            "maxLength": 13981016
           },
           "mimeType": {
             "type": "string",
-            "examples": ["audio/mp4", "audio/mpeg", "audio/wav"]
+            "enum": [
+              "audio/mp4",
+              "audio/mpeg",
+              "audio/wav",
+              "audio/webm",
+              "audio/x-m4a"
+            ]
           }
         }
       },

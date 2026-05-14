@@ -66,6 +66,33 @@ void main() {
     expect(find.text('Welcome to Lumen'), findsOneWidget);
   });
 
+  testWidgets('shows navigation on entry detail pages', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          journalRepositoryProvider.overrideWithValue(
+            InMemoryJournalRepository(seedEntries: [_sampleEntry]),
+          ),
+        ],
+        child: const LumenApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('A difficult but honest morning'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Journal entry'), findsOneWidget);
+    expect(find.text('Journal'), findsOneWidget);
+    expect(find.text('Voice'), findsOneWidget);
+
+    await tester.tap(find.text('Journal'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Lumen'), findsOneWidget);
+    expect(find.text('A difficult but honest morning'), findsOneWidget);
+  });
+
   testWidgets('renders entry list content', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
@@ -116,6 +143,10 @@ void main() {
     expect(
       find.text('I noticed I was tense before breakfast.'),
       findsOneWidget,
+    );
+    await tester.scrollUntilVisible(
+      find.text('Morning reflection prompt'),
+      120,
     );
     expect(find.text('Morning reflection prompt'), findsOneWidget);
     expect(find.text('Regenerate rewrite'), findsOneWidget);

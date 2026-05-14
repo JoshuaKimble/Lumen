@@ -12,6 +12,7 @@ const contract = JSON.parse(fs.readFileSync(contractPath, 'utf8'));
 
 assertOperation('/v1/entries/rewrite', 'post', 'rewriteEntry');
 assertOperation('/v1/entries/themes/detect', 'post', 'detectEntryThemes');
+assertOperation('/v1/transcriptions', 'post', 'createTranscription');
 
 const output = `// Generated from packages/api_contracts/openapi/openapi.json.
 // Regenerate with: npm --prefix packages/api_contracts run generate:flutter
@@ -31,6 +32,14 @@ class LumenApiClient {
     final response = await _postJson('/v1/entries/rewrite', request.toJson());
 
     return RewriteEntryResponse.fromJson(response);
+  }
+
+  Future<CreateTranscriptionResponse> createTranscription(
+    CreateTranscriptionRequest request,
+  ) async {
+    final response = await _postJson('/v1/transcriptions', request.toJson());
+
+    return CreateTranscriptionResponse.fromJson(response);
   }
 
   Future<DetectThemesResponse> detectEntryThemes(
@@ -99,6 +108,35 @@ class RewriteEntryResponse {
   final String rewrittenText;
   final String? title;
   final String? summary;
+}
+
+class CreateTranscriptionRequest {
+  const CreateTranscriptionRequest({
+    required this.audioBase64,
+    required this.mimeType,
+  });
+
+  final String audioBase64;
+  final String mimeType;
+
+  Map<String, Object?> toJson() {
+    return {
+      'audioBase64': audioBase64,
+      'mimeType': mimeType,
+    };
+  }
+}
+
+class CreateTranscriptionResponse {
+  const CreateTranscriptionResponse({required this.transcript});
+
+  factory CreateTranscriptionResponse.fromJson(Map<String, Object?> json) {
+    return CreateTranscriptionResponse(
+      transcript: _requiredString(json, 'transcript'),
+    );
+  }
+
+  final String transcript;
 }
 
 class DetectThemesRequest {

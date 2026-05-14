@@ -53,6 +53,31 @@ void main() {
     expect(response.themes.single.weight, 1);
   });
 
+  test('calls typed transcription endpoint', () async {
+    final client = LumenApiClient(
+      baseUri: Uri.parse('http://localhost:3000'),
+      httpClient: MockClient((request) async {
+        expect(request.method, 'POST');
+        expect(request.url.path, '/v1/transcriptions');
+        expect(
+          request.body,
+          '{"audioBase64":"cmVjb3JkZWQgYXVkaW8=","mimeType":"audio/mp4"}',
+        );
+
+        return http.Response('{"transcript":"transcribed note"}', 200);
+      }),
+    );
+
+    final response = await client.createTranscription(
+      const CreateTranscriptionRequest(
+        audioBase64: 'cmVjb3JkZWQgYXVkaW8=',
+        mimeType: 'audio/mp4',
+      ),
+    );
+
+    expect(response.transcript, 'transcribed note');
+  });
+
   test('throws typed exception for API errors', () async {
     final client = LumenApiClient(
       baseUri: Uri.parse('http://localhost:3000'),

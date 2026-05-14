@@ -40,30 +40,30 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: voiceRecordingRoutePath,
             builder: (context, state) => const VoiceRecordingScreen(),
           ),
+          GoRoute(
+            name: journalEntryCreateRouteName,
+            path: journalEntryCreateRoutePath,
+            builder: (context, state) => const JournalEntryEditorScreen(),
+          ),
+          GoRoute(
+            name: journalEntryDetailRouteName,
+            path: journalEntryDetailRoutePath,
+            builder: (context, state) {
+              final entryId = state.pathParameters['entryId']!;
+
+              return JournalEntryDetailScreen(entryId: entryId);
+            },
+          ),
+          GoRoute(
+            name: journalEntryEditRouteName,
+            path: journalEntryEditRoutePath,
+            builder: (context, state) {
+              final entryId = state.pathParameters['entryId']!;
+
+              return JournalEntryEditorScreen(entryId: entryId);
+            },
+          ),
         ],
-      ),
-      GoRoute(
-        name: journalEntryCreateRouteName,
-        path: journalEntryCreateRoutePath,
-        builder: (context, state) => const JournalEntryEditorScreen(),
-      ),
-      GoRoute(
-        name: journalEntryDetailRouteName,
-        path: journalEntryDetailRoutePath,
-        builder: (context, state) {
-          final entryId = state.pathParameters['entryId']!;
-
-          return JournalEntryDetailScreen(entryId: entryId);
-        },
-      ),
-      GoRoute(
-        name: journalEntryEditRouteName,
-        path: journalEntryEditRoutePath,
-        builder: (context, state) {
-          final entryId = state.pathParameters['entryId']!;
-
-          return JournalEntryEditorScreen(entryId: entryId);
-        },
       ),
     ],
   );
@@ -86,16 +86,22 @@ class LumenNavigationScaffold extends StatelessWidget {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: (index) {
-          if (index == _selectedIndex) {
+          final routeName = switch (index) {
+            0 => journalHomeRouteName,
+            1 => voiceRecordingRouteName,
+            _ => journalHomeRouteName,
+          };
+          final routePath = switch (index) {
+            0 => journalHomeRoutePath,
+            1 => voiceRecordingRoutePath,
+            _ => journalHomeRoutePath,
+          };
+
+          if (location == routePath) {
             return;
           }
 
-          switch (index) {
-            case 0:
-              context.goNamed(journalHomeRouteName);
-            case 1:
-              context.goNamed(voiceRecordingRouteName);
-          }
+          context.goNamed(routeName);
         },
         destinations: const [
           NavigationDestination(

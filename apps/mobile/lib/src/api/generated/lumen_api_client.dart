@@ -18,6 +18,14 @@ class LumenApiClient {
     return RewriteEntryResponse.fromJson(response);
   }
 
+  Future<CreateTranscriptionResponse> createTranscription(
+    CreateTranscriptionRequest request,
+  ) async {
+    final response = await _postJson('/v1/transcriptions', request.toJson());
+
+    return CreateTranscriptionResponse.fromJson(response);
+  }
+
   Future<DetectThemesResponse> detectEntryThemes(
     DetectThemesRequest request,
   ) async {
@@ -84,6 +92,35 @@ class RewriteEntryResponse {
   final String rewrittenText;
   final String? title;
   final String? summary;
+}
+
+class CreateTranscriptionRequest {
+  const CreateTranscriptionRequest({
+    required this.audioBase64,
+    required this.mimeType,
+  });
+
+  final String audioBase64;
+  final String mimeType;
+
+  Map<String, Object?> toJson() {
+    return {
+      'audioBase64': audioBase64,
+      'mimeType': mimeType,
+    };
+  }
+}
+
+class CreateTranscriptionResponse {
+  const CreateTranscriptionResponse({required this.transcript});
+
+  factory CreateTranscriptionResponse.fromJson(Map<String, Object?> json) {
+    return CreateTranscriptionResponse(
+      transcript: _requiredString(json, 'transcript'),
+    );
+  }
+
+  final String transcript;
 }
 
 class DetectThemesRequest {
