@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -21,20 +22,30 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: journalHomeRoutePath,
     routes: [
-      GoRoute(
-        name: journalHomeRouteName,
-        path: journalHomeRoutePath,
-        builder: (context, state) => const JournalHomeScreen(),
+      ShellRoute(
+        builder: (context, state, child) {
+          return LumenNavigationScaffold(
+            location: state.uri.path,
+            child: child,
+          );
+        },
+        routes: [
+          GoRoute(
+            name: journalHomeRouteName,
+            path: journalHomeRoutePath,
+            builder: (context, state) => const JournalHomeScreen(),
+          ),
+          GoRoute(
+            name: voiceRecordingRouteName,
+            path: voiceRecordingRoutePath,
+            builder: (context, state) => const VoiceRecordingScreen(),
+          ),
+        ],
       ),
       GoRoute(
         name: journalEntryCreateRouteName,
         path: journalEntryCreateRoutePath,
         builder: (context, state) => const JournalEntryEditorScreen(),
-      ),
-      GoRoute(
-        name: voiceRecordingRouteName,
-        path: voiceRecordingRoutePath,
-        builder: (context, state) => const VoiceRecordingScreen(),
       ),
       GoRoute(
         name: journalEntryDetailRouteName,
@@ -57,3 +68,56 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
+
+class LumenNavigationScaffold extends StatelessWidget {
+  const LumenNavigationScaffold({
+    required this.location,
+    required this.child,
+    super.key,
+  });
+
+  final String location;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: child,
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _selectedIndex,
+        onDestinationSelected: (index) {
+          if (index == _selectedIndex) {
+            return;
+          }
+
+          switch (index) {
+            case 0:
+              context.goNamed(journalHomeRouteName);
+            case 1:
+              context.goNamed(voiceRecordingRouteName);
+          }
+        },
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.book_outlined),
+            selectedIcon: Icon(Icons.book),
+            label: 'Journal',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.mic_none_outlined),
+            selectedIcon: Icon(Icons.mic),
+            label: 'Voice',
+          ),
+        ],
+      ),
+    );
+  }
+
+  int get _selectedIndex {
+    if (location == voiceRecordingRoutePath) {
+      return 1;
+    }
+
+    return 0;
+  }
+}

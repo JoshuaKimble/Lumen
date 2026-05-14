@@ -36,6 +36,34 @@ void main() {
     expect(find.text('A quiet place for daily reflection.'), findsOneWidget);
     expect(find.byTooltip('Record voice entry'), findsOneWidget);
     expect(find.byTooltip('New text entry'), findsOneWidget);
+    expect(find.text('Journal'), findsOneWidget);
+    expect(find.text('Voice'), findsOneWidget);
+  });
+
+  testWidgets('navigates between top-level pages', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          journalRepositoryProvider.overrideWithValue(
+            InMemoryJournalRepository(),
+          ),
+        ],
+        child: const LumenApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Voice'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Voice entry'), findsOneWidget);
+    expect(find.text('Capture a voice entry'), findsOneWidget);
+
+    await tester.tap(find.text('Journal'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Lumen'), findsOneWidget);
+    expect(find.text('Welcome to Lumen'), findsOneWidget);
   });
 
   testWidgets('renders entry list content', (tester) async {
