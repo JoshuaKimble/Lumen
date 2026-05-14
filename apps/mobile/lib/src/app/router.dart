@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../features/journal/presentation/journal_entry_detail_screen.dart';
 import '../features/journal/presentation/journal_entry_editor_screen.dart';
 import '../features/journal/presentation/journal_home_screen.dart';
+import '../features/journal/presentation/voice_recording_screen.dart';
 
 const journalHomeRouteName = 'journal-home';
 const journalHomeRoutePath = '/';
@@ -13,6 +14,8 @@ const journalEntryDetailRouteName = 'journal-entry-detail';
 const journalEntryDetailRoutePath = '/entries/:entryId';
 const journalEntryEditRouteName = 'journal-entry-edit';
 const journalEntryEditRoutePath = '/entries/:entryId/edit';
+const voiceRecordingRouteName = 'voice-recording';
+const voiceRecordingRoutePath = '/voice/new';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -27,6 +30,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: journalEntryCreateRouteName,
         path: journalEntryCreateRoutePath,
         builder: (context, state) => const JournalEntryEditorScreen(),
+      ),
+      GoRoute(
+        name: voiceRecordingRouteName,
+        path: voiceRecordingRoutePath,
+        builder: (context, state) => const VoiceRecordingScreen(),
       ),
       GoRoute(
         name: journalEntryDetailRouteName,

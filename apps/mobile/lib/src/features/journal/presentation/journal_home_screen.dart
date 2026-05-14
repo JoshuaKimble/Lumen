@@ -31,10 +31,25 @@ class JournalHomeScreen extends ConsumerWidget {
           loading: () => const Center(child: CircularProgressIndicator()),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        tooltip: 'New entry',
-        onPressed: () => context.goNamed(journalEntryCreateRouteName),
-        child: const Icon(Icons.edit_outlined),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          FloatingActionButton.small(
+            heroTag: 'new-text-entry',
+            tooltip: 'New text entry',
+            onPressed: () => context.goNamed(journalEntryCreateRouteName),
+            child: const Icon(Icons.edit_outlined),
+          ),
+          const SizedBox(height: 12),
+          FloatingActionButton.extended(
+            heroTag: 'record-voice-entry',
+            tooltip: 'Record voice entry',
+            onPressed: () => context.goNamed(voiceRecordingRouteName),
+            icon: const Icon(Icons.mic_outlined),
+            label: const Text('Record'),
+          ),
+        ],
       ),
     );
   }

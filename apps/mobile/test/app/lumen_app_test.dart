@@ -13,6 +13,9 @@ import 'package:lumen/src/features/journal/domain/journal_ai_service.dart';
 import 'package:lumen/src/features/journal/domain/journal_entry.dart';
 import 'package:lumen/src/features/journal/domain/journal_theme.dart';
 import 'package:lumen/src/features/journal/domain/related_resource.dart';
+import 'package:lumen/src/features/journal/domain/voice_recorder.dart';
+import 'package:lumen/src/features/journal/domain/voice_recording.dart';
+import 'package:lumen/src/features/journal/data/voice_recorder_provider.dart';
 
 void main() {
   testWidgets('renders the journal home screen', (tester) async {
@@ -31,6 +34,8 @@ void main() {
     expect(find.text('Lumen'), findsOneWidget);
     expect(find.text('Welcome to Lumen'), findsOneWidget);
     expect(find.text('A quiet place for daily reflection.'), findsOneWidget);
+    expect(find.byTooltip('Record voice entry'), findsOneWidget);
+    expect(find.byTooltip('New text entry'), findsOneWidget);
   });
 
   testWidgets('renders entry list content', (tester) async {
@@ -133,7 +138,7 @@ void main() {
 
     const originalText = '  These are my exact typed words.  ';
 
-    await tester.tap(find.byTooltip('New entry'));
+    await tester.tap(find.byTooltip('New text entry'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextFormField).at(0), 'Typed entry');
     await tester.enterText(find.byType(TextFormField).at(1), originalText);
@@ -168,7 +173,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byTooltip('New entry'));
+    await tester.tap(find.byTooltip('New text entry'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextFormField).at(0), 'Fallback entry');
     await tester.enterText(
@@ -349,6 +354,69 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('starts and stops a voice recording', (tester) async {
+    final recorder = _FakeVoiceRecorder();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          journalRepositoryProvider.overrideWithValue(
+            InMemoryJournalRepository(seedEntries: const []),
+          ),
+          voiceRecorderProvider.overrideWithValue(recorder),
+        ],
+        child: const LumenApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Record voice entry'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Start recording'));
+    await tester.pumpAndSettle();
+
+    expect(recorder.didStart, isTrue);
+    expect(find.text('Recording'), findsOneWidget);
+
+    await tester.tap(find.text('Stop recording'));
+    await tester.pumpAndSettle();
+
+    expect(recorder.didStop, isTrue);
+    expect(find.text('Recording captured'), findsOneWidget);
+    expect(find.text('Temporary audio saved'), findsOneWidget);
+    expect(find.text('memory://recording.m4a'), findsOneWidget);
+  });
+
+  testWidgets('handles denied microphone permission', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          journalRepositoryProvider.overrideWithValue(
+            InMemoryJournalRepository(seedEntries: const []),
+          ),
+          voiceRecorderProvider.overrideWithValue(
+            _FakeVoiceRecorder(hasPermissionValue: false),
+          ),
+        ],
+        child: const LumenApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Record voice entry'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Start recording'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Microphone access is needed'), findsOneWidget);
+    expect(
+      find.text(
+        'Allow microphone access in your browser or device settings to record journal entries.',
+      ),
+      findsOneWidget,
+    );
+  });
 }
 
 final _sampleEntry = JournalEntry(
@@ -442,5 +510,39 @@ class _FailingAiService implements JournalAiService {
   @override
   Future<RewriteResult> rewriteEntry({required String originalText}) async {
     throw StateError('AI unavailable');
+  }
+}
+
+class _FakeVoiceRecorder implements VoiceRecorder {
+  _FakeVoiceRecorder({this.hasPermissionValue = true});
+
+  final bool hasPermissionValue;
+  bool didStart = false;
+  bool didStop = false;
+  DateTime? _startedAt;
+
+  @override
+  Future<void> dispose() async {}
+
+  @override
+  Future<bool> hasPermission() async {
+    return hasPermissionValue;
+  }
+
+  @override
+  Future<void> start({required DateTime startedAt}) async {
+    didStart = true;
+    _startedAt = startedAt;
+  }
+
+  @override
+  Future<VoiceRecording?> stop({required DateTime stoppedAt}) async {
+    didStop = true;
+
+    return VoiceRecording(
+      uri: 'memory://recording.m4a',
+      startedAt: _startedAt ?? stoppedAt,
+      stoppedAt: stoppedAt,
+    );
   }
 }
