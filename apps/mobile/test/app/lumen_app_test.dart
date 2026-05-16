@@ -187,8 +187,21 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Journal entry'), findsOneWidget);
-    expect(find.text('Original'), findsOneWidget);
+    expect(find.text('Your entry stays yours'), findsOneWidget);
+    expect(
+      find.text(
+        'The original is preserved. AI rewrites are suggestions to help with clarity, not judgments, diagnoses, or replacements for your words.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Original entry'), findsOneWidget);
+    expect(find.text('Preserved exactly as you saved it.'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('AI rewrite'), 120);
     expect(find.text('AI rewrite'), findsOneWidget);
+    expect(
+      find.text('A clarity suggestion, not a replacement.'),
+      findsOneWidget,
+    );
     expect(
       find.text('I was irritated and rushed this morning.'),
       findsOneWidget,
@@ -202,7 +215,7 @@ void main() {
       120,
     );
     expect(find.text('Morning reflection prompt'), findsOneWidget);
-    expect(find.text('Regenerate rewrite'), findsOneWidget);
+    expect(find.text('Regenerate AI rewrite'), findsOneWidget);
   });
 
   testWidgets('renders a calm empty state', (tester) async {
@@ -266,6 +279,7 @@ void main() {
     expect(entries.single.themes.single.displayName, 'Reflection');
     expect(find.text('Typed entry'), findsOneWidget);
     expect(find.text(originalText), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Generated typed rewrite.'), 120);
     expect(find.text('Generated typed rewrite.'), findsOneWidget);
   });
 
@@ -374,6 +388,10 @@ void main() {
     expect(entry?.originalText, 'Changed text.');
     expect(entry?.rewrittenText, 'Updated generated rewrite.');
     expect(entry?.themes.single.displayName, 'Stress');
+    await tester.scrollUntilVisible(
+      find.text('Updated generated rewrite.'),
+      120,
+    );
     expect(find.text('Updated generated rewrite.'), findsOneWidget);
     expect(find.text('Stress'), findsOneWidget);
   });
@@ -393,6 +411,12 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Delete entry'));
     await tester.pumpAndSettle();
+    expect(
+      find.text(
+        'This removes the original entry, AI rewrite, themes, and resources from this device. You own your entries and can delete them at any time.',
+      ),
+      findsOneWidget,
+    );
     await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
     await tester.pumpAndSettle();
 
@@ -419,7 +443,8 @@ void main() {
 
     await tester.tap(find.text('A raw work note'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Regenerate rewrite'));
+    await tester.scrollUntilVisible(find.text('Regenerate AI rewrite'), 120);
+    await tester.tap(find.text('Regenerate AI rewrite'));
     await tester.pump();
 
     expect(find.text('Generating rewrite'), findsOneWidget);
@@ -432,6 +457,7 @@ void main() {
     expect(entry?.rewrittenText, 'A clearer mock rewrite.');
     expect(entry?.themes.single.displayName, 'Work');
     expect(find.text('A clearer mock rewrite.'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Work'), -120);
     expect(find.text('Work'), findsOneWidget);
   });
 
@@ -455,7 +481,8 @@ void main() {
 
     await tester.tap(find.text('A raw work note'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Regenerate rewrite'));
+    await tester.scrollUntilVisible(find.text('Regenerate AI rewrite'), 120);
+    await tester.tap(find.text('Regenerate AI rewrite'));
     await tester.pumpAndSettle();
 
     final entry = await repository.getEntry('entry-2');
@@ -565,6 +592,7 @@ void main() {
     expect(entries.single.rewrittenText, 'Generated voice rewrite.');
     expect(entries.single.themes.single.displayName, 'Reflection');
     expect(find.text('Edited voice transcript.'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Generated voice rewrite.'), 120);
     expect(find.text('Generated voice rewrite.'), findsOneWidget);
   });
 

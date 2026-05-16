@@ -117,6 +117,8 @@ class _JournalEntryEditorScaffoldState
                   alignLabelWithHint: true,
                   labelText: 'Original entry',
                   hintText: 'Write what you want to remember.',
+                  helperText:
+                      'This is saved as your original entry. AI rewrites never replace it.',
                 ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {

@@ -68,7 +68,9 @@ class JournalEntryDetailScreen extends ConsumerWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete entry?'),
-        content: const Text('This removes the journal entry from this device.'),
+        content: const Text(
+          'This removes the original entry, AI rewrite, themes, and resources from this device. You own your entries and can delete them at any time.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -133,14 +135,18 @@ class _JournalEntryDetailState extends ConsumerState<_JournalEntryDetail> {
         const SizedBox(height: 20),
         JournalThemeChips(themes: entry.themes),
         const SizedBox(height: 24),
+        const _TrustNotice(),
+        const SizedBox(height: 24),
         _EntryTextSection(
-          title: 'Original',
+          title: 'Original entry',
+          subtitle: 'Preserved exactly as you saved it.',
           text: entry.originalText,
           icon: Icons.mic_none_outlined,
         ),
         const SizedBox(height: 16),
         _EntryTextSection(
           title: 'AI rewrite',
+          subtitle: 'A clarity suggestion, not a replacement.',
           text: entry.rewrittenText,
           icon: Icons.auto_awesome_outlined,
           emptyText: 'No rewrite yet.',
@@ -158,7 +164,7 @@ class _JournalEntryDetailState extends ConsumerState<_JournalEntryDetail> {
                   )
                 : const Icon(Icons.auto_awesome_outlined),
             label: Text(
-              _isGenerating ? 'Generating rewrite' : 'Regenerate rewrite',
+              _isGenerating ? 'Generating rewrite' : 'Regenerate AI rewrite',
             ),
           ),
         ),
@@ -221,6 +227,7 @@ class _JournalEntryDetailState extends ConsumerState<_JournalEntryDetail> {
 class _EntryTextSection extends StatelessWidget {
   const _EntryTextSection({
     required this.title,
+    required this.subtitle,
     required this.text,
     required this.icon,
     this.emptyText,
@@ -228,6 +235,7 @@ class _EntryTextSection extends StatelessWidget {
   });
 
   final String title;
+  final String subtitle;
   final String text;
   final IconData icon;
   final String? emptyText;
@@ -268,8 +276,58 @@ class _EntryTextSection extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
+              subtitle,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
               text.isEmpty ? emptyText ?? '' : text,
               style: Theme.of(context).textTheme.bodyLarge,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TrustNotice extends StatelessWidget {
+  const _TrustNotice();
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest,
+        border: Border.all(color: colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.lock_outline, color: colorScheme.primary, size: 22),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Your entry stays yours', style: textTheme.titleMedium),
+                  const SizedBox(height: 6),
+                  Text(
+                    'The original is preserved. AI rewrites are suggestions to help with clarity, not judgments, diagnoses, or replacements for your words.',
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
