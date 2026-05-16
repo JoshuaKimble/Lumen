@@ -92,9 +92,21 @@ class _ThemeCloudChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    final fontSize = 16 + (prominence * 14);
-    final verticalPadding = 8 + (prominence * 4);
-    final horizontalPadding = 12 + (prominence * 6);
+    final constrainedProminence = prominence.clamp(0.45, 1.0);
+    final titleFontSize = 15 + (constrainedProminence * 3);
+    final accentSize = 7 + (constrainedProminence * 4);
+    final horizontalPadding = 14 + (constrainedProminence * 4);
+    final verticalPadding = 11 + (constrainedProminence * 3);
+    final backgroundColor = Color.lerp(
+      colorScheme.surfaceContainerHighest,
+      colorScheme.primaryContainer,
+      0.08 + (constrainedProminence * 0.08),
+    )!;
+    final borderColor = Color.lerp(
+      colorScheme.outlineVariant,
+      colorScheme.primary,
+      0.22 + (constrainedProminence * 0.28),
+    )!;
 
     return InkWell(
       borderRadius: BorderRadius.circular(8),
@@ -104,18 +116,8 @@ class _ThemeCloudChip extends StatelessWidget {
       ),
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: Color.lerp(
-            colorScheme.surfaceContainerHighest,
-            colorScheme.primaryContainer,
-            prominence,
-          ),
-          border: Border.all(
-            color: Color.lerp(
-              colorScheme.outlineVariant,
-              colorScheme.primary,
-              prominence,
-            )!,
-          ),
+          color: backgroundColor,
+          border: Border.all(color: borderColor),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Padding(
@@ -123,23 +125,42 @@ class _ThemeCloudChip extends StatelessWidget {
             horizontal: horizontalPadding,
             vertical: verticalPadding,
           ),
-          child: Column(
+          child: Row(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Text(
-                displayName,
-                style: textTheme.titleMedium?.copyWith(
-                  color: colorScheme.onPrimaryContainer,
-                  fontSize: fontSize,
+              Container(
+                width: accentSize,
+                height: accentSize,
+                decoration: BoxDecoration(
+                  color: colorScheme.primary,
+                  shape: BoxShape.circle,
                 ),
               ),
-              const SizedBox(height: 2),
-              Text(
-                entryCount == 1 ? '1 entry' : '$entryCount entries',
-                style: textTheme.labelMedium?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                ),
+              const SizedBox(width: 10),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    displayName,
+                    style: textTheme.labelLarge?.copyWith(
+                      color: colorScheme.onSurface,
+                      fontSize: titleFontSize,
+                      fontWeight: FontWeight.w700,
+                      height: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    entryCount == 1 ? '1 entry' : '$entryCount entries',
+                    style: textTheme.labelMedium?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                      fontSize: 12.5,
+                      height: 1.25,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
