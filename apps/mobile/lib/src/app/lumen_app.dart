@@ -13,7 +13,9 @@ class LumenApp extends ConsumerWidget {
 
     return MaterialApp.router(
       title: 'Lumen',
-      theme: buildLumenTheme(),
+      theme: buildLumenLightTheme(),
+      darkTheme: buildLumenDarkTheme(),
+      themeMode: ThemeMode.system,
       routerConfig: router,
     );
   }
