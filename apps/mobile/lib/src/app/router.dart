@@ -6,6 +6,7 @@ import '../features/journal/presentation/journal_entry_detail_screen.dart';
 import '../features/journal/presentation/journal_entry_editor_screen.dart';
 import '../features/journal/presentation/journal_home_screen.dart';
 import '../features/journal/presentation/theme_cloud_screen.dart';
+import '../features/journal/presentation/theme_detail_screen.dart';
 import '../features/journal/presentation/voice_recording_screen.dart';
 
 const journalHomeRouteName = 'journal-home';
@@ -18,6 +19,8 @@ const journalEntryEditRouteName = 'journal-entry-edit';
 const journalEntryEditRoutePath = '/entries/:entryId/edit';
 const themeCloudRouteName = 'theme-cloud';
 const themeCloudRoutePath = '/themes';
+const themeDetailRouteName = 'theme-detail';
+const themeDetailRoutePath = '/themes/:themeId';
 const voiceRecordingRouteName = 'voice-recording';
 const voiceRecordingRoutePath = '/voice/new';
 
@@ -47,6 +50,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             name: themeCloudRouteName,
             path: themeCloudRoutePath,
             builder: (context, state) => const ThemeCloudScreen(),
+          ),
+          GoRoute(
+            name: themeDetailRouteName,
+            path: themeDetailRoutePath,
+            builder: (context, state) {
+              final themeId = state.pathParameters['themeId']!;
+
+              return ThemeDetailScreen(themeId: themeId);
+            },
           ),
           GoRoute(
             name: journalEntryCreateRouteName,

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../app/router.dart';
 import '../domain/theme_summary.dart';
 import 'theme_summaries_provider.dart';
 
@@ -61,6 +63,7 @@ class _ThemeCloud extends StatelessWidget {
           children: [
             for (final summary in summaries)
               _ThemeCloudChip(
+                themeId: summary.id,
                 displayName: summary.displayName,
                 entryCount: summary.entryCount,
                 prominence: summary.score / highestScore,
@@ -74,11 +77,13 @@ class _ThemeCloud extends StatelessWidget {
 
 class _ThemeCloudChip extends StatelessWidget {
   const _ThemeCloudChip({
+    required this.themeId,
     required this.displayName,
     required this.entryCount,
     required this.prominence,
   });
 
+  final String themeId;
   final String displayName;
   final int entryCount;
   final double prominence;
@@ -91,46 +96,53 @@ class _ThemeCloudChip extends StatelessWidget {
     final verticalPadding = 8 + (prominence * 4);
     final horizontalPadding = 12 + (prominence * 6);
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: Color.lerp(
-          colorScheme.surfaceContainerHighest,
-          colorScheme.primaryContainer,
-          prominence,
-        ),
-        border: Border.all(
-          color: Color.lerp(
-            colorScheme.outlineVariant,
-            colorScheme.primary,
-            prominence,
-          )!,
-        ),
-        borderRadius: BorderRadius.circular(8),
+    return InkWell(
+      borderRadius: BorderRadius.circular(8),
+      onTap: () => context.goNamed(
+        themeDetailRouteName,
+        pathParameters: {'themeId': themeId},
       ),
-      child: Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: horizontalPadding,
-          vertical: verticalPadding,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: Color.lerp(
+            colorScheme.surfaceContainerHighest,
+            colorScheme.primaryContainer,
+            prominence,
+          ),
+          border: Border.all(
+            color: Color.lerp(
+              colorScheme.outlineVariant,
+              colorScheme.primary,
+              prominence,
+            )!,
+          ),
+          borderRadius: BorderRadius.circular(8),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              displayName,
-              style: textTheme.titleMedium?.copyWith(
-                color: colorScheme.onPrimaryContainer,
-                fontSize: fontSize,
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: horizontalPadding,
+            vertical: verticalPadding,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                displayName,
+                style: textTheme.titleMedium?.copyWith(
+                  color: colorScheme.onPrimaryContainer,
+                  fontSize: fontSize,
+                ),
               ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              entryCount == 1 ? '1 entry' : '$entryCount entries',
-              style: textTheme.labelMedium?.copyWith(
-                color: colorScheme.onSurfaceVariant,
+              const SizedBox(height: 2),
+              Text(
+                entryCount == 1 ? '1 entry' : '$entryCount entries',
+                style: textTheme.labelMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

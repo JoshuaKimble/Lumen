@@ -97,6 +97,26 @@ void main() {
     expect(find.text('3 entries'), findsOneWidget);
     expect(find.text('2 entries'), findsOneWidget);
     expect(find.text('1 entry'), findsOneWidget);
+
+    await tester.tap(find.text('Work'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('3 related journal entries'), findsOneWidget);
+    expect(find.text('Insights'), findsOneWidget);
+    expect(find.text('Related entries'), findsOneWidget);
+    expect(find.text('theme-entry-1'), findsOneWidget);
+    expect(find.text('theme-entry-2'), findsOneWidget);
+
+    await tester.drag(find.byType(Scrollable).last, const Offset(0, -360));
+    await tester.pumpAndSettle();
+
+    expect(find.text('theme-entry-3'), findsOneWidget);
+
+    await tester.tap(find.text('theme-entry-3'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Journal entry'), findsOneWidget);
+    expect(find.text('Theme source text.'), findsOneWidget);
   });
 
   testWidgets('shows navigation on entry detail pages', (tester) async {
