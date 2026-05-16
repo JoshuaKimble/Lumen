@@ -63,3 +63,9 @@ shows which flow produced the result.
 - API mock rewrite responses begin with `[API mock: rewrite endpoint]`.
 - Source labels should stay limited to mock/local development behavior and must
   not appear in real AI provider responses.
+
+## API-Backed Runbook
+
+Use [local-api-development.md](/Users/joshuakimble/Documents/workspace/apps/Lumen/docs/local-api-development.md)
+for API-backed Flutter local runs, including `dart-define` flags, convenience
+scripts, and localhost troubleshooting.

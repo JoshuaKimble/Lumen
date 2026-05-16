@@ -25,6 +25,9 @@ npm run build
 npm run dev
 ```
 
+For end-to-end local API-backed Flutter runs, see
+`docs/local-api-development.md` from the repository root.
+
 ## AI Provider Configuration
 
 The gateway defaults to mock mode and does not require secrets:
