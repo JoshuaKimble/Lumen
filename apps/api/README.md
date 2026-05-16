@@ -7,6 +7,7 @@ Current scope:
 
 - Health endpoint.
 - Mock AI provider boundary.
+- OpenAI provider configuration boundary.
 - TypeScript typecheck and tests.
 
 Mock rewrite responses are intentionally labeled with
@@ -24,5 +25,34 @@ npm run build
 npm run dev
 ```
 
-The gateway must not commit provider API keys or secrets. Add provider-specific
-configuration only through environment variables in later issues.
+## AI Provider Configuration
+
+The gateway defaults to mock mode and does not require secrets:
+
+```sh
+LUMEN_AI_PROVIDER=mock
+```
+
+To enable the OpenAI provider boundary locally, copy `.env.example` to `.env`
+and set:
+
+```sh
+LUMEN_AI_PROVIDER=openai
+OPENAI_API_KEY=sk-proj-...
+```
+
+Optional model overrides:
+
+```sh
+LUMEN_OPENAI_REWRITE_MODEL=gpt-5-mini
+LUMEN_OPENAI_THEME_MODEL=gpt-5-mini
+LUMEN_OPENAI_TRANSCRIPTION_MODEL=gpt-4o-mini-transcribe
+```
+
+The configured defaults are `gpt-5-mini` for rewrite/theme detection and
+`gpt-4o-mini-transcribe` for transcription. Live OpenAI calls are implemented in
+follow-up issues; this issue only prepares safe provider selection and
+configuration.
+
+The gateway must not commit provider API keys or secrets. Local `.env` files are
+ignored by git; keep real API keys out of commits, logs, and test fixtures.
