@@ -7,7 +7,7 @@ Current scope:
 
 - Health endpoint.
 - Mock AI provider boundary.
-- OpenAI provider configuration boundary.
+- OpenAI provider support for rewrite, theme detection, and transcription.
 - TypeScript typecheck and tests.
 
 Mock rewrite responses are intentionally labeled with
@@ -50,9 +50,7 @@ LUMEN_OPENAI_TRANSCRIPTION_MODEL=gpt-4o-mini-transcribe
 ```
 
 The configured defaults are `gpt-5-mini` for rewrite/theme detection and
-`gpt-4o-mini-transcribe` for transcription. Live OpenAI calls are implemented in
-follow-up issues; this issue only prepares safe provider selection and
-configuration.
+`gpt-4o-mini-transcribe` for transcription.
 
 The gateway must not commit provider API keys or secrets. Local `.env` files are
 ignored by git; keep real API keys out of commits, logs, and test fixtures.
