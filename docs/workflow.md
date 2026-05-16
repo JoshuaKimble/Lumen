@@ -53,3 +53,13 @@ An issue is ready to close when:
 
 Use Conventional Commits for every commit. The local `commit-msg` hook enforces
 the format documented in `AGENTS.md`.
+
+## Mock AI Responses
+
+Mock AI rewrite responses intentionally identify their source so local testing
+shows which flow produced the result.
+
+- Flutter mock responses begin with `[Flutter mock: ...]`.
+- API mock rewrite responses begin with `[API mock: rewrite endpoint]`.
+- Source labels should stay limited to mock/local development behavior and must
+  not appear in real AI provider responses.

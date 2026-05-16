@@ -6,6 +6,7 @@ import '../../../app/router.dart';
 import '../data/journal_ai_service_provider.dart';
 import '../data/journal_repository_provider.dart';
 import '../domain/entry_source.dart';
+import '../domain/journal_ai_service.dart';
 import '../domain/journal_entry.dart';
 import 'journal_entries_provider.dart';
 import 'journal_entry_provider.dart';
@@ -180,6 +181,9 @@ class _JournalEntryEditorScaffoldState
       try {
         final rewrite = await aiService.rewriteEntry(
           originalText: originalText,
+          source: existingEntry == null
+              ? JournalRewriteSource.typedCreate
+              : JournalRewriteSource.typedEditSave,
         );
         final themeDetection = await aiService.detectThemes(text: originalText);
         entry = entry.applyAiResults(

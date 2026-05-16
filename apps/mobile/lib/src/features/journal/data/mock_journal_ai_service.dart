@@ -6,12 +6,15 @@ class MockJournalAiService implements JournalAiService {
   const MockJournalAiService();
 
   @override
-  Future<RewriteResult> rewriteEntry({required String originalText}) async {
+  Future<RewriteResult> rewriteEntry({
+    required String originalText,
+    JournalRewriteSource source = JournalRewriteSource.unspecified,
+  }) async {
     final normalizedText = originalText.trim();
     final summary = _summaryFor(normalizedText);
 
     return RewriteResult(
-      rewrittenText: _rewrite(normalizedText),
+      rewrittenText: _rewrite(normalizedText, source),
       title: _titleFor(normalizedText),
       summary: summary,
     );
@@ -41,12 +44,12 @@ class MockJournalAiService implements JournalAiService {
     return ThemeDetectionResult(themes: themes);
   }
 
-  String _rewrite(String text) {
+  String _rewrite(String text, JournalRewriteSource source) {
     if (text.isEmpty) {
       return '';
     }
 
-    return 'I am noticing this more clearly: $text';
+    return '[Flutter mock: ${source.mockLabel}] I am noticing this more clearly: $text';
   }
 
   String _titleFor(String text) {
@@ -69,6 +72,18 @@ class MockJournalAiService implements JournalAiService {
     final summaryWords = words.take(14).join(' ');
 
     return words.length > 14 ? '$summaryWords...' : summaryWords;
+  }
+}
+
+extension on JournalRewriteSource {
+  String get mockLabel {
+    return switch (this) {
+      JournalRewriteSource.typedCreate => 'typed create',
+      JournalRewriteSource.typedEditSave => 'typed edit save',
+      JournalRewriteSource.regenerate => 'regenerate',
+      JournalRewriteSource.voiceSave => 'voice save',
+      JournalRewriteSource.unspecified => 'unspecified flow',
+    };
   }
 }
 

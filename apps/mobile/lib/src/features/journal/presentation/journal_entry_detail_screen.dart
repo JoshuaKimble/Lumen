@@ -6,6 +6,7 @@ import '../../../app/router.dart';
 import '../data/journal_ai_service_provider.dart';
 import '../data/journal_repository_provider.dart';
 import '../domain/journal_entry.dart';
+import '../domain/journal_ai_service.dart';
 import '../domain/related_resource.dart';
 import 'journal_entries_provider.dart';
 import 'journal_entry_provider.dart';
@@ -195,6 +196,7 @@ class _JournalEntryDetailState extends ConsumerState<_JournalEntryDetail> {
       final entry = widget.entry;
       final rewrite = await aiService.rewriteEntry(
         originalText: entry.originalText,
+        source: JournalRewriteSource.regenerate,
       );
       final themeDetection = await aiService.detectThemes(
         text: entry.originalText,

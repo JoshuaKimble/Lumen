@@ -12,7 +12,7 @@ test('mock provider returns deterministic rewrite output', async () => {
 
   assert.equal(
     result.rewrittenText,
-    'Mock rewrite: I am thinking about work today.',
+    '[API mock: rewrite endpoint] Mock rewrite: I am thinking about work today.',
   );
   assert.equal(result.title, 'I am thinking about work today');
   assert.equal(result.summary, 'I am thinking about work today.');

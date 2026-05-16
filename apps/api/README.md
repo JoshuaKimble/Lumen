@@ -9,6 +9,11 @@ Current scope:
 - Mock AI provider boundary.
 - TypeScript typecheck and tests.
 
+Mock rewrite responses are intentionally labeled with
+`[API mock: rewrite endpoint]` so local testing makes it obvious that the
+backend mock provider produced the text. Real provider responses must not include
+mock source labels.
+
 Commands:
 
 ```sh

@@ -243,19 +243,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
-          journalRepositoryProvider.overrideWithValue(repository),
-          journalAiServiceProvider.overrideWithValue(
-            const _ImmediateAiService(
-              rewrittenText: 'Generated typed rewrite.',
-              theme: JournalTheme(
-                id: 'reflection',
-                name: 'reflection',
-                displayName: 'Reflection',
-              ),
-            ),
-          ),
-        ],
+        overrides: [journalRepositoryProvider.overrideWithValue(repository)],
         child: const LumenApp(),
       ),
     );
@@ -275,12 +263,25 @@ void main() {
     expect(entries, hasLength(1));
     expect(entries.single.title, 'Typed entry');
     expect(entries.single.originalText, originalText);
-    expect(entries.single.rewrittenText, 'Generated typed rewrite.');
+    expect(
+      entries.single.rewrittenText,
+      '[Flutter mock: typed create] I am noticing this more clearly: These are my exact typed words.',
+    );
     expect(entries.single.themes.single.displayName, 'Reflection');
     expect(find.text('Typed entry'), findsOneWidget);
     expect(find.text(originalText), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('Generated typed rewrite.'), 120);
-    expect(find.text('Generated typed rewrite.'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text(
+        '[Flutter mock: typed create] I am noticing this more clearly: These are my exact typed words.',
+      ),
+      120,
+    );
+    expect(
+      find.text(
+        '[Flutter mock: typed create] I am noticing this more clearly: These are my exact typed words.',
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('saves a new entry when initial rewrite generation fails', (
@@ -346,6 +347,10 @@ void main() {
 
     expect(entry?.title, 'Updated title');
     expect(entry?.originalText, 'Updated original text.');
+    expect(
+      entry?.rewrittenText,
+      '[Flutter mock: typed edit save] I am noticing this more clearly: Updated original text.',
+    );
     expect(find.text('Updated title'), findsOneWidget);
     expect(find.text('Updated original text.'), findsWidgets);
   });
@@ -386,13 +391,19 @@ void main() {
     final entry = await repository.getEntry('entry-1');
 
     expect(entry?.originalText, 'Changed text.');
-    expect(entry?.rewrittenText, 'Updated generated rewrite.');
+    expect(
+      entry?.rewrittenText,
+      '[Test AI: typed edit save] Updated generated rewrite.',
+    );
     expect(entry?.themes.single.displayName, 'Stress');
     await tester.scrollUntilVisible(
-      find.text('Updated generated rewrite.'),
+      find.text('[Test AI: typed edit save] Updated generated rewrite.'),
       120,
     );
-    expect(find.text('Updated generated rewrite.'), findsOneWidget);
+    expect(
+      find.text('[Test AI: typed edit save] Updated generated rewrite.'),
+      findsOneWidget,
+    );
     expect(find.text('Stress'), findsOneWidget);
   });
 
@@ -454,9 +465,15 @@ void main() {
 
     final entry = await repository.getEntry('entry-2');
 
-    expect(entry?.rewrittenText, 'A clearer mock rewrite.');
+    expect(
+      entry?.rewrittenText,
+      '[Test AI: regenerate] A clearer mock rewrite.',
+    );
     expect(entry?.themes.single.displayName, 'Work');
-    expect(find.text('A clearer mock rewrite.'), findsOneWidget);
+    expect(
+      find.text('[Test AI: regenerate] A clearer mock rewrite.'),
+      findsOneWidget,
+    );
     await tester.scrollUntilVisible(find.text('Work'), -120);
     expect(find.text('Work'), findsOneWidget);
   });
@@ -547,16 +564,6 @@ void main() {
       ProviderScope(
         overrides: [
           journalRepositoryProvider.overrideWithValue(repository),
-          journalAiServiceProvider.overrideWithValue(
-            const _ImmediateAiService(
-              rewrittenText: 'Generated voice rewrite.',
-              theme: JournalTheme(
-                id: 'reflection',
-                name: 'reflection',
-                displayName: 'Reflection',
-              ),
-            ),
-          ),
           voiceRecorderProvider.overrideWithValue(recorder),
           voiceTranscriptionServiceProvider.overrideWithValue(
             const _FakeVoiceTranscriptionService(
@@ -589,11 +596,24 @@ void main() {
     expect(entries, hasLength(1));
     expect(entries.single.source, EntrySource.voice);
     expect(entries.single.originalText, 'Edited voice transcript.');
-    expect(entries.single.rewrittenText, 'Generated voice rewrite.');
+    expect(
+      entries.single.rewrittenText,
+      '[Flutter mock: voice save] I am noticing this more clearly: Edited voice transcript.',
+    );
     expect(entries.single.themes.single.displayName, 'Reflection');
-    expect(find.text('Edited voice transcript.'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('Generated voice rewrite.'), 120);
-    expect(find.text('Generated voice rewrite.'), findsOneWidget);
+    expect(find.text('Edited voice transcript.'), findsWidgets);
+    await tester.scrollUntilVisible(
+      find.text(
+        '[Flutter mock: voice save] I am noticing this more clearly: Edited voice transcript.',
+      ),
+      120,
+    );
+    expect(
+      find.text(
+        '[Flutter mock: voice save] I am noticing this more clearly: Edited voice transcript.',
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('handles denied microphone permission', (tester) async {
@@ -703,11 +723,13 @@ JournalEntry _themeEntry({
 
 class _ControlledAiService implements JournalAiService {
   final _rewrite = Completer<RewriteResult>();
+  JournalRewriteSource _source = JournalRewriteSource.unspecified;
 
   void completeRewrite() {
     _rewrite.complete(
-      const RewriteResult(
-        rewrittenText: 'A clearer mock rewrite.',
+      RewriteResult(
+        rewrittenText:
+            '[Test AI: ${_source.testLabel}] A clearer mock rewrite.',
         title: 'Generated title',
         summary: 'Generated summary',
       ),
@@ -722,7 +744,11 @@ class _ControlledAiService implements JournalAiService {
   }
 
   @override
-  Future<RewriteResult> rewriteEntry({required String originalText}) async {
+  Future<RewriteResult> rewriteEntry({
+    required String originalText,
+    JournalRewriteSource source = JournalRewriteSource.unspecified,
+  }) async {
+    _source = source;
     return _rewrite.future;
   }
 }
@@ -739,12 +765,27 @@ class _ImmediateAiService implements JournalAiService {
   }
 
   @override
-  Future<RewriteResult> rewriteEntry({required String originalText}) async {
+  Future<RewriteResult> rewriteEntry({
+    required String originalText,
+    JournalRewriteSource source = JournalRewriteSource.unspecified,
+  }) async {
     return RewriteResult(
-      rewrittenText: rewrittenText,
+      rewrittenText: '[Test AI: ${source.testLabel}] $rewrittenText',
       title: 'Updated generated title',
       summary: 'Updated generated summary',
     );
+  }
+}
+
+extension on JournalRewriteSource {
+  String get testLabel {
+    return switch (this) {
+      JournalRewriteSource.typedCreate => 'typed create',
+      JournalRewriteSource.typedEditSave => 'typed edit save',
+      JournalRewriteSource.regenerate => 'regenerate',
+      JournalRewriteSource.voiceSave => 'voice save',
+      JournalRewriteSource.unspecified => 'unspecified flow',
+    };
   }
 }
 
@@ -757,7 +798,10 @@ class _FailingAiService implements JournalAiService {
   }
 
   @override
-  Future<RewriteResult> rewriteEntry({required String originalText}) async {
+  Future<RewriteResult> rewriteEntry({
+    required String originalText,
+    JournalRewriteSource source = JournalRewriteSource.unspecified,
+  }) async {
     throw StateError('AI unavailable');
   }
 }

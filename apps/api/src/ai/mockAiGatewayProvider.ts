@@ -23,7 +23,7 @@ export class MockAiGatewayProvider implements AiGatewayProvider {
     const originalText = request.originalText.trim();
 
     return {
-      rewrittenText: `Mock rewrite: ${originalText}`,
+      rewrittenText: `[API mock: rewrite endpoint] Mock rewrite: ${originalText}`,
       title: titleFor(originalText),
       summary: summaryFor(originalText),
     };

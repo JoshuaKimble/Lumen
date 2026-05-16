@@ -10,7 +10,10 @@ class ApiJournalAiService implements JournalAiService {
   final LumenApiClient client;
 
   @override
-  Future<RewriteResult> rewriteEntry({required String originalText}) async {
+  Future<RewriteResult> rewriteEntry({
+    required String originalText,
+    JournalRewriteSource source = JournalRewriteSource.unspecified,
+  }) async {
     final response = await client.rewriteEntry(
       RewriteEntryRequest(originalText: originalText),
     );

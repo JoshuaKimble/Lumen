@@ -45,7 +45,8 @@ test('rewrite endpoint returns OpenAPI response shape', async () => {
 
   assert.equal(response.status, 200);
   assert.deepEqual(body, {
-    rewrittenText: 'Mock rewrite: I had a rushed work meeting.',
+    rewrittenText:
+      '[API mock: rewrite endpoint] Mock rewrite: I had a rushed work meeting.',
     title: 'I had a rushed work meeting',
     summary: 'I had a rushed work meeting.',
   });
