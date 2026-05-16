@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../features/journal/presentation/journal_entry_detail_screen.dart';
 import '../features/journal/presentation/journal_entry_editor_screen.dart';
 import '../features/journal/presentation/journal_home_screen.dart';
+import '../features/journal/presentation/theme_cloud_screen.dart';
 import '../features/journal/presentation/voice_recording_screen.dart';
 
 const journalHomeRouteName = 'journal-home';
@@ -15,6 +16,8 @@ const journalEntryDetailRouteName = 'journal-entry-detail';
 const journalEntryDetailRoutePath = '/entries/:entryId';
 const journalEntryEditRouteName = 'journal-entry-edit';
 const journalEntryEditRoutePath = '/entries/:entryId/edit';
+const themeCloudRouteName = 'theme-cloud';
+const themeCloudRoutePath = '/themes';
 const voiceRecordingRouteName = 'voice-recording';
 const voiceRecordingRoutePath = '/voice/new';
 
@@ -39,6 +42,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             name: voiceRecordingRouteName,
             path: voiceRecordingRoutePath,
             builder: (context, state) => const VoiceRecordingScreen(),
+          ),
+          GoRoute(
+            name: themeCloudRouteName,
+            path: themeCloudRoutePath,
+            builder: (context, state) => const ThemeCloudScreen(),
           ),
           GoRoute(
             name: journalEntryCreateRouteName,
@@ -88,12 +96,14 @@ class LumenNavigationScaffold extends StatelessWidget {
         onDestinationSelected: (index) {
           final routeName = switch (index) {
             0 => journalHomeRouteName,
-            1 => voiceRecordingRouteName,
+            1 => themeCloudRouteName,
+            2 => voiceRecordingRouteName,
             _ => journalHomeRouteName,
           };
           final routePath = switch (index) {
             0 => journalHomeRoutePath,
-            1 => voiceRecordingRoutePath,
+            1 => themeCloudRoutePath,
+            2 => voiceRecordingRoutePath,
             _ => journalHomeRoutePath,
           };
 
@@ -110,6 +120,11 @@ class LumenNavigationScaffold extends StatelessWidget {
             label: 'Journal',
           ),
           NavigationDestination(
+            icon: Icon(Icons.bubble_chart_outlined),
+            selectedIcon: Icon(Icons.bubble_chart),
+            label: 'Themes',
+          ),
+          NavigationDestination(
             icon: Icon(Icons.mic_none_outlined),
             selectedIcon: Icon(Icons.mic),
             label: 'Voice',
@@ -121,6 +136,10 @@ class LumenNavigationScaffold extends StatelessWidget {
 
   int get _selectedIndex {
     if (location == voiceRecordingRoutePath) {
+      return 2;
+    }
+
+    if (location == themeCloudRoutePath) {
       return 1;
     }
 

@@ -61,11 +61,42 @@ void main() {
     expect(find.text('Voice entry'), findsOneWidget);
     expect(find.text('Capture a voice entry'), findsOneWidget);
 
+    await tester.tap(find.text('Themes'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Themes'), findsWidgets);
+    expect(find.text('Recurring themes'), findsOneWidget);
+
     await tester.tap(find.text('Journal'));
     await tester.pumpAndSettle();
 
     expect(find.text('Lumen'), findsOneWidget);
     expect(find.text('Welcome to Lumen'), findsOneWidget);
+  });
+
+  testWidgets('shows recurring themes by prominence', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          journalRepositoryProvider.overrideWithValue(
+            InMemoryJournalRepository(seedEntries: _themeCloudEntries),
+          ),
+        ],
+        child: const LumenApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Themes'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Recurring themes'), findsOneWidget);
+    expect(find.text('Work'), findsOneWidget);
+    expect(find.text('Stress'), findsOneWidget);
+    expect(find.text('Family'), findsOneWidget);
+    expect(find.text('3 entries'), findsOneWidget);
+    expect(find.text('2 entries'), findsOneWidget);
+    expect(find.text('1 entry'), findsOneWidget);
   });
 
   testWidgets('shows navigation on entry detail pages', (tester) async {
@@ -580,6 +611,47 @@ final _unprocessedEntry = JournalEntry(
   resources: const [],
   title: 'A raw work note',
 );
+
+final _themeCloudEntries = [
+  _themeEntry(
+    id: 'theme-entry-1',
+    themes: const [
+      JournalTheme(id: 'work', name: 'work', displayName: 'Work'),
+      JournalTheme(id: 'stress', name: 'stress', displayName: 'Stress'),
+      JournalTheme(id: 'family', name: 'family', displayName: 'Family'),
+    ],
+  ),
+  _themeEntry(
+    id: 'theme-entry-2',
+    themes: const [
+      JournalTheme(id: 'work', name: 'work', displayName: 'Work'),
+      JournalTheme(id: 'stress', name: 'stress', displayName: 'Stress'),
+    ],
+  ),
+  _themeEntry(
+    id: 'theme-entry-3',
+    themes: const [JournalTheme(id: 'work', name: 'work', displayName: 'Work')],
+  ),
+];
+
+JournalEntry _themeEntry({
+  required String id,
+  required List<JournalTheme> themes,
+}) {
+  final createdAt = DateTime.utc(2026, 5, 9, 16);
+
+  return JournalEntry(
+    id: id,
+    createdAt: createdAt,
+    updatedAt: createdAt,
+    source: EntrySource.text,
+    originalText: 'Theme source text.',
+    rewrittenText: 'Theme rewritten text.',
+    themes: themes,
+    resources: const [],
+    title: id,
+  );
+}
 
 class _ControlledAiService implements JournalAiService {
   final _rewrite = Completer<RewriteResult>();
