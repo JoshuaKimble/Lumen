@@ -9,6 +9,7 @@ import {
   buildThemeDetectionPrompt,
 } from './ai/journalAiPrompts.js';
 import {
+  validateResourceSuggestionResult,
   validateRewriteResult,
   validateThemeDetectionResult,
   validateTranscriptionResult,
@@ -110,6 +111,21 @@ async function routeRequest(
     return;
   }
 
+  if (request.method === 'POST' && request.url === '/v1/resources/suggest') {
+    const body = requireObject(await readJsonBody(request));
+    rejectUnknownKeys(body, ['text', 'themeIds']);
+    const requestBody = {
+      text: requireNonEmptyString(body, 'text'),
+      themeIds: requireOptionalStringArray(body, 'themeIds'),
+    };
+    const result = validateResourceSuggestionResult(
+      await aiProvider.suggestResources(requestBody),
+    );
+
+    sendJson(response, 200, result);
+    return;
+  }
+
   if (request.method === 'POST' && request.url === '/v1/transcriptions') {
     const body = requireObject(await readJsonBody(request));
     rejectUnknownKeys(body, ['audioBase64', 'mimeType']);
@@ -164,6 +180,31 @@ function isBase64(value: string): boolean {
   }
 
   return /^[A-Za-z0-9+/]+={0,2}$/.test(value);
+}
+
+function requireOptionalStringArray(
+  body: Record<string, unknown>,
+  key: string,
+): readonly string[] | undefined {
+  const value = body[key];
+
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (!Array.isArray(value)) {
+    throw new BadRequestError(`Expected "${key}" to be an array.`);
+  }
+
+  return value.map((item, index) => {
+    if (typeof item !== 'string' || item.trim().length === 0) {
+      throw new BadRequestError(
+        `Expected "${key}[${index}]" to be a non-empty string.`,
+      );
+    }
+
+    return item.trim();
+  });
 }
 
 function mapProviderErrorToHttp(

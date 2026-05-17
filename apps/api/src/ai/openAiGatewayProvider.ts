@@ -10,6 +10,8 @@ import {
 import type {
   AiGatewayProvider,
   JournalTheme,
+  ResourceSuggestionRequest,
+  ResourceSuggestionResult,
   RewriteRequest,
   RewriteResult,
   ThemeDetectionRequest,
@@ -155,6 +157,36 @@ export class OpenAiGatewayProvider implements AiGatewayProvider {
     const themes = parseThemes(parsed.themes);
 
     return { themes };
+  }
+
+  async suggestResources(
+    request: ResourceSuggestionRequest,
+  ): Promise<ResourceSuggestionResult> {
+    const themeResult = await this.detectThemes({ text: request.text });
+    const requestedThemeIds = new Set(
+      (request.themeIds ?? []).map((themeId) => themeId.toLowerCase().trim()),
+    );
+    const matchedThemes = themeResult.themes.filter(
+      (theme) =>
+        requestedThemeIds.size === 0 || requestedThemeIds.has(theme.id),
+    );
+    const effectiveThemes = matchedThemes.length > 0
+      ? matchedThemes
+      : [{ id: 'reflection', name: 'reflection', displayName: 'Reflection' }];
+
+    return {
+      suggestions: effectiveThemes.map((theme) => ({
+        id: `${theme.id}-reflection-prompt`,
+        type: 'reflection_prompt',
+        title: `Reflect on ${theme.displayName.toLowerCase()} today`,
+        description:
+          'What mattered most in this area today, and what do you want to remember tomorrow?',
+        sourceType: 'ai_mapped',
+        matchReason: `Mapped from detected theme: ${theme.displayName}.`,
+        confidence: 0.75,
+        themeId: theme.id,
+      })),
+    };
   }
 }
 

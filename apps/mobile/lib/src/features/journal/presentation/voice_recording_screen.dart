@@ -128,6 +128,10 @@ class _VoiceRecordingScreenState extends ConsumerState<VoiceRecordingScreen> {
                 ),
               ] else if (_isRecording || _isStopping) ...[
                 FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: colorScheme.error,
+                    foregroundColor: colorScheme.onError,
+                  ),
                   onPressed: _isStopping ? null : _stopRecording,
                   icon: const Icon(Icons.stop_outlined),
                   label: Text(_isStopping ? 'Stopping' : 'Stop recording'),

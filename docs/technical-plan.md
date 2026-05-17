@@ -261,6 +261,65 @@ analytics in the MVP.
 - Keep `.githooks/commit-msg` active for Conventional Commits.
 - Add CI later to run Flutter checks, API checks, and contract checks together.
 
+## Related Resources and Reflection Prompts (Planned)
+
+### Objective
+
+Implement a trusted, explainable suggestion system for related resources and
+reflection prompts that supports theme exploration without noisy
+recommendations.
+
+### Data Model Additions
+
+Extend `RelatedResource` with:
+
+- `sourceType` (`curated`, `ai_mapped`, future `user_created`)
+- `matchReason`
+- `confidence` (0 to 1)
+- `dismissedAt` (optional)
+- `savedAt` (optional)
+
+Resource `type` should support:
+
+- `reflection_prompt`
+- `scripture`
+- `talk_or_article`
+- `video_or_audio`
+- `quote`
+- `exercise`
+- `internal_entry_link`
+
+### Backend Responsibilities
+
+- Maintain curated catalog(s) by resource type and tradition/provider.
+- Map entry/theme context to candidate resources.
+- Return ranked suggestions with provenance metadata.
+- Filter low-confidence results.
+- Keep suggestion logic and prompts server-side.
+
+### Flutter Responsibilities
+
+- Display entry-level and theme-level suggestion groups.
+- Render resource cards by resource type.
+- Support hide, save, and not-helpful actions.
+- Persist local interaction state until cloud sync is introduced.
+
+### Ranking and Safety Rules
+
+- Rank by theme match, semantic relevance, and user feedback signals.
+- Require minimum confidence thresholds before showing suggestions.
+- Limit suggestion count per entry/theme to avoid overload.
+- Avoid diagnostic, prescriptive, or high-pressure guidance.
+
+### Delivery Sequence
+
+1. Define OpenAPI contracts and shared types.
+2. Ship mock suggestion endpoint with deterministic provenance payloads.
+3. Add Flutter data plumbing and UI rendering.
+4. Add user feedback actions and local persistence.
+5. Integrate curated catalogs and provider-specific mapping.
+6. Add evaluation metrics and tuning loops.
+
 ## Release Readiness Checklist
 
 MVP is ready for user testing when:
@@ -286,5 +345,4 @@ These need ADRs before implementation:
 - AI provider selection.
 - Audio format and upload limits.
 - Generated client tooling for OpenAPI.
-- Related resources source and policy.
 - Export format and data portability.

@@ -1,5 +1,7 @@
 import type {
   JournalTheme,
+  ResourceSuggestion,
+  ResourceSuggestionResult,
   RewriteResult,
   ThemeDetectionResult,
   TranscriptionResult,
@@ -37,6 +39,18 @@ export function validateThemeDetectionResult(
   };
 }
 
+export function validateResourceSuggestionResult(
+  result: ResourceSuggestionResult,
+): ResourceSuggestionResult {
+  if (!Array.isArray(result.suggestions)) {
+    throw new Error('AI resource response must include suggestions.');
+  }
+
+  return {
+    suggestions: result.suggestions.map(validateSuggestion),
+  };
+}
+
 function validateTheme(theme: JournalTheme): JournalTheme {
   if (
     theme.id.trim().length === 0 ||
@@ -60,4 +74,40 @@ function optionalString(value: string | undefined): string | undefined {
   }
 
   return value;
+}
+
+function validateSuggestion(suggestion: ResourceSuggestion): ResourceSuggestion {
+  if (
+    suggestion.id.trim().length === 0 ||
+    suggestion.type.trim().length === 0 ||
+    suggestion.title.trim().length === 0 ||
+    suggestion.sourceType.trim().length === 0 ||
+    suggestion.matchReason.trim().length === 0
+  ) {
+    throw new Error(
+      'AI resource suggestion must include id, type, title, sourceType, and matchReason.',
+    );
+  }
+
+  if (
+    !Number.isFinite(suggestion.confidence) ||
+    suggestion.confidence < 0 ||
+    suggestion.confidence > 1
+  ) {
+    throw new Error(
+      'AI resource suggestion must include confidence from 0 to 1.',
+    );
+  }
+
+  return {
+    id: suggestion.id,
+    type: suggestion.type,
+    title: suggestion.title,
+    description: optionalString(suggestion.description),
+    url: optionalString(suggestion.url),
+    sourceType: suggestion.sourceType,
+    matchReason: suggestion.matchReason,
+    confidence: suggestion.confidence,
+    themeId: optionalString(suggestion.themeId),
+  };
 }

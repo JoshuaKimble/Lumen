@@ -13,6 +13,8 @@ const contract = JSON.parse(fs.readFileSync(contractPath, 'utf8'));
 assertOperation('/v1/entries/rewrite', 'post', 'rewriteEntry');
 assertOperation('/v1/entries/themes/detect', 'post', 'detectEntryThemes');
 assertOperation('/v1/transcriptions', 'post', 'createTranscription');
+assertOperation('/v1/resources/suggest', 'post', 'suggestResources');
+assertOperation('/v1/resources/feedback', 'post', 'submitResourceFeedback');
 
 const output = `// Generated from packages/api_contracts/openapi/openapi.json.
 // Regenerate with: npm --prefix packages/api_contracts run generate:flutter
@@ -51,6 +53,22 @@ class LumenApiClient {
     );
 
     return DetectThemesResponse.fromJson(response);
+  }
+
+  Future<SuggestResourcesResponse> suggestResources(
+    SuggestResourcesRequest request,
+  ) async {
+    final response = await _postJson('/v1/resources/suggest', request.toJson());
+
+    return SuggestResourcesResponse.fromJson(response);
+  }
+
+  Future<ResourceFeedbackResponse> submitResourceFeedback(
+    ResourceFeedbackRequest request,
+  ) async {
+    final response = await _postJson('/v1/resources/feedback', request.toJson());
+
+    return ResourceFeedbackResponse.fromJson(response);
   }
 
   Future<Map<String, Object?>> _postJson(
@@ -193,6 +211,121 @@ class ApiJournalTheme {
   final double? weight;
 }
 
+class SuggestResourcesRequest {
+  const SuggestResourcesRequest({
+    required this.text,
+    this.themeIds,
+  });
+
+  final String text;
+  final List<String>? themeIds;
+
+  Map<String, Object?> toJson() {
+    return {
+      'text': text,
+      if (themeIds != null) 'themeIds': themeIds,
+    };
+  }
+}
+
+class SuggestResourcesResponse {
+  const SuggestResourcesResponse({required this.suggestions});
+
+  factory SuggestResourcesResponse.fromJson(Map<String, Object?> json) {
+    final suggestions = json['suggestions'];
+
+    if (suggestions is! List<Object?>) {
+      throw const FormatException('Expected suggestions array.');
+    }
+
+    return SuggestResourcesResponse(
+      suggestions: suggestions
+          .whereType<Map<String, Object?>>()
+          .map(ApiRelatedResourceSuggestion.fromJson)
+          .toList(growable: false),
+    );
+  }
+
+  final List<ApiRelatedResourceSuggestion> suggestions;
+}
+
+class ApiRelatedResourceSuggestion {
+  const ApiRelatedResourceSuggestion({
+    required this.id,
+    required this.type,
+    required this.title,
+    required this.sourceType,
+    required this.matchReason,
+    required this.confidence,
+    this.description,
+    this.url,
+    this.entryId,
+    this.themeId,
+  });
+
+  factory ApiRelatedResourceSuggestion.fromJson(Map<String, Object?> json) {
+    return ApiRelatedResourceSuggestion(
+      id: _requiredString(json, 'id'),
+      type: _requiredString(json, 'type'),
+      title: _requiredString(json, 'title'),
+      sourceType: _requiredString(json, 'sourceType'),
+      matchReason: _requiredString(json, 'matchReason'),
+      confidence: _requiredNumber(json, 'confidence'),
+      description: _optionalString(json, 'description'),
+      url: _optionalString(json, 'url'),
+      entryId: _optionalString(json, 'entryId'),
+      themeId: _optionalString(json, 'themeId'),
+    );
+  }
+
+  final String id;
+  final String type;
+  final String title;
+  final String sourceType;
+  final String matchReason;
+  final double confidence;
+  final String? description;
+  final String? url;
+  final String? entryId;
+  final String? themeId;
+}
+
+class ResourceFeedbackRequest {
+  const ResourceFeedbackRequest({
+    required this.resourceId,
+    required this.action,
+    this.entryId,
+    this.themeId,
+    this.note,
+  });
+
+  final String resourceId;
+  final String action;
+  final String? entryId;
+  final String? themeId;
+  final String? note;
+
+  Map<String, Object?> toJson() {
+    return {
+      'resourceId': resourceId,
+      'action': action,
+      if (entryId != null) 'entryId': entryId,
+      if (themeId != null) 'themeId': themeId,
+      if (note != null) 'note': note,
+    };
+  }
+}
+
+class ResourceFeedbackResponse {
+  const ResourceFeedbackResponse({required this.status});
+
+  factory ResourceFeedbackResponse.fromJson(Map<String, Object?> json) {
+    return ResourceFeedbackResponse(status: _requiredString(json, 'status'));
+  }
+
+  final String status;
+}
+
 class ApiError {
   const ApiError({required this.error, this.message});
 
@@ -261,6 +394,16 @@ double? _optionalNumber(Map<String, Object?> json, String key) {
   }
 
   throw FormatException('Expected optional number "$key".');
+}
+
+double _requiredNumber(Map<String, Object?> json, String key) {
+  final value = json[key];
+
+  if (value is num) {
+    return value.toDouble();
+  }
+
+  throw FormatException('Expected number "$key".');
 }
 `;
 

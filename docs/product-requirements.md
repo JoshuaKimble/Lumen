@@ -192,6 +192,84 @@ recommendations.
 
 ---
 
+## Related Resources and Reflection Prompt Policy (Planned)
+
+This section defines the intended product behavior for related resources and
+reflection prompts so implementation can be scoped safely.
+
+### Resource Types
+
+The app should support these resource types:
+
+- `reflection_prompt`: short journaling prompts that help the user reflect
+  further.
+- `scripture`: canonical scripture references and links.
+- `talk_or_article`: conference talks, devotionals, or long-form articles.
+- `video_or_audio`: podcast, talk, or video media.
+- `quote`: short supporting quotes.
+- `exercise`: small guided practice (for example: breathing, gratitude, or
+  reframing).
+- `internal_entry_link`: links to prior user entries related to the same theme.
+
+### Source Strategy
+
+Initial strategy should be mixed:
+
+1. Curated catalog for trusted baseline quality.
+2. AI-generated suggestions that map entry/theme context to curated items.
+3. User-created links or notes as an optional later enhancement.
+
+The product should avoid fully open-ended recommendations in MVP stages.
+
+### Helpfulness Policy
+
+The system should prioritize relevance, emotional safety, and reflection value:
+
+- Recommendations must connect to the current entry text or detected themes.
+- Recommendations should stay high-level and avoid overconfident life advice.
+- If confidence is low, show fewer suggestions rather than noisy suggestions.
+- Suggestions should never be presented as diagnosis, treatment, or authority.
+- The app should be explicit that suggestions are optional and user-controlled.
+
+### Association Rules
+
+Association should happen at two levels:
+
+1. Entry-level suggestions: generated from the entry text and detected themes.
+2. Theme-level suggestions: generated from recurring themes and reused across
+   entries in that theme.
+
+Each suggestion should include provenance metadata:
+
+- source type (`curated`, `ai_mapped`, future `user_created`)
+- match reason (theme match, keyword match, intent match)
+- confidence score
+- optional `entryId` and/or `themeId`
+
+### Reflection Prompt Behavior
+
+Reflection prompts should be:
+
+- brief and open-ended
+- non-judgmental
+- focused on clarifying user thoughts, not directing outcomes
+
+Prompt generation should favor prompt templates + theme adaptation over fully
+free-form generation in early versions.
+
+### User Controls
+
+Users should be able to:
+
+- hide a suggestion
+- save a suggestion
+- mark suggestions as not helpful
+- select preferred resource traditions/providers in settings (planned)
+
+These controls should influence future ranking.
+
+---
+
 ## Journal Entry Data Requirements
 
 Each journal entry should conceptually include:

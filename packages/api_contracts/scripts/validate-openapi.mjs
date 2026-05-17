@@ -10,6 +10,8 @@ const requiredPaths = [
   ['post', '/v1/entries/rewrite'],
   ['post', '/v1/entries/themes/detect'],
   ['post', '/v1/transcriptions'],
+  ['post', '/v1/resources/suggest'],
+  ['post', '/v1/resources/feedback'],
 ];
 
 const requiredSchemas = [
@@ -20,6 +22,11 @@ const requiredSchemas = [
   'DetectThemesResponse',
   'TranscriptionRequest',
   'TranscriptionResponse',
+  'SuggestResourcesRequest',
+  'SuggestResourcesResponse',
+  'RelatedResourceSuggestion',
+  'ResourceFeedbackRequest',
+  'ResourceFeedbackResponse',
   'ApiError',
 ];
 

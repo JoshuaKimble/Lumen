@@ -70,6 +70,10 @@ class JournalEntryJsonMapper {
       'url': resource.url?.toString(),
       'entryId': resource.entryId,
       'themeId': resource.themeId,
+      'sourceType': resource.sourceType,
+      'matchReason': resource.matchReason,
+      'confidence': resource.confidence,
+      'description': resource.description,
     };
   }
 
@@ -83,6 +87,12 @@ class JournalEntryJsonMapper {
       url: url == null ? null : Uri.parse(url),
       entryId: _optionalStringValue(json, 'entryId'),
       themeId: _optionalStringValue(json, 'themeId'),
+      sourceType: _optionalStringValue(json, 'sourceType') ?? 'curated',
+      matchReason:
+          _optionalStringValue(json, 'matchReason') ??
+          'Related to your reflection.',
+      confidence: _optionalDoubleValue(json, 'confidence') ?? 0.75,
+      description: _optionalStringValue(json, 'description'),
     );
   }
 

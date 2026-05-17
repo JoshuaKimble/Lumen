@@ -5,13 +5,16 @@ import 'package:go_router/go_router.dart';
 import '../../../app/router.dart';
 import '../data/journal_ai_service_provider.dart';
 import '../data/journal_repository_provider.dart';
+import '../data/resource_suggestion_service_provider.dart';
 import '../domain/journal_entry.dart';
 import '../domain/journal_ai_service.dart';
 import '../domain/related_resource.dart';
+import '../domain/resource_suggestion_service.dart';
 import 'journal_entries_provider.dart';
 import 'journal_entry_provider.dart';
 import 'journal_formatters.dart';
 import 'journal_theme_chips.dart';
+import 'resource_suggestions_provider.dart';
 
 class JournalEntryDetailScreen extends ConsumerWidget {
   const JournalEntryDetailScreen({required this.entryId, super.key});
@@ -42,7 +45,10 @@ class JournalEntryDetailScreen extends ConsumerWidget {
             IconButton(
               tooltip: 'Delete entry',
               onPressed: () => _confirmDelete(context, ref),
-              icon: const Icon(Icons.delete_outline),
+              icon: Icon(
+                Icons.delete_outline,
+                color: Theme.of(context).colorScheme.error,
+              ),
             ),
           ],
         ],
@@ -78,6 +84,10 @@ class JournalEntryDetailScreen extends ConsumerWidget {
             child: const Text('Cancel'),
           ),
           FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onError,
+            ),
             onPressed: () => Navigator.of(context).pop(true),
             child: const Text('Delete'),
           ),
@@ -117,6 +127,16 @@ class _JournalEntryDetailState extends ConsumerState<_JournalEntryDetail> {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final entry = widget.entry;
+    final suggestions = ref.watch(
+      resourceSuggestionsProvider(
+        ResourceSuggestionQuery(
+          text: entry.originalText,
+          themeIds: entry.themes
+              .map((theme) => theme.id)
+              .toList(growable: false),
+        ),
+      ),
+    );
 
     return ListView(
       padding: const EdgeInsets.all(20),
@@ -179,7 +199,11 @@ class _JournalEntryDetailState extends ConsumerState<_JournalEntryDetail> {
           ),
         ],
         const SizedBox(height: 16),
-        _ResourcesSection(resources: entry.resources),
+        _ResourcesSection(
+          resources: entry.resources,
+          suggestions: suggestions,
+          entryId: entry.id,
+        ),
       ],
     );
   }
@@ -339,13 +363,27 @@ class _TrustNotice extends StatelessWidget {
 }
 
 class _ResourcesSection extends StatelessWidget {
-  const _ResourcesSection({required this.resources});
+  const _ResourcesSection({
+    required this.resources,
+    required this.suggestions,
+    required this.entryId,
+  });
 
   final List<RelatedResource> resources;
+  final AsyncValue<List<RelatedResource>> suggestions;
+  final String entryId;
 
   @override
   Widget build(BuildContext context) {
-    if (resources.isEmpty) {
+    final combined = <RelatedResource>[
+      ...resources,
+      ...switch (suggestions) {
+        AsyncData(value: final value) => value,
+        _ => const <RelatedResource>[],
+      },
+    ];
+
+    if (combined.isEmpty) {
       return const _EmptyResourcesSection();
     }
 
@@ -354,15 +392,28 @@ class _ResourcesSection extends StatelessWidget {
       children: [
         Text('Resources', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
-        for (final resource in resources)
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.link_outlined),
-            title: Text(resource.title),
-            subtitle: Text(resource.type),
+        if (suggestions.isLoading && resources.isEmpty)
+          const Padding(
+            padding: EdgeInsets.only(bottom: 8),
+            child: Text('Loading related resources...'),
           ),
+        for (final resource in _dedupeById(combined))
+          _ResourceCard(resource: resource, entryId: entryId),
       ],
     );
+  }
+
+  List<RelatedResource> _dedupeById(List<RelatedResource> value) {
+    final seen = <String>{};
+    final unique = <RelatedResource>[];
+
+    for (final resource in value) {
+      if (seen.add(resource.id)) {
+        unique.add(resource);
+      }
+    }
+
+    return unique;
   }
 }
 
@@ -383,6 +434,149 @@ class _EmptyResourcesSection extends StatelessWidget {
         child: Text('No related resources yet.'),
       ),
     );
+  }
+}
+
+class _ResourceCard extends ConsumerWidget {
+  const _ResourceCard({required this.resource, required this.entryId});
+
+  final RelatedResource resource;
+  final String entryId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final feedbackMap = ref.watch(resourceFeedbackControllerProvider);
+    final feedback = feedbackMap.asData?.value[resource.id];
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  _iconFor(resource.type),
+                  size: 18,
+                  color: colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    resource.title,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+                if (feedback == ResourceFeedbackAction.save)
+                  Icon(Icons.bookmark, size: 18, color: colorScheme.primary),
+              ],
+            ),
+            if (resource.description case final description?) ...[
+              const SizedBox(height: 6),
+              Text(description, style: Theme.of(context).textTheme.bodyMedium),
+            ],
+            const SizedBox(height: 6),
+            Text(
+              '${resource.type} • ${resource.sourceType} • ${(resource.confidence * 100).round()}% match',
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              resource.matchReason,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: () => _submitFeedback(
+                    ref,
+                    resourceId: resource.id,
+                    action: ResourceFeedbackAction.save,
+                    entryId: entryId,
+                    themeId: resource.themeId,
+                  ),
+                  icon: const Icon(Icons.bookmark_border),
+                  label: const Text('Save'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: () => _submitFeedback(
+                    ref,
+                    resourceId: resource.id,
+                    action: ResourceFeedbackAction.dismiss,
+                    entryId: entryId,
+                    themeId: resource.themeId,
+                  ),
+                  icon: const Icon(Icons.visibility_off_outlined),
+                  label: const Text('Dismiss'),
+                ),
+                TextButton.icon(
+                  onPressed: () => _submitFeedback(
+                    ref,
+                    resourceId: resource.id,
+                    action: ResourceFeedbackAction.notHelpful,
+                    entryId: entryId,
+                    themeId: resource.themeId,
+                  ),
+                  icon: Icon(
+                    Icons.thumb_down_alt_outlined,
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                  label: Text(
+                    'Not helpful',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _submitFeedback(
+    WidgetRef ref, {
+    required String resourceId,
+    required ResourceFeedbackAction action,
+    required String entryId,
+    String? themeId,
+  }) async {
+    await ref
+        .read(resourceFeedbackControllerProvider.notifier)
+        .saveFeedback(resourceId: resourceId, action: action);
+    await ref
+        .read(resourceSuggestionServiceProvider)
+        .submitFeedback(
+          resourceId: resourceId,
+          action: action,
+          entryId: entryId,
+          themeId: themeId,
+        );
+  }
+
+  IconData _iconFor(String type) {
+    return switch (type) {
+      'scripture' => Icons.menu_book_outlined,
+      'reflection_prompt' => Icons.quiz_outlined,
+      'talk_or_article' => Icons.article_outlined,
+      'video_or_audio' => Icons.play_circle_outline,
+      'quote' => Icons.format_quote_outlined,
+      'exercise' => Icons.self_improvement_outlined,
+      'internal_entry_link' => Icons.link_outlined,
+      _ => Icons.link_outlined,
+    };
   }
 }
 

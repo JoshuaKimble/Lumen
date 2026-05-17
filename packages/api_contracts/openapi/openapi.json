@@ -125,6 +125,70 @@
           }
         }
       }
+    },
+    "/v1/resources/suggest": {
+      "post": {
+        "operationId": "suggestResources",
+        "summary": "Suggest related resources and reflection prompts",
+        "description": "Returns ranked related resources and reflection prompts for a journal entry and optional theme context.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SuggestResourcesRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Suggested resources.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuggestResourcesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          }
+        }
+      }
+    },
+    "/v1/resources/feedback": {
+      "post": {
+        "operationId": "submitResourceFeedback",
+        "summary": "Submit feedback on related resource suggestions",
+        "description": "Accepts optional user feedback signals for future suggestion ranking.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResourceFeedbackRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Feedback accepted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourceFeedbackResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -258,6 +322,133 @@
         "properties": {
           "transcript": {
             "type": "string"
+          }
+        }
+      },
+      "SuggestResourcesRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["text"],
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1
+          },
+          "themeIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      },
+      "SuggestResourcesResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["suggestions"],
+        "properties": {
+          "suggestions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RelatedResourceSuggestion"
+            }
+          }
+        }
+      },
+      "RelatedResourceSuggestion": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "type",
+          "title",
+          "sourceType",
+          "matchReason",
+          "confidence"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "reflection_prompt",
+              "scripture",
+              "talk_or_article",
+              "video_or_audio",
+              "quote",
+              "exercise",
+              "internal_entry_link"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "sourceType": {
+            "type": "string",
+            "enum": ["curated", "ai_mapped", "user_created"]
+          },
+          "matchReason": {
+            "type": "string",
+            "minLength": 1
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "entryId": {
+            "type": "string"
+          },
+          "themeId": {
+            "type": "string"
+          }
+        }
+      },
+      "ResourceFeedbackRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["resourceId", "action"],
+        "properties": {
+          "resourceId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "action": {
+            "type": "string",
+            "enum": ["save", "dismiss", "not_helpful"]
+          },
+          "entryId": {
+            "type": "string"
+          },
+          "themeId": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 500
+          }
+        }
+      },
+      "ResourceFeedbackResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["status"],
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "accepted"
           }
         }
       },

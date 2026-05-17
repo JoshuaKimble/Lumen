@@ -39,5 +39,11 @@ void main() {
     expect(darkTheme.scaffoldBackgroundColor, const Color(0xFF16181C));
     expect(lightTheme.colorScheme.primary, const Color(0xFF1F3A5F));
     expect(darkTheme.colorScheme.primary, const Color(0xFF6E8FB8));
+    expect(lightTheme.iconButtonTheme.style, isNotNull);
+    expect(lightTheme.segmentedButtonTheme.style, isNotNull);
+    expect(lightTheme.listTileTheme.iconColor, const Color(0xFF1F3A5F));
+    expect(darkTheme.listTileTheme.iconColor, const Color(0xFF6E8FB8));
+    expect(lightTheme.progressIndicatorTheme.color, const Color(0xFF1F3A5F));
+    expect(darkTheme.progressIndicatorTheme.color, const Color(0xFF6E8FB8));
   });
 }

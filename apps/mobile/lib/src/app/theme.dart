@@ -60,14 +60,22 @@ ThemeData _buildTheme(LumenThemePalette palette, Brightness brightness) {
     textTheme: textTheme,
     primaryTextTheme: textTheme,
     appBarTheme: _appBarTheme(palette, textTheme),
+    iconButtonTheme: _iconButtonTheme(palette),
     bottomNavigationBarTheme: _bottomNavigationBarTheme(palette),
     navigationBarTheme: _navigationBarTheme(palette, textTheme),
     filledButtonTheme: _filledButtonTheme(palette),
     outlinedButtonTheme: _outlinedButtonTheme(palette),
     textButtonTheme: _textButtonTheme(palette),
+    segmentedButtonTheme: _segmentedButtonTheme(palette, textTheme),
     floatingActionButtonTheme: _floatingActionButtonTheme(palette),
     inputDecorationTheme: _inputDecorationTheme(palette),
     chipTheme: _chipTheme(palette, textTheme),
+    listTileTheme: _listTileTheme(palette, textTheme),
+    progressIndicatorTheme: ProgressIndicatorThemeData(
+      color: palette.primaryBlue,
+      linearTrackColor: palette.borderDivider,
+      circularTrackColor: palette.borderDivider,
+    ),
     dividerTheme: DividerThemeData(
       color: palette.borderDivider,
       space: 1,
@@ -97,6 +105,29 @@ ThemeData _buildTheme(LumenThemePalette palette, Brightness brightness) {
       contentTextStyle: textTheme.bodyMedium,
       behavior: SnackBarBehavior.floating,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+    ),
+  );
+}
+
+IconButtonThemeData _iconButtonTheme(LumenThemePalette palette) {
+  return IconButtonThemeData(
+    style: ButtonStyle(
+      foregroundColor: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.disabled)) {
+          return palette.mutedText;
+        }
+
+        return palette.primaryBlue;
+      }),
+      overlayColor: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.hovered) ||
+            states.contains(WidgetState.pressed) ||
+            states.contains(WidgetState.focused)) {
+          return palette.softBlue.withValues(alpha: 0.2);
+        }
+
+        return null;
+      }),
     ),
   );
 }
@@ -261,6 +292,43 @@ TextButtonThemeData _textButtonTheme(LumenThemePalette palette) {
   );
 }
 
+SegmentedButtonThemeData _segmentedButtonTheme(
+  LumenThemePalette palette,
+  TextTheme textTheme,
+) {
+  return SegmentedButtonThemeData(
+    style: ButtonStyle(
+      backgroundColor: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.selected)) {
+          return palette.softBlue.withValues(alpha: 0.25);
+        }
+
+        return palette.elevatedSurface;
+      }),
+      foregroundColor: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.selected)) {
+          return palette.primaryBlue;
+        }
+
+        return palette.secondaryText;
+      }),
+      side: WidgetStateProperty.resolveWith((states) {
+        final color = states.contains(WidgetState.selected)
+            ? palette.primaryBlue.withValues(alpha: 0.5)
+            : palette.borderDivider;
+
+        return BorderSide(color: color);
+      }),
+      textStyle: WidgetStateProperty.all(
+        textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
+      ),
+      shape: WidgetStateProperty.all(
+        RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    ),
+  );
+}
+
 FloatingActionButtonThemeData _floatingActionButtonTheme(
   LumenThemePalette palette,
 ) {
@@ -311,6 +379,21 @@ ChipThemeData _chipTheme(LumenThemePalette palette, TextTheme textTheme) {
     side: BorderSide(color: palette.borderDivider),
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
     padding: const EdgeInsets.symmetric(horizontal: 8),
+  );
+}
+
+ListTileThemeData _listTileTheme(
+  LumenThemePalette palette,
+  TextTheme textTheme,
+) {
+  return ListTileThemeData(
+    iconColor: palette.primaryBlue,
+    textColor: palette.primaryText,
+    tileColor: Colors.transparent,
+    subtitleTextStyle: textTheme.bodyMedium?.copyWith(
+      color: palette.secondaryText,
+    ),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
   );
 }
 

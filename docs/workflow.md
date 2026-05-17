@@ -69,3 +69,6 @@ shows which flow produced the result.
 Use [local-api-development.md](/Users/joshuakimble/Documents/workspace/apps/Lumen/docs/local-api-development.md)
 for API-backed Flutter local runs, including `dart-define` flags, convenience
 scripts, and localhost troubleshooting.
+
+Use [platform-readiness.md](/Users/joshuakimble/Documents/workspace/apps/Lumen/docs/platform-readiness.md)
+to clear Android/iOS local setup blockers and run platform smoke tests.
