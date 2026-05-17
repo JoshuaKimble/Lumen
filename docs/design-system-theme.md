@@ -56,3 +56,23 @@ Implementation guardrails for any future texture work:
 - Apply only to large background surfaces, not input containers/cards.
 - Keep alpha subtle enough to preserve all contrast baselines.
 - Validate frame/render impact on low-end mobile hardware before rollout.
+
+## Visual Regression Tests
+
+Theme goldens cover representative light/dark component states in:
+
+- `apps/mobile/test/app/theme_golden_test.dart`
+
+Run:
+
+```sh
+cd apps/mobile
+flutter test test/app/theme_golden_test.dart
+```
+
+Update baselines intentionally:
+
+```sh
+cd apps/mobile
+flutter test --update-goldens test/app/theme_golden_test.dart
+```
