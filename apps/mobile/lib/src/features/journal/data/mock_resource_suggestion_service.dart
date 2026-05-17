@@ -103,8 +103,22 @@ final _resourcesByTheme = {
       matchReason: 'Matches faith-oriented reflection language.',
       confidence: 0.78,
       themeId: 'faith',
+      scriptureReference: 'Psalm 46:10',
       description: 'Be still, and know that I am God.',
       url: Uri.parse('https://www.churchofjesuschrist.org/study/scriptures'),
+    ),
+    RelatedResource(
+      id: 'faith-talk-endure-well',
+      title: 'General conference: Endure Well',
+      type: 'talk_or_article',
+      sourceType: 'curated',
+      matchReason: 'Supports reflective faith-centered review.',
+      confidence: 0.72,
+      themeId: 'faith',
+      description: 'A conference-style talk for patient, steady discipleship.',
+      url: Uri.parse(
+        'https://www.churchofjesuschrist.org/study/general-conference',
+      ),
     ),
   ],
   'reflection': [

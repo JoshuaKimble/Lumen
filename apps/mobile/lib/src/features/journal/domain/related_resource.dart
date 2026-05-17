@@ -10,6 +10,7 @@ class RelatedResource {
     this.matchReason = 'Related to your reflection.',
     this.confidence = 0.75,
     this.url,
+    this.scriptureReference,
     this.entryId,
     this.themeId,
     this.description,
@@ -22,6 +23,7 @@ class RelatedResource {
   final String matchReason;
   final double confidence;
   final Uri? url;
+  final String? scriptureReference;
   final String? entryId;
   final String? themeId;
   final String? description;

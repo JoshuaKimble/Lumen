@@ -6,6 +6,8 @@ import '../../../app/router.dart';
 import '../data/journal_ai_service_provider.dart';
 import '../data/journal_repository_provider.dart';
 import '../data/resource_suggestion_service_provider.dart';
+import '../../settings/data/scripture_app_preference_provider.dart';
+import '../../settings/domain/scripture_app_preference.dart';
 import '../domain/journal_entry.dart';
 import '../domain/journal_ai_service.dart';
 import '../domain/related_resource.dart';
@@ -448,6 +450,14 @@ class _ResourceCard extends ConsumerWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final feedbackMap = ref.watch(resourceFeedbackControllerProvider);
     final feedback = feedbackMap.asData?.value[resource.id];
+    final scripturePreference = ref.watch(
+      scriptureAppPreferenceControllerProvider,
+    );
+    final selectedPreference =
+        scripturePreference.asData?.value ?? ScriptureAppPreference.none;
+    final resolvedUrl = ref
+        .watch(scriptureResourceLinkResolverProvider)
+        .resolve(resource, preference: selectedPreference);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
@@ -497,6 +507,13 @@ class _ResourceCard extends ConsumerWidget {
               spacing: 8,
               runSpacing: 4,
               children: [
+                OutlinedButton.icon(
+                  onPressed: resolvedUrl == null
+                      ? null
+                      : () => _openResource(context, ref, resolvedUrl),
+                  icon: const Icon(Icons.open_in_new_outlined),
+                  label: const Text('Open'),
+                ),
                 OutlinedButton.icon(
                   onPressed: () => _submitFeedback(
                     ref,
@@ -564,6 +581,23 @@ class _ResourceCard extends ConsumerWidget {
           entryId: entryId,
           themeId: themeId,
         );
+  }
+
+  Future<void> _openResource(
+    BuildContext context,
+    WidgetRef ref,
+    Uri url,
+  ) async {
+    final didOpen = await ref.read(resourceLinkOpenerProvider).open(url);
+    if (!context.mounted || didOpen) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Unable to open this resource on this device.'),
+      ),
+    );
   }
 
   IconData _iconFor(String type) {

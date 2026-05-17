@@ -4,7 +4,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lumen/src/app/lumen_app.dart';
 import 'package:lumen/src/features/journal/data/in_memory_journal_repository.dart';
 import 'package:lumen/src/features/journal/data/journal_repository_provider.dart';
+import 'package:lumen/src/features/settings/data/scripture_app_preference_provider.dart';
 import 'package:lumen/src/features/settings/data/theme_preference_provider.dart';
+import 'package:lumen/src/features/settings/domain/scripture_app_preference.dart';
+import 'package:lumen/src/features/settings/domain/scripture_app_preference_repository.dart';
 import 'package:lumen/src/features/settings/domain/theme_preference.dart';
 import 'package:lumen/src/features/settings/domain/theme_preference_repository.dart';
 
@@ -49,12 +52,39 @@ void main() {
     expect(repository.storedPreference, ThemePreference.system);
     expect(_materialApp(tester).themeMode, ThemeMode.system);
   });
+
+  testWidgets('selects scripture app preference', (tester) async {
+    final themeRepository = _FakeThemePreferenceRepository();
+    final scriptureRepository = _FakeScriptureAppPreferenceRepository();
+    await _pumpApp(
+      tester,
+      repository: themeRepository,
+      scriptureRepository: scriptureRepository,
+    );
+
+    await tester.tap(find.text('Settings').last);
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byType(DropdownButtonFormField<ScriptureAppPreference>),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Gospel Library (LDS)').last);
+    await tester.pumpAndSettle();
+
+    expect(
+      scriptureRepository.storedPreference,
+      ScriptureAppPreference.gospelLibrary,
+    );
+  });
 }
 
 Future<void> _pumpApp(
   WidgetTester tester, {
   required ThemePreferenceRepository repository,
+  ScriptureAppPreferenceRepository? scriptureRepository,
 }) async {
+  final resolvedScriptureRepository =
+      scriptureRepository ?? _FakeScriptureAppPreferenceRepository();
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
@@ -62,6 +92,9 @@ Future<void> _pumpApp(
           InMemoryJournalRepository(),
         ),
         themePreferenceRepositoryProvider.overrideWithValue(repository),
+        scriptureAppPreferenceRepositoryProvider.overrideWithValue(
+          resolvedScriptureRepository,
+        ),
       ],
       child: const LumenApp(),
     ),
@@ -88,6 +121,26 @@ class _FakeThemePreferenceRepository implements ThemePreferenceRepository {
 
   @override
   Future<void> save(ThemePreference preference) async {
+    storedPreference = preference;
+  }
+}
+
+class _FakeScriptureAppPreferenceRepository
+    implements ScriptureAppPreferenceRepository {
+  _FakeScriptureAppPreferenceRepository({
+    this.initialPreference = ScriptureAppPreference.none,
+  }) : storedPreference = initialPreference;
+
+  final ScriptureAppPreference initialPreference;
+  ScriptureAppPreference storedPreference;
+
+  @override
+  Future<ScriptureAppPreference> load() async {
+    return storedPreference;
+  }
+
+  @override
+  Future<void> save(ScriptureAppPreference preference) async {
     storedPreference = preference;
   }
 }
