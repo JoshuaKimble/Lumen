@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lumen/src/app/theme.dart';
+import 'dart:math' as math;
 
 void main() {
   test('defines Heritage palette tokens', () {
@@ -46,4 +47,72 @@ void main() {
     expect(lightTheme.progressIndicatorTheme.color, const Color(0xFF1F3A5F));
     expect(darkTheme.progressIndicatorTheme.color, const Color(0xFF6E8FB8));
   });
+
+  test('meets baseline text contrast expectations in both themes', () {
+    const light = LumenThemePalette.heritage;
+    const dark = LumenThemePalette.midnight;
+
+    expect(
+      _contrastRatio(light.primaryText, light.primaryBackground),
+      greaterThanOrEqualTo(4.5),
+    );
+    expect(
+      _contrastRatio(dark.primaryText, dark.primaryBackground),
+      greaterThanOrEqualTo(4.5),
+    );
+    expect(
+      _contrastRatio(light.secondaryText, light.primaryBackground),
+      greaterThanOrEqualTo(4.5),
+    );
+    expect(
+      _contrastRatio(dark.secondaryText, dark.primaryBackground),
+      greaterThanOrEqualTo(4.5),
+    );
+    expect(
+      _contrastRatio(light.mutedText, light.elevatedSurface),
+      greaterThanOrEqualTo(3.0),
+    );
+    expect(
+      _contrastRatio(dark.mutedText, dark.elevatedSurface),
+      greaterThanOrEqualTo(3.0),
+    );
+  });
+
+  test('enforces accessible touch target sizes for button themes', () {
+    final lightTheme = buildLumenLightTheme();
+
+    expect(
+      lightTheme.filledButtonTheme.style?.minimumSize?.resolve({}),
+      const Size(48, 48),
+    );
+    expect(
+      lightTheme.outlinedButtonTheme.style?.minimumSize?.resolve({}),
+      const Size(48, 48),
+    );
+    expect(
+      lightTheme.textButtonTheme.style?.minimumSize?.resolve({}),
+      const Size(48, 48),
+    );
+    expect(
+      lightTheme.iconButtonTheme.style?.minimumSize?.resolve({}),
+      const Size(48, 48),
+    );
+    expect(
+      lightTheme.segmentedButtonTheme.style?.minimumSize?.resolve({}),
+      const Size(48, 48),
+    );
+  });
+}
+
+double _contrastRatio(Color foreground, Color background) {
+  final lighter = math.max(
+    foreground.computeLuminance(),
+    background.computeLuminance(),
+  );
+  final darker = math.min(
+    foreground.computeLuminance(),
+    background.computeLuminance(),
+  );
+
+  return (lighter + 0.05) / (darker + 0.05);
 }

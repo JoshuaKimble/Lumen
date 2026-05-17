@@ -18,3 +18,17 @@ Color values live in `apps/mobile/lib/src/app/theme.dart` as `LumenThemePalette`
 - Use muted text for low-emphasis metadata, counts, and helper labels.
 
 Avoid pure black, pure white, and generic Material default colors unless they are being used through a deliberate branded token.
+
+## Accessibility Checks
+
+Current baseline checks:
+
+- Primary and secondary text must maintain readable contrast on their primary backgrounds in both Heritage and Midnight.
+- Muted text is allowed lower contrast but should remain readable for metadata and helper text.
+- Interactive components should use at least `48x48` touch targets for mobile ergonomics.
+- Focused, selected, disabled, and destructive states must remain visually distinguishable in both themes.
+
+Manual spot-check targets:
+
+- Journal list, entry detail, entry editor, theme cloud/detail, and settings.
+- Chips, inputs, dialogs, and navigation surfaces in both light and dark modes.

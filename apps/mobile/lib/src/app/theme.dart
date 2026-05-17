@@ -112,6 +112,7 @@ ThemeData _buildTheme(LumenThemePalette palette, Brightness brightness) {
 IconButtonThemeData _iconButtonTheme(LumenThemePalette palette) {
   return IconButtonThemeData(
     style: ButtonStyle(
+      minimumSize: WidgetStateProperty.all(const Size(48, 48)),
       foregroundColor: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.disabled)) {
           return palette.mutedText;
@@ -229,7 +230,7 @@ FilledButtonThemeData _filledButtonTheme(LumenThemePalette palette) {
         return palette.primaryBlue;
       }),
       foregroundColor: WidgetStateProperty.all(palette.elevatedSurface),
-      minimumSize: WidgetStateProperty.all(const Size(48, 44)),
+      minimumSize: WidgetStateProperty.all(const Size(48, 48)),
       shape: WidgetStateProperty.all(
         RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
@@ -246,7 +247,8 @@ OutlinedButtonThemeData _outlinedButtonTheme(LumenThemePalette palette) {
         }
 
         if (states.contains(WidgetState.hovered) ||
-            states.contains(WidgetState.pressed)) {
+            states.contains(WidgetState.pressed) ||
+            states.contains(WidgetState.focused)) {
           return palette.hoverBlue;
         }
 
@@ -255,13 +257,14 @@ OutlinedButtonThemeData _outlinedButtonTheme(LumenThemePalette palette) {
       side: WidgetStateProperty.resolveWith((states) {
         final color =
             states.contains(WidgetState.hovered) ||
-                states.contains(WidgetState.pressed)
+                states.contains(WidgetState.pressed) ||
+                states.contains(WidgetState.focused)
             ? palette.hoverBlue
             : palette.borderDivider;
 
         return BorderSide(color: color);
       }),
-      minimumSize: WidgetStateProperty.all(const Size(48, 44)),
+      minimumSize: WidgetStateProperty.all(const Size(48, 48)),
       shape: WidgetStateProperty.all(
         RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
@@ -278,13 +281,14 @@ TextButtonThemeData _textButtonTheme(LumenThemePalette palette) {
         }
 
         if (states.contains(WidgetState.hovered) ||
-            states.contains(WidgetState.pressed)) {
+            states.contains(WidgetState.pressed) ||
+            states.contains(WidgetState.focused)) {
           return palette.hoverBlue;
         }
 
         return palette.primaryBlue;
       }),
-      minimumSize: WidgetStateProperty.all(const Size(48, 44)),
+      minimumSize: WidgetStateProperty.all(const Size(48, 48)),
       shape: WidgetStateProperty.all(
         RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
@@ -313,12 +317,17 @@ SegmentedButtonThemeData _segmentedButtonTheme(
         return palette.secondaryText;
       }),
       side: WidgetStateProperty.resolveWith((states) {
-        final color = states.contains(WidgetState.selected)
+        final color =
+            states.contains(WidgetState.selected) ||
+                states.contains(WidgetState.hovered) ||
+                states.contains(WidgetState.pressed) ||
+                states.contains(WidgetState.focused)
             ? palette.primaryBlue.withValues(alpha: 0.5)
             : palette.borderDivider;
 
         return BorderSide(color: color);
       }),
+      minimumSize: WidgetStateProperty.all(const Size(48, 48)),
       textStyle: WidgetStateProperty.all(
         textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
       ),
