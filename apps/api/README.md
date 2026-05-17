@@ -57,3 +57,16 @@ The configured defaults are `gpt-5-mini` for rewrite/theme detection and
 
 The gateway must not commit provider API keys or secrets. Local `.env` files are
 ignored by git; keep real API keys out of commits, logs, and test fixtures.
+
+## Privacy And Error Handling
+
+- The API remains stateless for journal data in the MVP.
+- Request handlers and provider code must not log raw journal text, transcripts,
+  base64 audio payloads, prompts, or API keys.
+- Provider failures are mapped to safe API errors:
+  - `provider_rate_limited` (`429`)
+  - `provider_timeout` (`504`)
+  - `provider_unavailable` (`503`)
+  - `provider_response_invalid` (`502`)
+  - `provider_error` (`502`)
+- API responses intentionally avoid returning raw provider error payloads.

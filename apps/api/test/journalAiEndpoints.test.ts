@@ -3,6 +3,7 @@ import { Buffer } from 'node:buffer';
 import { after, before, test } from 'node:test';
 
 import { createApiServer } from '../src/app.js';
+import { AiProviderError } from '../src/ai/providerError.js';
 
 let baseUrl = '';
 let failingBaseUrl = '';
@@ -268,6 +269,61 @@ test('maps transcription provider failures to internal_server_error', async () =
   });
 });
 
+test('maps provider rate limits to safe 429 response', async () => {
+  await assertProviderError(
+    new AiProviderError('rate_limit', 'raw provider detail'),
+    '/v1/entries/rewrite',
+    { originalText: 'raw note' },
+    429,
+    {
+      error: 'provider_rate_limited',
+      message: 'AI provider is rate-limited. Please retry shortly.',
+    },
+  );
+});
+
+test('maps provider timeout to safe 504 response', async () => {
+  await assertProviderError(
+    new AiProviderError('timeout', 'raw provider detail'),
+    '/v1/entries/themes/detect',
+    { text: 'raw note' },
+    504,
+    {
+      error: 'provider_timeout',
+      message: 'AI provider timed out. Please retry.',
+    },
+  );
+});
+
+test('maps provider unavailable to safe 503 response', async () => {
+  await assertProviderError(
+    new AiProviderError('unavailable', 'raw provider detail'),
+    '/v1/transcriptions',
+    {
+      audioBase64: Buffer.from('recorded audio').toString('base64'),
+      mimeType: 'audio/mp4',
+    },
+    503,
+    {
+      error: 'provider_unavailable',
+      message: 'AI provider is temporarily unavailable. Please retry.',
+    },
+  );
+});
+
+test('maps provider malformed response to safe 502 response', async () => {
+  await assertProviderError(
+    new AiProviderError('malformed_response', 'raw provider detail'),
+    '/v1/entries/rewrite',
+    { originalText: 'raw note' },
+    502,
+    {
+      error: 'provider_response_invalid',
+      message: 'AI provider returned an invalid response.',
+    },
+  );
+});
+
 async function postJson(
   path: string,
   body: unknown,
@@ -280,4 +336,59 @@ async function postJson(
       'content-type': 'application/json',
     },
   });
+}
+
+async function assertProviderError(
+  providerError: AiProviderError,
+  path: string,
+  body: unknown,
+  expectedStatus: number,
+  expectedBody: unknown,
+): Promise<void> {
+  const errorServer = createApiServer({
+    aiProvider: {
+      async rewrite() {
+        throw providerError;
+      },
+      async detectThemes() {
+        throw providerError;
+      },
+      async transcribe() {
+        throw providerError;
+      },
+    },
+  });
+
+  await new Promise<void>((resolve) => {
+    errorServer.listen(0, '127.0.0.1', resolve);
+  });
+
+  const address = errorServer.address();
+
+  if (address === null || typeof address === 'string') {
+    throw new Error('Expected server to listen on a TCP address.');
+  }
+
+  const serverBaseUrl = `http://127.0.0.1:${address.port}`;
+
+  try {
+    const response = await postJson(path, body, serverBaseUrl);
+    const responseBody = await response.json();
+
+    assert.equal(response.status, expectedStatus);
+    assert.deepEqual(responseBody, expectedBody);
+  } finally {
+    errorServer.closeAllConnections();
+    errorServer.closeIdleConnections();
+    await new Promise<void>((resolve, reject) => {
+      errorServer.close((error) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+
+        resolve();
+      });
+    });
+  }
 }

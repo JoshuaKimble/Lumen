@@ -3,6 +3,10 @@ import {
   buildThemeDetectionPrompt,
 } from './journalAiPrompts.js';
 import { Buffer } from 'node:buffer';
+import {
+  AiProviderError,
+  createStatusBasedProviderError,
+} from './providerError.js';
 import type {
   AiGatewayProvider,
   JournalTheme,
@@ -158,14 +162,20 @@ class FetchOpenAiTransport implements OpenAiTransport {
   constructor(private readonly apiKey: string) {}
 
   async postJson(path: string, body: unknown): Promise<OpenAiTransportResponse> {
-    const response = await fetch(`https://api.openai.com/v1${path}`, {
-      method: 'POST',
-      headers: {
-        authorization: `Bearer ${this.apiKey}`,
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify(body),
-    });
+    let response: Response;
+    try {
+      response = await fetch(`https://api.openai.com/v1${path}`, {
+        method: 'POST',
+        headers: {
+          authorization: `Bearer ${this.apiKey}`,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(requestTimeoutMs),
+      });
+    } catch (error) {
+      throw mapTransportError(error);
+    }
 
     return {
       status: response.status,
@@ -177,13 +187,19 @@ class FetchOpenAiTransport implements OpenAiTransport {
     path: string,
     body: FormData,
   ): Promise<OpenAiTransportResponse> {
-    const response = await fetch(`https://api.openai.com/v1${path}`, {
-      method: 'POST',
-      headers: {
-        authorization: `Bearer ${this.apiKey}`,
-      },
-      body,
-    });
+    let response: Response;
+    try {
+      response = await fetch(`https://api.openai.com/v1${path}`, {
+        method: 'POST',
+        headers: {
+          authorization: `Bearer ${this.apiKey}`,
+        },
+        body,
+        signal: AbortSignal.timeout(requestTimeoutMs),
+      });
+    } catch (error) {
+      throw mapTransportError(error);
+    }
 
     return {
       status: response.status,
@@ -202,31 +218,43 @@ async function readResponseJson(response: Response): Promise<unknown> {
 
 function assertSuccessStatus(status: number): void {
   if (status < 200 || status >= 300) {
-    throw new Error(`OpenAI request failed with status ${status}.`);
+    throw createStatusBasedProviderError(status);
   }
 }
 
 function parseJsonObjectFromCompletionContent(data: unknown): Record<string, unknown> {
   if (typeof data !== 'object' || data === null) {
-    throw new Error('OpenAI response did not include a completion payload.');
+    throw new AiProviderError(
+      'malformed_response',
+      'OpenAI response did not include a completion payload.',
+    );
   }
 
   const content = (data as Record<string, unknown>).choices;
 
   if (!Array.isArray(content) || content.length === 0) {
-    throw new Error('OpenAI completion response did not include choices.');
+    throw new AiProviderError(
+      'malformed_response',
+      'OpenAI completion response did not include choices.',
+    );
   }
 
   const firstChoice = content[0];
 
   if (typeof firstChoice !== 'object' || firstChoice === null) {
-    throw new Error('OpenAI completion response included an invalid choice.');
+    throw new AiProviderError(
+      'malformed_response',
+      'OpenAI completion response included an invalid choice.',
+    );
   }
 
   const message = (firstChoice as Record<string, unknown>).message;
 
   if (typeof message !== 'object' || message === null) {
-    throw new Error('OpenAI completion response did not include a message.');
+    throw new AiProviderError(
+      'malformed_response',
+      'OpenAI completion response did not include a message.',
+    );
   }
 
   const rawContent = (message as Record<string, unknown>).content;
@@ -241,7 +269,10 @@ function parseJsonObjectFromCompletionContent(data: unknown): Record<string, unk
 
     return parsed as Record<string, unknown>;
   } catch {
-    throw new Error('OpenAI completion response was not valid JSON.');
+    throw new AiProviderError(
+      'malformed_response',
+      'OpenAI completion response was not valid JSON.',
+    );
   }
 }
 
@@ -262,17 +293,26 @@ function extractMessageContentText(content: unknown): string {
     }
   }
 
-  throw new Error('OpenAI completion response did not include text content.');
+  throw new AiProviderError(
+    'malformed_response',
+    'OpenAI completion response did not include text content.',
+  );
 }
 
 function parseThemes(value: unknown): readonly JournalTheme[] {
   if (!Array.isArray(value)) {
-    throw new Error('OpenAI theme response did not include a themes array.');
+    throw new AiProviderError(
+      'malformed_response',
+      'OpenAI theme response did not include a themes array.',
+    );
   }
 
   return value.map((theme) => {
     if (typeof theme !== 'object' || theme === null) {
-      throw new Error('OpenAI theme response included an invalid theme item.');
+      throw new AiProviderError(
+        'malformed_response',
+        'OpenAI theme response included an invalid theme item.',
+      );
     }
 
     const record = theme as Record<string, unknown>;
@@ -289,13 +329,19 @@ function parseThemes(value: unknown): readonly JournalTheme[] {
 
 function extractTranscriptionText(value: unknown): string {
   if (typeof value !== 'object' || value === null) {
-    throw new Error('OpenAI transcription response was malformed.');
+    throw new AiProviderError(
+      'malformed_response',
+      'OpenAI transcription response was malformed.',
+    );
   }
 
   const text = (value as Record<string, unknown>).text;
 
   if (typeof text !== 'string' || text.trim().length === 0) {
-    throw new Error('OpenAI transcription response did not include text.');
+    throw new AiProviderError(
+      'malformed_response',
+      'OpenAI transcription response did not include text.',
+    );
   }
 
   return text;
@@ -308,7 +354,10 @@ function requiredString(
   const value = record[key];
 
   if (typeof value !== 'string' || value.trim().length === 0) {
-    throw new Error(`OpenAI response did not include a valid "${key}".`);
+    throw new AiProviderError(
+      'malformed_response',
+      `OpenAI response did not include a valid "${key}".`,
+    );
   }
 
   return value;
@@ -325,7 +374,10 @@ function optionalString(
   }
 
   if (typeof value !== 'string') {
-    throw new Error(`OpenAI response included an invalid "${key}".`);
+    throw new AiProviderError(
+      'malformed_response',
+      `OpenAI response included an invalid "${key}".`,
+    );
   }
 
   return value;
@@ -342,7 +394,10 @@ function optionalNumber(
   }
 
   if (typeof value !== 'number') {
-    throw new Error(`OpenAI response included an invalid "${key}".`);
+    throw new AiProviderError(
+      'malformed_response',
+      `OpenAI response included an invalid "${key}".`,
+    );
   }
 
   return value;
@@ -358,4 +413,18 @@ function extensionForMimeType(mimeType: string): string {
       'audio/x-m4a': 'audio.m4a',
     }[mimeType] ?? 'audio.bin'
   );
+}
+
+const requestTimeoutMs = 20_000;
+
+function mapTransportError(error: unknown): AiProviderError {
+  if (error instanceof DOMException && error.name === 'TimeoutError') {
+    return new AiProviderError('timeout', 'OpenAI request timed out.', {
+      cause: error,
+    });
+  }
+
+  return new AiProviderError('unavailable', 'OpenAI request failed.', {
+    cause: error,
+  });
 }

@@ -3,6 +3,7 @@ import { createServer, type IncomingMessage, type Server } from 'node:http';
 
 import type { AiGatewayProvider } from './ai/aiGatewayProvider.js';
 import { createConfiguredAiProvider } from './ai/aiProviderFactory.js';
+import { AiProviderError } from './ai/providerError.js';
 import {
   buildRewritePrompt,
   buildThemeDetectionPrompt,
@@ -45,6 +46,15 @@ export function createApiServer(dependencies: AppDependencies = {}): Server {
         sendJson(response, 400, {
           error: 'bad_request',
           message: error.message,
+        });
+        return;
+      }
+
+      if (error instanceof AiProviderError) {
+        const mapped = mapProviderErrorToHttp(error);
+        sendJson(response, mapped.statusCode, {
+          error: mapped.errorCode,
+          message: mapped.message,
         });
         return;
       }
@@ -154,4 +164,41 @@ function isBase64(value: string): boolean {
   }
 
   return /^[A-Za-z0-9+/]+={0,2}$/.test(value);
+}
+
+function mapProviderErrorToHttp(
+  error: AiProviderError,
+): { statusCode: number; errorCode: string; message: string } {
+  switch (error.kind) {
+    case 'rate_limit':
+      return {
+        statusCode: 429,
+        errorCode: 'provider_rate_limited',
+        message: 'AI provider is rate-limited. Please retry shortly.',
+      };
+    case 'timeout':
+      return {
+        statusCode: 504,
+        errorCode: 'provider_timeout',
+        message: 'AI provider timed out. Please retry.',
+      };
+    case 'unavailable':
+      return {
+        statusCode: 503,
+        errorCode: 'provider_unavailable',
+        message: 'AI provider is temporarily unavailable. Please retry.',
+      };
+    case 'malformed_response':
+      return {
+        statusCode: 502,
+        errorCode: 'provider_response_invalid',
+        message: 'AI provider returned an invalid response.',
+      };
+    case 'provider_error':
+      return {
+        statusCode: 502,
+        errorCode: 'provider_error',
+        message: 'AI provider request failed.',
+      };
+  }
 }

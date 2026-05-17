@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import { OpenAiGatewayProvider } from '../src/ai/openAiGatewayProvider.js';
+import { AiProviderError } from '../src/ai/providerError.js';
 
 const config = {
   apiKey: 'test-key',
@@ -232,7 +233,11 @@ test('rejects non-2xx OpenAI responses', async () => {
 
   await assert.rejects(
     provider.detectThemes({ text: 'raw note' }),
-    /status 429/,
+    (error: unknown) => {
+      assert.ok(error instanceof AiProviderError);
+      assert.equal(error.kind, 'rate_limit');
+      return true;
+    },
   );
 });
 
