@@ -32,3 +32,27 @@ Manual spot-check targets:
 
 - Journal list, entry detail, entry editor, theme cloud/detail, and settings.
 - Chips, inputs, dialogs, and navigation surfaces in both light and dark modes.
+
+## Texture Exploration Decision
+
+Status: deferred.
+
+Recommendation:
+
+- Keep solid tokenized surfaces for now (no paper/noise texture layer in MVP).
+- Revisit texture only after auth/cloud sync milestones are stable and we can
+  afford focused visual/performance tuning.
+
+Rationale:
+
+- Current Heritage + Midnight palettes already establish visual identity.
+- A texture layer adds render complexity and accessibility risk (contrast drift
+  behind text-heavy journal content).
+- The app currently benefits more from deterministic, low-risk surfaces across
+  mobile and web than decorative treatment.
+
+Implementation guardrails for any future texture work:
+
+- Apply only to large background surfaces, not input containers/cards.
+- Keep alpha subtle enough to preserve all contrast baselines.
+- Validate frame/render impact on low-end mobile hardware before rollout.
