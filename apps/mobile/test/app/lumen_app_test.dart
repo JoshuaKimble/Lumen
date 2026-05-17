@@ -18,6 +18,9 @@ import 'package:lumen/src/features/journal/domain/voice_recording.dart';
 import 'package:lumen/src/features/journal/domain/voice_transcription_service.dart';
 import 'package:lumen/src/features/journal/data/voice_recorder_provider.dart';
 import 'package:lumen/src/features/journal/data/voice_transcription_service_provider.dart';
+import 'package:lumen/src/features/settings/data/theme_preference_provider.dart';
+import 'package:lumen/src/features/settings/domain/theme_preference.dart';
+import 'package:lumen/src/features/settings/domain/theme_preference_repository.dart';
 
 void main() {
   testWidgets('renders the journal home screen', (tester) async {
@@ -40,6 +43,52 @@ void main() {
     expect(find.byTooltip('New text entry'), findsOneWidget);
     expect(find.text('Journal'), findsOneWidget);
     expect(find.text('Voice'), findsOneWidget);
+  });
+
+  testWidgets('applies saved dark theme override on startup', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          journalRepositoryProvider.overrideWithValue(
+            InMemoryJournalRepository(),
+          ),
+          themePreferenceRepositoryProvider.overrideWithValue(
+            _FakeThemePreferenceRepository(
+              initialPreference: ThemePreference.dark,
+            ),
+          ),
+        ],
+        child: const LumenApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
+    expect(app.themeMode, ThemeMode.dark);
+  });
+
+  testWidgets('uses system theme mode when saved preference is system', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          journalRepositoryProvider.overrideWithValue(
+            InMemoryJournalRepository(),
+          ),
+          themePreferenceRepositoryProvider.overrideWithValue(
+            _FakeThemePreferenceRepository(
+              initialPreference: ThemePreference.system,
+            ),
+          ),
+        ],
+        child: const LumenApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
+    expect(app.themeMode, ThemeMode.system);
   });
 
   testWidgets('navigates between top-level pages', (tester) async {
@@ -814,6 +863,25 @@ class _FakeVoiceTranscriptionService implements VoiceTranscriptionService {
   @override
   Future<String> transcribe(VoiceRecording recording) async {
     return transcript;
+  }
+}
+
+class _FakeThemePreferenceRepository implements ThemePreferenceRepository {
+  _FakeThemePreferenceRepository({
+    this.initialPreference = ThemePreference.system,
+  }) : storedPreference = initialPreference;
+
+  final ThemePreference initialPreference;
+  ThemePreference storedPreference;
+
+  @override
+  Future<ThemePreference> load() async {
+    return storedPreference;
+  }
+
+  @override
+  Future<void> save(ThemePreference preference) async {
+    storedPreference = preference;
   }
 }
 

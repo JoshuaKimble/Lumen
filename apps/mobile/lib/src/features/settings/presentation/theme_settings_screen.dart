@@ -19,33 +19,45 @@ class ThemeSettingsScreen extends ConsumerWidget {
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
         children: [
           Text('Theme', style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 12),
-          SegmentedButton<ThemePreference>(
-            showSelectedIcon: false,
-            segments: const [
-              ButtonSegment<ThemePreference>(
-                value: ThemePreference.system,
-                label: Text('System'),
-                icon: Icon(Icons.phone_android_outlined),
+          const SizedBox(height: 8),
+          Text(
+            'Choose how Lumen appears across your devices.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: SegmentedButton<ThemePreference>(
+                showSelectedIcon: false,
+                segments: const [
+                  ButtonSegment<ThemePreference>(
+                    value: ThemePreference.system,
+                    label: Text('System'),
+                    icon: Icon(Icons.phone_android_outlined),
+                  ),
+                  ButtonSegment<ThemePreference>(
+                    value: ThemePreference.light,
+                    label: Text('Light'),
+                    icon: Icon(Icons.light_mode_outlined),
+                  ),
+                  ButtonSegment<ThemePreference>(
+                    value: ThemePreference.dark,
+                    label: Text('Dark'),
+                    icon: Icon(Icons.dark_mode_outlined),
+                  ),
+                ],
+                selected: {selectedPreference},
+                onSelectionChanged: (selection) {
+                  final preference = selection.first;
+                  ref
+                      .read(themePreferenceControllerProvider.notifier)
+                      .setPreference(preference);
+                },
               ),
-              ButtonSegment<ThemePreference>(
-                value: ThemePreference.light,
-                label: Text('Light'),
-                icon: Icon(Icons.light_mode_outlined),
-              ),
-              ButtonSegment<ThemePreference>(
-                value: ThemePreference.dark,
-                label: Text('Dark'),
-                icon: Icon(Icons.dark_mode_outlined),
-              ),
-            ],
-            selected: {selectedPreference},
-            onSelectionChanged: (selection) {
-              final preference = selection.first;
-              ref
-                  .read(themePreferenceControllerProvider.notifier)
-                  .setPreference(preference);
-            },
+            ),
           ),
           if (themePreference.hasError) ...[
             const SizedBox(height: 12),
