@@ -5,7 +5,21 @@ import { after, before, test } from 'node:test';
 import { createApiServer } from '../src/app.js';
 
 let baseUrl = '';
+let failingBaseUrl = '';
 const server = createApiServer();
+const failingServer = createApiServer({
+  aiProvider: {
+    async rewrite() {
+      throw new Error('rewrite failure');
+    },
+    async detectThemes() {
+      throw new Error('theme failure');
+    },
+    async transcribe() {
+      throw new Error('transcribe failure');
+    },
+  },
+});
 
 before(async () => {
   await new Promise<void>((resolve) => {
@@ -19,6 +33,18 @@ before(async () => {
   }
 
   baseUrl = `http://127.0.0.1:${address.port}`;
+
+  await new Promise<void>((resolve) => {
+    failingServer.listen(0, '127.0.0.1', resolve);
+  });
+
+  const failingAddress = failingServer.address();
+
+  if (failingAddress === null || typeof failingAddress === 'string') {
+    throw new Error('Expected failing server to listen on a TCP address.');
+  }
+
+  failingBaseUrl = `http://127.0.0.1:${failingAddress.port}`;
 });
 
 after(async () => {
@@ -27,6 +53,20 @@ after(async () => {
 
   await new Promise<void>((resolve, reject) => {
     server.close((error) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+
+      resolve();
+    });
+  });
+
+  failingServer.closeAllConnections();
+  failingServer.closeIdleConnections();
+
+  await new Promise<void>((resolve, reject) => {
+    failingServer.close((error) => {
       if (error) {
         reject(error);
         return;
@@ -153,8 +193,87 @@ test('endpoint rejects invalid JSON', async () => {
   });
 });
 
-async function postJson(path: string, body: unknown): Promise<Response> {
-  return fetch(`${baseUrl}${path}`, {
+test('returns not_found for unknown routes', async () => {
+  const response = await fetch(`${baseUrl}/v1/unknown-path`);
+  const body = await response.json();
+
+  assert.equal(response.status, 404);
+  assert.deepEqual(body, {
+    error: 'not_found',
+  });
+});
+
+test('transcription endpoint rejects audio larger than 10 MB', async () => {
+  const tooLargeAudio = Buffer.alloc(10 * 1024 * 1024 + 1).toString('base64');
+
+  const response = await postJson('/v1/transcriptions', {
+    audioBase64: tooLargeAudio,
+    mimeType: 'audio/mp4',
+  });
+  const body = await response.json();
+
+  assert.equal(response.status, 400);
+  assert.deepEqual(body, {
+    error: 'bad_request',
+    message: 'Audio upload exceeds 10 MB.',
+  });
+});
+
+test('maps rewrite provider failures to internal_server_error', async () => {
+  const response = await postJson(
+    '/v1/entries/rewrite',
+    {
+      originalText: 'raw note',
+    },
+    failingBaseUrl,
+  );
+  const body = await response.json();
+
+  assert.equal(response.status, 500);
+  assert.deepEqual(body, {
+    error: 'internal_server_error',
+  });
+});
+
+test('maps theme provider failures to internal_server_error', async () => {
+  const response = await postJson(
+    '/v1/entries/themes/detect',
+    {
+      text: 'raw note',
+    },
+    failingBaseUrl,
+  );
+  const body = await response.json();
+
+  assert.equal(response.status, 500);
+  assert.deepEqual(body, {
+    error: 'internal_server_error',
+  });
+});
+
+test('maps transcription provider failures to internal_server_error', async () => {
+  const response = await postJson(
+    '/v1/transcriptions',
+    {
+      audioBase64: Buffer.from('recorded audio').toString('base64'),
+      mimeType: 'audio/mp4',
+    },
+    failingBaseUrl,
+  );
+  const body = await response.json();
+
+  assert.equal(response.status, 500);
+  assert.deepEqual(body, {
+    error: 'internal_server_error',
+  });
+});
+
+async function postJson(
+  path: string,
+  body: unknown,
+  targetBaseUrl: string = baseUrl,
+): Promise<Response> {
+  return fetch(`${targetBaseUrl}${path}`, {
     method: 'POST',
     body: JSON.stringify(body),
     headers: {

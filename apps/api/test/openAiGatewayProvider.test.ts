@@ -110,6 +110,115 @@ test('rejects malformed rewrite payloads', async () => {
   );
 });
 
+test('rejects rewrite payload without choices', async () => {
+  const transport = new FakeTransport({
+    jsonResponse: {
+      status: 200,
+      data: {},
+    },
+  });
+  const provider = new OpenAiGatewayProvider(config, transport);
+
+  await assert.rejects(
+    provider.rewrite({ originalText: 'raw note' }),
+    /did not include choices/,
+  );
+});
+
+test('rejects rewrite payload without message content', async () => {
+  const transport = new FakeTransport({
+    jsonResponse: {
+      status: 200,
+      data: {
+        choices: [{}],
+      },
+    },
+  });
+  const provider = new OpenAiGatewayProvider(config, transport);
+
+  await assert.rejects(
+    provider.rewrite({ originalText: 'raw note' }),
+    /did not include a message/,
+  );
+});
+
+test('rejects themes payload without themes array', async () => {
+  const transport = new FakeTransport({
+    jsonResponse: {
+      status: 200,
+      data: {
+        choices: [
+          {
+            message: {
+              content: JSON.stringify({
+                missingThemes: [],
+              }),
+            },
+          },
+        ],
+      },
+    },
+  });
+  const provider = new OpenAiGatewayProvider(config, transport);
+
+  await assert.rejects(
+    provider.detectThemes({ text: 'raw note' }),
+    /did not include a themes array/,
+  );
+});
+
+test('rejects themes payload with invalid weight type', async () => {
+  const transport = new FakeTransport({
+    jsonResponse: {
+      status: 200,
+      data: {
+        choices: [
+          {
+            message: {
+              content: JSON.stringify({
+                themes: [
+                  {
+                    id: 'work',
+                    name: 'work',
+                    displayName: 'Work',
+                    weight: 'heavy',
+                  },
+                ],
+              }),
+            },
+          },
+        ],
+      },
+    },
+  });
+  const provider = new OpenAiGatewayProvider(config, transport);
+
+  await assert.rejects(
+    provider.detectThemes({ text: 'raw note' }),
+    /invalid "weight"/,
+  );
+});
+
+test('rejects transcription payload without text', async () => {
+  const transport = new FakeTransport({
+    formResponse: {
+      status: 200,
+      data: {
+        text: '',
+      },
+    },
+  });
+  const provider = new OpenAiGatewayProvider(config, transport);
+
+  await assert.rejects(
+    provider.transcribe({
+      audio: new Uint8Array([1, 2, 3]),
+      mimeType: 'audio/mp4',
+    }),
+    /did not include text/,
+  );
+});
+
 test('rejects non-2xx OpenAI responses', async () => {
   const transport = new FakeTransport({
     jsonResponse: {
