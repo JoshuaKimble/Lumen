@@ -272,16 +272,15 @@ class _EntryTextSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final backgroundColor = emphasized
-        ? colorScheme.primaryContainer
-        : colorScheme.surfaceContainerHighest;
-    final foregroundColor = emphasized
-        ? colorScheme.onPrimaryContainer
-        : colorScheme.onSurfaceVariant;
+    final backgroundColor = colorScheme.surfaceContainerHighest;
+    final foregroundColor = colorScheme.onSurfaceVariant;
 
     return DecoratedBox(
       decoration: BoxDecoration(
         color: backgroundColor,
+        border: emphasized
+            ? Border.all(color: colorScheme.outlineVariant)
+            : null,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Padding(
