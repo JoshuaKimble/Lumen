@@ -80,6 +80,21 @@ Example:
 - Every schema change must have a committed migration file.
 - Keep migrations additive and reviewable; avoid opaque generated diffs.
 
+## CI Expectations
+
+CI runs `./scripts/check_supabase.sh` and will fail if:
+
+- migration files are missing or use invalid naming format
+- duplicate migration timestamps exist
+- required env-file ignore patterns are missing in `.gitignore`
+- obvious secret-like values are committed in tracked source files
+
+Run locally before pushing:
+
+```sh
+./scripts/check_supabase.sh
+```
+
 ## Troubleshooting
 
 ### Supabase CLI not found

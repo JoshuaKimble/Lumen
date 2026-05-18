@@ -62,3 +62,13 @@ jobs:
 
       - name: Run contract checks
         run: ./scripts/check_contracts.sh
+
+  supabase:
+    name: Supabase Safety Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Supabase checks
+        run: ./scripts/check_supabase.sh
