@@ -44,11 +44,17 @@ Use one Supabase project per environment.
 
 ## Environment Variable Conventions
 
-The exact variable names can be finalized in issue `#58`, but the ownership
-split must remain:
+### Flutter (`dart-define`)
 
-- Flutter runtime vars: public client-safe Supabase values only.
-- API runtime vars: server-only Supabase + AI provider secrets.
+- `LUMEN_USE_SUPABASE=true|false`
+- `LUMEN_SUPABASE_URL=<project-url>`
+- `LUMEN_SUPABASE_ANON_KEY=<anon-key>`
+
+### API (`apps/api/.env`)
+
+- `LUMEN_USE_SUPABASE=true|false`
+- `LUMEN_SUPABASE_URL=<project-url>`
+- `LUMEN_SUPABASE_SERVICE_ROLE_KEY=<service-role-key>`
 
 Do not commit real values. Commit example files only.
 

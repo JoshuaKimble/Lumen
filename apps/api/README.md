@@ -58,6 +58,20 @@ The configured defaults are `gpt-5-mini` for rewrite/theme detection and
 The gateway must not commit provider API keys or secrets. Local `.env` files are
 ignored by git; keep real API keys out of commits, logs, and test fixtures.
 
+## Supabase Configuration (Foundation)
+
+Supabase config is currently optional and disabled by default.
+
+When enabled, the API fails fast on startup if required vars are missing:
+
+```sh
+LUMEN_USE_SUPABASE=true
+LUMEN_SUPABASE_URL=https://your-project-ref.supabase.co
+LUMEN_SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+```
+
+Service-role keys are server-only and must never be exposed to Flutter clients.
+
 ## Privacy And Error Handling
 
 - The API remains stateless for journal data in the MVP.
