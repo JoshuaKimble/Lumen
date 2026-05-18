@@ -1,0 +1,49 @@
+# Local Supabase CLI config for Lumen.
+# This file is committed so local database workflows remain reproducible.
+
+project_id = "lumen-local"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+enabled = true
+port = 54322
+major_version = 15
+
+[db.migrations]
+enabled = true
+schema_paths = []
+
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql"]
+
+[studio]
+enabled = true
+port = 54323
+
+[inbucket]
+enabled = true
+port = 54324
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+
+[auth]
+enabled = true
+site_url = "http://127.0.0.1:51910"
+additional_redirect_urls = [
+  "http://127.0.0.1:51910",
+  "http://localhost:51910",
+]
+jwt_expiry = 3600
+
+[edge_runtime]
+enabled = true
+policy = "oneshot"

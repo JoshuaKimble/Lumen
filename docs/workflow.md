@@ -76,3 +76,6 @@ to clear Android/iOS local setup blockers and run platform smoke tests.
 Use [supabase-environment-strategy.md](/Users/joshuakimble/Documents/workspace/apps/Lumen/docs/supabase-environment-strategy.md)
 as the source of truth for Supabase environment mapping, key ownership, and
 rotation policy.
+
+Use [supabase-migration-workflow.md](/Users/joshuakimble/Documents/workspace/apps/Lumen/docs/supabase-migration-workflow.md)
+for local Supabase migration and seed workflows.
