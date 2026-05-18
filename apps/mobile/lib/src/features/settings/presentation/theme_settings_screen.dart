@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../app/router.dart';
 import '../data/scripture_app_preference_provider.dart';
 import '../data/theme_preference_provider.dart';
 import '../domain/scripture_app_preference.dart';
@@ -131,6 +133,18 @@ class ThemeSettingsScreen extends ConsumerWidget {
               ),
             ),
           ],
+          const SizedBox(height: 28),
+          Text('Account', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 12),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.login),
+              title: const Text('Sign in or create account'),
+              subtitle: const Text('Authentication setup for cloud sync'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.goNamed(loginRouteName),
+            ),
+          ),
         ],
       ),
     );

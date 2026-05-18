@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/auth/presentation/forgot_password_screen.dart';
+import '../features/auth/presentation/login_screen.dart';
+import '../features/auth/presentation/register_screen.dart';
+import '../features/auth/presentation/reset_password_screen.dart';
+import '../features/auth/presentation/verify_pending_screen.dart';
 import '../features/journal/presentation/journal_entry_detail_screen.dart';
 import '../features/journal/presentation/journal_entry_editor_screen.dart';
 import '../features/journal/presentation/journal_home_screen.dart';
@@ -26,11 +31,49 @@ const voiceRecordingRouteName = 'voice-recording';
 const voiceRecordingRoutePath = '/voice/new';
 const settingsRouteName = 'settings';
 const settingsRoutePath = '/settings';
+const loginRouteName = 'login';
+const loginRoutePath = '/auth/login';
+const registerRouteName = 'register';
+const registerRoutePath = '/auth/register';
+const forgotPasswordRouteName = 'forgot-password';
+const forgotPasswordRoutePath = '/auth/forgot-password';
+const resetPasswordRouteName = 'reset-password';
+const resetPasswordRoutePath = '/auth/reset-password';
+const verifyPendingRouteName = 'verify-pending';
+const verifyPendingRoutePath = '/auth/verify-pending';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: journalHomeRoutePath,
     routes: [
+      GoRoute(
+        name: loginRouteName,
+        path: loginRoutePath,
+        builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        name: registerRouteName,
+        path: registerRoutePath,
+        builder: (context, state) => const RegisterScreen(),
+      ),
+      GoRoute(
+        name: forgotPasswordRouteName,
+        path: forgotPasswordRoutePath,
+        builder: (context, state) => const ForgotPasswordScreen(),
+      ),
+      GoRoute(
+        name: resetPasswordRouteName,
+        path: resetPasswordRoutePath,
+        builder: (context, state) => const ResetPasswordScreen(),
+      ),
+      GoRoute(
+        name: verifyPendingRouteName,
+        path: verifyPendingRoutePath,
+        builder: (context, state) {
+          final email = state.uri.queryParameters['email'] ?? '';
+          return VerifyPendingScreen(email: email);
+        },
+      ),
       ShellRoute(
         builder: (context, state, child) {
           return LumenNavigationScaffold(
