@@ -70,5 +70,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
       - name: Run Supabase checks
         run: ./scripts/check_supabase.sh
+
+      - name: Run Supabase migration apply check
+        run: ./scripts/check_supabase_migrations.sh

@@ -89,10 +89,16 @@ CI runs `./scripts/check_supabase.sh` and will fail if:
 - required env-file ignore patterns are missing in `.gitignore`
 - obvious secret-like values are committed in tracked source files
 
+CI also runs `./scripts/check_supabase_migrations.sh` and will fail if:
+
+- local Supabase stack cannot start in CI
+- `supabase db reset` cannot apply committed migrations and seed
+
 Run locally before pushing:
 
 ```sh
 ./scripts/check_supabase.sh
+./scripts/check_supabase_migrations.sh
 ```
 
 ## Troubleshooting

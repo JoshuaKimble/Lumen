@@ -59,6 +59,7 @@ scan_pattern() {
   local description="$2"
   if git grep -nE "$pattern" -- \
     ':!**/.env.example' \
+    ':!scripts/check_supabase.sh' \
     ':!docs/*' \
     ':!*.md' \
     ':!supabase/config.toml' >/tmp/lumen_secret_scan.tmp 2>/dev/null; then
