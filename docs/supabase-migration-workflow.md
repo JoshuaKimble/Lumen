@@ -26,6 +26,22 @@ From repo root:
 ./scripts/supabase_stop.sh
 ```
 
+## New Contributor Quickstart
+
+From a clean clone, run:
+
+```sh
+./scripts/supabase_start.sh
+./scripts/supabase_reset.sh
+./scripts/supabase_status.sh
+```
+
+Bootstrap is considered successful when:
+
+- `supabase status` returns running service details
+- migrations apply without manual SQL edits
+- seed runs without errors
+
 Create a migration file:
 
 ```sh
@@ -82,4 +98,14 @@ Run:
 ./scripts/supabase_stop.sh
 ./scripts/supabase_start.sh
 ./scripts/supabase_reset.sh
+```
+
+### Port conflicts
+
+If Supabase reports local port collisions, stop the conflicting processes and
+rerun:
+
+```sh
+./scripts/supabase_stop.sh
+./scripts/supabase_start.sh
 ```

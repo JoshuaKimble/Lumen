@@ -66,6 +66,9 @@ Before starting work, read the relevant issue and linked docs. Reference issues
 in commits when practical, and use `Closes #<issue>` when a commit completes an
 issue.
 
+For Supabase local database setup and migration workflows, use
+`docs/supabase-migration-workflow.md`.
+
 ## Project Memory
 
 - Read `AGENTS.md` before changing code.
