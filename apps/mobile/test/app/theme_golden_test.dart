@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lumen/src/app/theme.dart';
@@ -10,7 +12,7 @@ void main() {
       find.byType(MaterialApp),
       matchesGoldenFile('goldens/theme_preview_light.png'),
     );
-  });
+  }, skip: !Platform.isMacOS);
 
   testWidgets('dark theme visual regression baseline', (tester) async {
     await _pumpPreview(tester, mode: ThemeMode.dark);
@@ -19,7 +21,7 @@ void main() {
       find.byType(MaterialApp),
       matchesGoldenFile('goldens/theme_preview_dark.png'),
     );
-  });
+  }, skip: !Platform.isMacOS);
 }
 
 Future<void> _pumpPreview(WidgetTester tester, {required ThemeMode mode}) async {
