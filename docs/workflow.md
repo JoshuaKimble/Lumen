@@ -72,3 +72,7 @@ scripts, and localhost troubleshooting.
 
 Use [platform-readiness.md](/Users/joshuakimble/Documents/workspace/apps/Lumen/docs/platform-readiness.md)
 to clear Android/iOS local setup blockers and run platform smoke tests.
+
+Use [supabase-environment-strategy.md](/Users/joshuakimble/Documents/workspace/apps/Lumen/docs/supabase-environment-strategy.md)
+as the source of truth for Supabase environment mapping, key ownership, and
+rotation policy.

@@ -74,4 +74,6 @@ issue.
 - Read `docs/workflow.md` before changing the GitHub issue workflow.
 - Read `docs/github-task-backlog.md` before creating or revising GitHub tasks.
 - Read `docs/architecture.md` before changing structure.
+- Read `docs/supabase-environment-strategy.md` before Supabase environment or
+  secret-management work.
 - Add decision records under `docs/decisions/` for durable architecture changes.
