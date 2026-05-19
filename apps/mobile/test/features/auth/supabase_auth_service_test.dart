@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lumen/src/features/auth/data/supabase_auth_service.dart';
 import 'package:lumen/src/features/auth/domain/auth_failure.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:async';
 
 void main() {
   group('mapSupabaseAuthError', () {
@@ -57,6 +58,12 @@ void main() {
       final failure = mapSupabaseAuthError(Exception('boom'));
 
       expect(failure.code, AuthFailureCode.unknown);
+    });
+
+    test('maps timeout failures to network unavailable', () {
+      final failure = mapSupabaseAuthError(TimeoutException('timeout'));
+
+      expect(failure.code, AuthFailureCode.networkUnavailable);
     });
   });
 

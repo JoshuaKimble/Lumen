@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lumen/src/app/router.dart';
 import 'package:lumen/src/features/auth/data/auth_service_provider.dart';
+import 'package:lumen/src/features/auth/domain/auth_failure.dart';
 import 'package:lumen/src/features/auth/domain/auth_session.dart';
 import 'package:lumen/src/features/auth/domain/auth_service.dart';
 import 'package:lumen/src/features/auth/presentation/login_screen.dart';
@@ -78,6 +79,38 @@ void main() {
       expect(find.text('Verify your email'), findsOneWidget);
       expect(find.textContaining('new@example.com'), findsOneWidget);
     });
+
+    testWidgets('login surfaces explicit auth failures', (tester) async {
+      await tester.pumpWidget(
+        _buildHarness(
+          initialLocation: loginRoutePath,
+          authService: _FakeAuthService(
+            loginError: const AuthFailure(
+              code: AuthFailureCode.invalidCredentials,
+              message: 'Invalid email or password.',
+            ),
+          ),
+          routes: [
+            GoRoute(
+              name: loginRouteName,
+              path: loginRoutePath,
+              builder: (context, state) => const LoginScreen(),
+            ),
+          ],
+        ),
+      );
+
+      await tester.enterText(
+        find.byType(TextFormField).at(0),
+        'bad@example.com',
+      );
+      await tester.enterText(find.byType(TextFormField).at(1), 'wrong');
+      await tester.tap(find.text('Sign in'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Invalid email or password.'), findsOneWidget);
+      expect(find.text('Retry'), findsOneWidget);
+    });
   });
 }
 
@@ -95,16 +128,24 @@ Widget _buildHarness({
 }
 
 class _FakeAuthService implements AuthService {
-  _FakeAuthService({this.registerResult});
+  _FakeAuthService({this.registerResult, this.loginError});
 
   final AuthSession? registerResult;
+  final Object? loginError;
 
   @override
   Future<AuthSession?> getCurrentSession() async => null;
 
   @override
-  Future<AuthSession> login({required String email, required String password}) {
-    throw UnimplementedError();
+  Future<AuthSession> login({
+    required String email,
+    required String password,
+  }) async {
+    final error = loginError;
+    if (error != null) {
+      throw error;
+    }
+    return AuthSession(userId: '2', email: email, emailVerified: true);
   }
 
   @override

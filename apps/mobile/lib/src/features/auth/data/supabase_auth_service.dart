@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../domain/auth_failure.dart';
@@ -195,6 +197,13 @@ class SupabaseAuthService implements AuthService {
 AuthFailure mapSupabaseAuthError(Object error) {
   if (error is AuthFailure) {
     return error;
+  }
+
+  if (error is TimeoutException) {
+    return const AuthFailure(
+      code: AuthFailureCode.networkUnavailable,
+      message: 'Network unavailable. Please retry.',
+    );
   }
 
   if (error is AuthException) {

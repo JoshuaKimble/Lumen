@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/router.dart';
 import '../data/auth_session_controller.dart';
 import '../domain/auth_failure.dart';
+import 'auth_error_notice.dart';
 import 'auth_form_scaffold.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -56,15 +57,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               obscureText: true,
               validator: _validatePassword,
             ),
-            if (_errorText != null) ...[
-              const SizedBox(height: 12),
-              Text(
-                _errorText!,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.error,
-                ),
-              ),
-            ],
+            if (_errorText != null)
+              AuthErrorNotice(message: _errorText!, onRetry: _submit),
             const SizedBox(height: 16),
             FilledButton.icon(
               onPressed: _isSubmitting ? null : _submit,
