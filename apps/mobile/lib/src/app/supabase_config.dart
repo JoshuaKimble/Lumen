@@ -1,3 +1,5 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 class SupabaseClientConfig {
   const SupabaseClientConfig({
     required this.enabled,
@@ -37,3 +39,7 @@ SupabaseClientConfig loadSupabaseClientConfig() {
     anonKey: _supabaseAnonKey,
   );
 }
+
+final supabaseClientConfigProvider = Provider<SupabaseClientConfig>((ref) {
+  return loadSupabaseClientConfig();
+});

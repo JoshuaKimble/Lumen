@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router.dart';
-import '../data/auth_service_provider.dart';
+import '../data/auth_session_controller.dart';
 import '../domain/auth_failure.dart';
 import 'auth_form_scaffold.dart';
 
@@ -123,11 +123,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       _errorText = null;
     });
 
-    final authService = ref.read(authServiceProvider);
+    final authSessionController = ref.read(
+      authSessionControllerProvider.notifier,
+    );
     final email = _emailController.text.trim();
 
     try {
-      await authService.login(email: email, password: _passwordController.text);
+      await authSessionController.login(
+        email: email,
+        password: _passwordController.text,
+      );
       if (!mounted) {
         return;
       }

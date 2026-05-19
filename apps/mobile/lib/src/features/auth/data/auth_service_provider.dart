@@ -6,7 +6,7 @@ import '../domain/auth_service.dart';
 import 'supabase_auth_service.dart';
 
 final authServiceProvider = Provider<AuthService>((ref) {
-  final config = loadSupabaseClientConfig();
+  final config = ref.watch(supabaseClientConfigProvider);
   if (!config.enabled) {
     throw StateError(
       'Auth service requested while LUMEN_USE_SUPABASE is disabled.',

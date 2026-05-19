@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/auth/data/auth_session_controller.dart';
+import '../features/auth/domain/auth_session.dart';
+import '../features/auth/presentation/auth_loading_screen.dart';
 import '../features/auth/presentation/forgot_password_screen.dart';
 import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/register_screen.dart';
@@ -14,6 +17,7 @@ import '../features/journal/presentation/theme_cloud_screen.dart';
 import '../features/journal/presentation/theme_detail_screen.dart';
 import '../features/journal/presentation/voice_recording_screen.dart';
 import '../features/settings/presentation/theme_settings_screen.dart';
+import 'supabase_config.dart';
 
 const journalHomeRouteName = 'journal-home';
 const journalHomeRoutePath = '/';
@@ -41,11 +45,71 @@ const resetPasswordRouteName = 'reset-password';
 const resetPasswordRoutePath = '/auth/reset-password';
 const verifyPendingRouteName = 'verify-pending';
 const verifyPendingRoutePath = '/auth/verify-pending';
+const authLoadingRouteName = 'auth-loading';
+const authLoadingRoutePath = '/auth/loading';
+final appInitialLocationProvider = Provider<String>((ref) {
+  return journalHomeRoutePath;
+});
 
 final appRouterProvider = Provider<GoRouter>((ref) {
+  final refreshNotifier = ValueNotifier<int>(0);
+  ref.onDispose(refreshNotifier.dispose);
+  ref.listen<AsyncValue<AuthSession?>>(authSessionControllerProvider, (_, __) {
+    refreshNotifier.value++;
+  });
+
+  final supabaseEnabled = ref.watch(supabaseClientConfigProvider).enabled;
+
   return GoRouter(
-    initialLocation: journalHomeRoutePath,
+    refreshListenable: refreshNotifier,
+    initialLocation: ref.watch(appInitialLocationProvider),
+    redirect: (context, state) {
+      if (!supabaseEnabled) {
+        return null;
+      }
+
+      final location = state.matchedLocation;
+      final isAuthRoute = location.startsWith('/auth');
+      final isProtectedRoute = !isAuthRoute;
+
+      final authState = ref.read(authSessionControllerProvider);
+      if (authState.isLoading || authState.isRefreshing) {
+        if (isProtectedRoute) {
+          return authLoadingRoutePath;
+        }
+        return null;
+      }
+
+      final authSession = authState.asData?.value;
+      if (authSession == null) {
+        if (isProtectedRoute) {
+          return loginRoutePath;
+        }
+        return null;
+      }
+
+      if (!authSession.emailVerified) {
+        if (location != verifyPendingRoutePath) {
+          return Uri(
+            path: verifyPendingRoutePath,
+            queryParameters: {'email': authSession.email ?? ''},
+          ).toString();
+        }
+        return null;
+      }
+
+      if (isAuthRoute) {
+        return journalHomeRoutePath;
+      }
+
+      return null;
+    },
     routes: [
+      GoRoute(
+        name: authLoadingRouteName,
+        path: authLoadingRoutePath,
+        builder: (context, state) => const AuthLoadingScreen(),
+      ),
       GoRoute(
         name: loginRouteName,
         path: loginRoutePath,
