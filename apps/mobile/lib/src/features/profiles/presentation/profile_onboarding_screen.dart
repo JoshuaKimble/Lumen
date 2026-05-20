@@ -12,6 +12,7 @@ import '../data/current_user_profile_controller.dart';
 import '../domain/profile_failure.dart';
 import '../domain/rewrite_tone_preference.dart';
 import '../domain/user_profile.dart';
+import 'profile_editor_fields.dart';
 
 class ProfileOnboardingScreen extends ConsumerStatefulWidget {
   const ProfileOnboardingScreen({super.key});
@@ -85,129 +86,33 @@ class _ProfileOnboardingScreenState
               ),
             ),
             const SizedBox(height: 8),
-            TextFormField(
-              controller: _displayNameController,
-              textInputAction: TextInputAction.next,
-              decoration: const InputDecoration(
-                labelText: 'Display name',
-                hintText: 'How should Lumen address you?',
-              ),
-              validator: (value) {
-                final trimmedValue = value?.trim() ?? '';
-                if (trimmedValue.isEmpty) {
-                  return 'Display name is required.';
-                }
-                return null;
+            ProfileEditorFields(
+              displayNameController: _displayNameController,
+              rewriteTone: _rewriteTone,
+              preserveVoice: _preserveVoice,
+              preferredScriptureApp: _preferredScriptureApp,
+              themePreference: _themePreference,
+              isSubmitting: _isSubmitting,
+              onRewriteToneChanged: (value) {
+                setState(() {
+                  _rewriteTone = value;
+                });
               },
-            ),
-            const SizedBox(height: 20),
-            DropdownButtonFormField<RewriteTonePreference>(
-              initialValue: _rewriteTone,
-              decoration: const InputDecoration(labelText: 'Rewrite tone'),
-              items: RewriteTonePreference.values
-                  .map(
-                    (preference) => DropdownMenuItem(
-                      value: preference,
-                      child: Text(preference.label),
-                    ),
-                  )
-                  .toList(growable: false),
-              onChanged: _isSubmitting
-                  ? null
-                  : (value) {
-                      if (value == null) {
-                        return;
-                      }
-                      setState(() {
-                        _rewriteTone = value;
-                      });
-                    },
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _rewriteTone.helperText,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 20),
-            SwitchListTile.adaptive(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Preserve your original voice'),
-              subtitle: const Text(
-                'Keep rewrites close to your wording, pace, and personality.',
-              ),
-              value: _preserveVoice,
-              onChanged: _isSubmitting
-                  ? null
-                  : (value) {
-                      setState(() {
-                        _preserveVoice = value;
-                      });
-                    },
-            ),
-            const SizedBox(height: 20),
-            DropdownButtonFormField<ScriptureAppPreference>(
-              initialValue: _preferredScriptureApp,
-              decoration: const InputDecoration(
-                labelText: 'Preferred scripture app',
-              ),
-              items: ScriptureAppPreference.values
-                  .map(
-                    (preference) => DropdownMenuItem(
-                      value: preference,
-                      child: Text(preference.label),
-                    ),
-                  )
-                  .toList(growable: false),
-              onChanged: _isSubmitting
-                  ? null
-                  : (value) {
-                      if (value == null) {
-                        return;
-                      }
-                      setState(() {
-                        _preferredScriptureApp = value;
-                      });
-                    },
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _preferredScriptureApp.helperText,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 20),
-            Text('Theme', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
-            SegmentedButton<ThemePreference>(
-              showSelectedIcon: false,
-              segments: const [
-                ButtonSegment<ThemePreference>(
-                  value: ThemePreference.system,
-                  label: Text('System'),
-                  icon: Icon(Icons.phone_android_outlined),
-                ),
-                ButtonSegment<ThemePreference>(
-                  value: ThemePreference.light,
-                  label: Text('Light'),
-                  icon: Icon(Icons.light_mode_outlined),
-                ),
-                ButtonSegment<ThemePreference>(
-                  value: ThemePreference.dark,
-                  label: Text('Dark'),
-                  icon: Icon(Icons.dark_mode_outlined),
-                ),
-              ],
-              selected: {_themePreference},
-              onSelectionChanged: _isSubmitting
-                  ? null
-                  : (selection) {
-                      setState(() {
-                        _themePreference = selection.first;
-                      });
-                    },
+              onPreserveVoiceChanged: (value) {
+                setState(() {
+                  _preserveVoice = value;
+                });
+              },
+              onPreferredScriptureAppChanged: (value) {
+                setState(() {
+                  _preferredScriptureApp = value;
+                });
+              },
+              onThemePreferenceChanged: (value) {
+                setState(() {
+                  _themePreference = value;
+                });
+              },
             ),
             if (_errorText != null)
               AuthErrorNotice(message: _errorText!, onRetry: _submit),

@@ -19,6 +19,7 @@ import '../features/journal/presentation/voice_recording_screen.dart';
 import '../features/profiles/data/current_user_profile_controller.dart';
 import '../features/profiles/domain/user_profile.dart';
 import '../features/profiles/presentation/profile_onboarding_screen.dart';
+import '../features/profiles/presentation/profile_settings_screen.dart';
 import '../features/settings/presentation/theme_settings_screen.dart';
 import 'supabase_config.dart';
 
@@ -50,6 +51,8 @@ const verifyPendingRouteName = 'verify-pending';
 const verifyPendingRoutePath = '/auth/verify-pending';
 const profileOnboardingRouteName = 'profile-onboarding';
 const profileOnboardingRoutePath = '/onboarding/profile';
+const profileSettingsRouteName = 'profile-settings';
+const profileSettingsRoutePath = '/settings/profile';
 const authLoadingRouteName = 'auth-loading';
 const authLoadingRoutePath = '/auth/loading';
 final appInitialLocationProvider = Provider<String>((ref) {
@@ -181,6 +184,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: profileOnboardingRouteName,
         path: profileOnboardingRoutePath,
         builder: (context, state) => const ProfileOnboardingScreen(),
+      ),
+      GoRoute(
+        name: profileSettingsRouteName,
+        path: profileSettingsRoutePath,
+        builder: (context, state) => const ProfileSettingsScreen(),
       ),
       ShellRoute(
         builder: (context, state, child) {
