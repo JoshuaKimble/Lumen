@@ -35,6 +35,18 @@ GoRouter is the default router.
   unrelated features reach into implementation details.
 - Route names and paths should stay stable once linked externally.
 
+## Profiles And Onboarding
+
+M3 introduces a dedicated `profiles` feature to hold the typed user profile
+model and persistence contract for onboarding and personalization.
+
+- The source-of-truth schema lives in Supabase migrations under `supabase/`.
+- Flutter profile types live under `apps/mobile/lib/src/features/profiles`.
+- Auth state and profile state should remain separate concerns even when router
+  redirects depend on both.
+- Schema details and RLS-ready constraints are documented in
+  [profiles-schema.md](/Users/joshuakimble/Documents/workspace/apps/Lumen/docs/profiles-schema.md).
+
 ## Journal Feature Baseline
 
 The initial journal feature is intentionally minimal. It proves the structure
