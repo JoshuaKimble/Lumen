@@ -21,6 +21,7 @@ class CurrentUserProfileController extends AsyncNotifier<UserProfile?> {
       return null;
     }
 
+    final previousProfile = state.asData?.value;
     state = const AsyncLoading();
     try {
       final profile = await ref
@@ -28,13 +29,27 @@ class CurrentUserProfileController extends AsyncNotifier<UserProfile?> {
           .getOrCreateProfile(session);
       state = AsyncData(profile);
       return profile;
-    } catch (error, stackTrace) {
-      state = AsyncError(error, stackTrace);
+    } catch (_) {
+      state = AsyncData(previousProfile);
       rethrow;
     }
   }
 
   void clear() {
     state = const AsyncData(null);
+  }
+
+  Future<UserProfile> saveProfile(UserProfile profile) async {
+    final previousProfile = state.asData?.value;
+    try {
+      final savedProfile = await ref
+          .read(profileServiceProvider)
+          .saveProfile(profile);
+      state = AsyncData(savedProfile);
+      return savedProfile;
+    } catch (_) {
+      state = AsyncData(previousProfile);
+      rethrow;
+    }
   }
 }

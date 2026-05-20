@@ -3,4 +3,6 @@ import 'user_profile.dart';
 
 abstract interface class ProfileService {
   Future<UserProfile> getOrCreateProfile(AuthSession session);
+
+  Future<UserProfile> saveProfile(UserProfile profile);
 }

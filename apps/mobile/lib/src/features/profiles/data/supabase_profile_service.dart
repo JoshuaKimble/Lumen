@@ -53,6 +53,15 @@ class SupabaseProfileService implements ProfileService {
       throw mapProfileError(error);
     }
   }
+
+  @override
+  Future<UserProfile> saveProfile(UserProfile profile) async {
+    try {
+      return await _repository.saveProfile(profile);
+    } catch (error) {
+      throw mapProfileError(error);
+    }
+  }
 }
 
 ProfileFailure mapProfileError(Object error) {

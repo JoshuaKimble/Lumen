@@ -21,4 +21,26 @@ enum RewriteTonePreference {
       _ => RewriteTonePreference.balanced,
     };
   }
+
+  String get label {
+    return switch (this) {
+      RewriteTonePreference.balanced => 'Balanced',
+      RewriteTonePreference.gentle => 'Gentle',
+      RewriteTonePreference.encouraging => 'Encouraging',
+      RewriteTonePreference.reflective => 'Reflective',
+    };
+  }
+
+  String get helperText {
+    return switch (this) {
+      RewriteTonePreference.balanced =>
+        'Keep rewrites clear and natural without pushing too soft or too polished.',
+      RewriteTonePreference.gentle =>
+        'Prefer softer wording when entries feel heavy, tender, or raw.',
+      RewriteTonePreference.encouraging =>
+        'Lean toward hopeful, steady language without changing your meaning.',
+      RewriteTonePreference.reflective =>
+        'Favor a slower, thoughtful tone that helps with later reflection.',
+    };
+  }
 }

@@ -16,6 +16,9 @@ import '../features/journal/presentation/journal_home_screen.dart';
 import '../features/journal/presentation/theme_cloud_screen.dart';
 import '../features/journal/presentation/theme_detail_screen.dart';
 import '../features/journal/presentation/voice_recording_screen.dart';
+import '../features/profiles/data/current_user_profile_controller.dart';
+import '../features/profiles/domain/user_profile.dart';
+import '../features/profiles/presentation/profile_onboarding_screen.dart';
 import '../features/settings/presentation/theme_settings_screen.dart';
 import 'supabase_config.dart';
 
@@ -45,6 +48,8 @@ const resetPasswordRouteName = 'reset-password';
 const resetPasswordRoutePath = '/auth/reset-password';
 const verifyPendingRouteName = 'verify-pending';
 const verifyPendingRoutePath = '/auth/verify-pending';
+const profileOnboardingRouteName = 'profile-onboarding';
+const profileOnboardingRoutePath = '/onboarding/profile';
 const authLoadingRouteName = 'auth-loading';
 const authLoadingRoutePath = '/auth/loading';
 final appInitialLocationProvider = Provider<String>((ref) {
@@ -55,6 +60,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   final refreshNotifier = ValueNotifier<int>(0);
   ref.onDispose(refreshNotifier.dispose);
   ref.listen<AsyncValue<AuthSession?>>(authSessionControllerProvider, (_, __) {
+    refreshNotifier.value++;
+  });
+  ref.listen<AsyncValue<UserProfile?>>(currentUserProfileControllerProvider, (
+    _,
+    __,
+  ) {
     refreshNotifier.value++;
   });
 
@@ -70,11 +81,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       final location = state.matchedLocation;
       final isAuthRoute = location.startsWith('/auth');
-      final isProtectedRoute = !isAuthRoute;
+      final isOnboardingRoute = location == profileOnboardingRoutePath;
+      final isProtectedRoute = !isAuthRoute && !isOnboardingRoute;
 
       final authState = ref.read(authSessionControllerProvider);
       if (authState.isLoading || authState.isRefreshing) {
-        if (isProtectedRoute) {
+        if (location != authLoadingRoutePath) {
           return authLoadingRoutePath;
         }
         return null;
@@ -96,6 +108,33 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ).toString();
         }
         return null;
+      }
+
+      final profileState = ref.read(currentUserProfileControllerProvider);
+      if (profileState.isLoading || profileState.isRefreshing) {
+        if (location != authLoadingRoutePath) {
+          return authLoadingRoutePath;
+        }
+        return null;
+      }
+
+      final profile = profileState.asData?.value;
+      if (profile == null) {
+        if (location != profileOnboardingRoutePath) {
+          return profileOnboardingRoutePath;
+        }
+        return null;
+      }
+
+      if (!profile.onboardingCompleted) {
+        if (location != profileOnboardingRoutePath) {
+          return profileOnboardingRoutePath;
+        }
+        return null;
+      }
+
+      if (isOnboardingRoute) {
+        return journalHomeRoutePath;
       }
 
       if (isAuthRoute) {
@@ -137,6 +176,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           final email = state.uri.queryParameters['email'] ?? '';
           return VerifyPendingScreen(email: email);
         },
+      ),
+      GoRoute(
+        name: profileOnboardingRouteName,
+        path: profileOnboardingRoutePath,
+        builder: (context, state) => const ProfileOnboardingScreen(),
       ),
       ShellRoute(
         builder: (context, state, child) {

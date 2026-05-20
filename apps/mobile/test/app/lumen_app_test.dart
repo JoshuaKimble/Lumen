@@ -4,6 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lumen/src/app/lumen_app.dart';
+import 'package:lumen/src/app/supabase_config.dart';
+import 'package:lumen/src/features/auth/data/auth_service_provider.dart';
+import 'package:lumen/src/features/auth/domain/auth_service.dart';
+import 'package:lumen/src/features/auth/domain/auth_session.dart';
 import 'package:lumen/src/features/journal/data/journal_ai_service_provider.dart';
 import 'package:lumen/src/features/journal/data/in_memory_journal_repository.dart';
 import 'package:lumen/src/features/journal/data/journal_repository_provider.dart';
@@ -18,7 +22,14 @@ import 'package:lumen/src/features/journal/domain/voice_recording.dart';
 import 'package:lumen/src/features/journal/domain/voice_transcription_service.dart';
 import 'package:lumen/src/features/journal/data/voice_recorder_provider.dart';
 import 'package:lumen/src/features/journal/data/voice_transcription_service_provider.dart';
+import 'package:lumen/src/features/profiles/data/profile_service_provider.dart';
+import 'package:lumen/src/features/profiles/domain/profile_service.dart';
+import 'package:lumen/src/features/profiles/domain/rewrite_tone_preference.dart';
+import 'package:lumen/src/features/profiles/domain/user_profile.dart';
+import 'package:lumen/src/features/settings/data/scripture_app_preference_provider.dart';
 import 'package:lumen/src/features/settings/data/theme_preference_provider.dart';
+import 'package:lumen/src/features/settings/domain/scripture_app_preference.dart';
+import 'package:lumen/src/features/settings/domain/scripture_app_preference_repository.dart';
 import 'package:lumen/src/features/settings/domain/theme_preference.dart';
 import 'package:lumen/src/features/settings/domain/theme_preference_repository.dart';
 
@@ -43,6 +54,50 @@ void main() {
     expect(find.byTooltip('New text entry'), findsOneWidget);
     expect(find.text('Journal'), findsOneWidget);
     expect(find.text('Voice'), findsOneWidget);
+  });
+
+  testWidgets('routes verified users with incomplete profile to onboarding', (
+    tester,
+  ) async {
+    await _pumpAuthenticatedApp(
+      tester,
+      profileService: _FakeProfileService(
+        profile: _sampleProfile(onboardingCompleted: false),
+      ),
+    );
+
+    expect(find.text('Finish your profile'), findsOneWidget);
+    expect(find.text('Continue to app'), findsOneWidget);
+  });
+
+  testWidgets('completing onboarding redirects into the app', (tester) async {
+    tester.view.physicalSize = const Size(1440, 2200);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final profileService = _FakeProfileService(
+      profile: _sampleProfile(onboardingCompleted: false),
+    );
+    final themeRepository = _FakeThemePreferenceRepository();
+    final scriptureRepository = _FakeScriptureAppPreferenceRepository();
+
+    await _pumpAuthenticatedApp(
+      tester,
+      profileService: profileService,
+      themeRepository: themeRepository,
+      scriptureRepository: scriptureRepository,
+    );
+
+    await tester.enterText(find.byType(TextFormField).first, 'Jordan');
+    await tester.tap(find.text('Continue to app').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Welcome to Lumen'), findsOneWidget);
+    expect(profileService.profile.onboardingCompleted, isTrue);
+    expect(profileService.profile.displayName, 'Jordan');
+    expect(themeRepository.storedPreference, ThemePreference.system);
+    expect(scriptureRepository.storedPreference, ScriptureAppPreference.none);
   });
 
   testWidgets('applies saved dark theme override on startup', (tester) async {
@@ -883,6 +938,139 @@ class _FakeThemePreferenceRepository implements ThemePreferenceRepository {
   Future<void> save(ThemePreference preference) async {
     storedPreference = preference;
   }
+}
+
+class _FakeScriptureAppPreferenceRepository
+    implements ScriptureAppPreferenceRepository {
+  _FakeScriptureAppPreferenceRepository({
+    this.initialPreference = ScriptureAppPreference.none,
+  }) : storedPreference = initialPreference;
+
+  final ScriptureAppPreference initialPreference;
+  ScriptureAppPreference storedPreference;
+
+  @override
+  Future<ScriptureAppPreference> load() async {
+    return storedPreference;
+  }
+
+  @override
+  Future<void> save(ScriptureAppPreference preference) async {
+    storedPreference = preference;
+  }
+}
+
+class _FakeAuthService implements AuthService {
+  _FakeAuthService({required this.currentSession});
+
+  final AuthSession? currentSession;
+
+  @override
+  Future<AuthSession?> getCurrentSession() async => currentSession;
+
+  @override
+  Future<AuthSession> login({
+    required String email,
+    required String password,
+  }) async {
+    return currentSession ??
+        AuthSession(userId: 'user-1', email: email, emailVerified: true);
+  }
+
+  @override
+  Future<void> logout() async {}
+
+  @override
+  Future<AuthSession> register({
+    required String email,
+    required String password,
+  }) async {
+    return currentSession ??
+        AuthSession(userId: 'user-1', email: email, emailVerified: true);
+  }
+
+  @override
+  Future<void> requestPasswordReset({required String email}) async {}
+
+  @override
+  Future<void> resendVerificationEmail({required String email}) async {}
+
+  @override
+  Future<void> updatePassword({required String newPassword}) async {}
+}
+
+class _FakeProfileService implements ProfileService {
+  _FakeProfileService({required this.profile});
+
+  UserProfile profile;
+
+  @override
+  Future<UserProfile> getOrCreateProfile(AuthSession session) async {
+    return profile;
+  }
+
+  @override
+  Future<UserProfile> saveProfile(UserProfile nextProfile) async {
+    profile = nextProfile;
+    return profile;
+  }
+}
+
+Future<void> _pumpAuthenticatedApp(
+  WidgetTester tester, {
+  required _FakeProfileService profileService,
+  ThemePreferenceRepository? themeRepository,
+  ScriptureAppPreferenceRepository? scriptureRepository,
+}) async {
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [
+        supabaseClientConfigProvider.overrideWithValue(
+          const SupabaseClientConfig(
+            enabled: true,
+            url: 'https://example.supabase.co',
+            anonKey: 'anon-key',
+          ),
+        ),
+        authServiceProvider.overrideWithValue(
+          _FakeAuthService(
+            currentSession: const AuthSession(
+              userId: 'user-1',
+              email: 'user@example.com',
+              emailVerified: true,
+            ),
+          ),
+        ),
+        profileServiceProvider.overrideWithValue(profileService),
+        journalRepositoryProvider.overrideWithValue(
+          InMemoryJournalRepository(),
+        ),
+        themePreferenceRepositoryProvider.overrideWithValue(
+          themeRepository ?? _FakeThemePreferenceRepository(),
+        ),
+        scriptureAppPreferenceRepositoryProvider.overrideWithValue(
+          scriptureRepository ?? _FakeScriptureAppPreferenceRepository(),
+        ),
+      ],
+      child: const LumenApp(),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
+UserProfile _sampleProfile({required bool onboardingCompleted}) {
+  return UserProfile(
+    id: 'user-1',
+    email: 'user@example.com',
+    displayName: null,
+    rewriteTone: RewriteTonePreference.balanced,
+    preserveVoice: true,
+    preferredScriptureApp: ScriptureAppPreference.none,
+    themePreference: ThemePreference.system,
+    onboardingCompleted: onboardingCompleted,
+    createdAt: DateTime.parse('2026-05-19T09:00:00Z'),
+    updatedAt: DateTime.parse('2026-05-19T10:00:00Z'),
+  );
 }
 
 class _FakeVoiceRecorder implements VoiceRecorder {

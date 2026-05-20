@@ -179,10 +179,16 @@ UserProfile _sampleProfile({
 class _FakeProfileService implements ProfileService {
   _FakeProfileService({required this.profile});
 
-  final UserProfile profile;
+  UserProfile profile;
 
   @override
   Future<UserProfile> getOrCreateProfile(AuthSession session) async {
+    return profile;
+  }
+
+  @override
+  Future<UserProfile> saveProfile(UserProfile nextProfile) async {
+    profile = nextProfile;
     return profile;
   }
 }

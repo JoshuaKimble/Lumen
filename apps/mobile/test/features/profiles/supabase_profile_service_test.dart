@@ -80,6 +80,17 @@ void main() {
         ),
       );
     });
+
+    test('saves profile updates through repository', () async {
+      final repository = _FakeProfileRepository();
+      final service = SupabaseProfileService(repository: repository);
+      final profile = _sampleProfile();
+
+      final savedProfile = await service.saveProfile(profile);
+
+      expect(savedProfile, profile);
+      expect(repository.savedProfiles.single, profile);
+    });
   });
 }
 
