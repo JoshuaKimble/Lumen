@@ -32,13 +32,27 @@ test('rewrites entries via OpenAI completions', async () => {
   });
   const provider = new OpenAiGatewayProvider(config, transport);
 
-  const result = await provider.rewrite({ originalText: 'raw note' });
+  const result = await provider.rewrite({
+    originalText: 'raw note',
+    personalization: {
+      rewriteTone: 'encouraging',
+      preserveVoice: false,
+    },
+  });
 
   assert.equal(result.rewrittenText, 'Clear rewrite');
   assert.equal(result.title, 'New title');
   assert.equal(result.summary, 'New summary');
   assert.equal(transport.lastJsonPath, '/chat/completions');
   assert.equal((transport.lastJsonBody as { model: string }).model, 'rewrite-model');
+  const body = transport.lastJsonBody as {
+    messages: Array<{ role: string; content: string }>;
+  };
+  assert.match(body.messages[0]!.content, /steady, encouraging language/);
+  assert.match(
+    body.messages[0]!.content,
+    /restructure and smooth the writing more noticeably/,
+  );
 });
 
 test('detects themes via OpenAI completions', async () => {
