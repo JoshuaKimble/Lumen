@@ -110,6 +110,14 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextFormField).first, 'Avery');
+    await tester.tap(
+      find.byType(DropdownButtonFormField<RewriteTonePreference>),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Reflective').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(SwitchListTile));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Dark'));
     await tester.tap(
       find.byType(DropdownButtonFormField<ScriptureAppPreference>),
@@ -121,6 +129,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(profileService.profile.displayName, 'Avery');
+    expect(
+      profileService.profile.rewriteTone,
+      RewriteTonePreference.reflective,
+    );
+    expect(profileService.profile.preserveVoice, isFalse);
     expect(profileService.profile.themePreference, ThemePreference.dark);
     expect(
       profileService.profile.preferredScriptureApp,
@@ -131,6 +144,36 @@ void main() {
       scriptureRepository.storedPreference,
       ScriptureAppPreference.catholic,
     );
+  });
+
+  testWidgets('profile settings rehydrate persisted AI personalization', (
+    tester,
+  ) async {
+    final profileService = _FakeProfileService(
+      profile: _sampleProfile(
+        rewriteTone: RewriteTonePreference.reflective,
+        preserveVoice: false,
+      ),
+    );
+    await _pumpSignedInApp(tester, profileService: profileService);
+
+    await tester.tap(find.text('Settings').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Jordan').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('AI personalization'), findsOneWidget);
+    expect(
+      find.text(
+        'Favor a slower, thoughtful tone that helps with later reflection.',
+      ),
+      findsOneWidget,
+    );
+
+    final preserveVoiceTile = tester.widget<SwitchListTile>(
+      find.byType(SwitchListTile),
+    );
+    expect(preserveVoiceTile.value, isFalse);
   });
 
   testWidgets('profile settings cancel leaves profile unchanged', (
@@ -354,13 +397,16 @@ class _FakeProfileService implements ProfileService {
   }
 }
 
-UserProfile _sampleProfile() {
+UserProfile _sampleProfile({
+  RewriteTonePreference rewriteTone = RewriteTonePreference.balanced,
+  bool preserveVoice = true,
+}) {
   return UserProfile(
     id: 'user-1',
     email: 'user@example.com',
     displayName: 'Jordan',
-    rewriteTone: RewriteTonePreference.balanced,
-    preserveVoice: true,
+    rewriteTone: rewriteTone,
+    preserveVoice: preserveVoice,
     preferredScriptureApp: ScriptureAppPreference.none,
     themePreference: ThemePreference.system,
     onboardingCompleted: true,

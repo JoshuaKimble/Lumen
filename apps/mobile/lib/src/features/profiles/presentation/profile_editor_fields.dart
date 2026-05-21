@@ -51,6 +51,11 @@ class ProfileEditorFields extends StatelessWidget {
           },
         ),
         const SizedBox(height: 20),
+        Text(
+          'AI personalization',
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: 8),
         DropdownButtonFormField<RewriteTonePreference>(
           initialValue: rewriteTone,
           decoration: const InputDecoration(labelText: 'Rewrite tone'),
