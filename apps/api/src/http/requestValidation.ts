@@ -28,6 +28,16 @@ export function requireNonEmptyString(
   return value;
 }
 
+export function requireBoolean(body: JsonObject, key: string): boolean {
+  const value = body[key];
+
+  if (typeof value !== 'boolean') {
+    throw new BadRequestError(`Expected boolean "${key}".`);
+  }
+
+  return value;
+}
+
 export function rejectUnknownKeys(
   body: JsonObject,
   allowedKeys: readonly string[],

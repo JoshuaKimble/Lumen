@@ -84,6 +84,10 @@ after(async () => {
 test('rewrite endpoint returns OpenAPI response shape', async () => {
   const response = await postJson('/v1/entries/rewrite', {
     originalText: 'I had a rushed work meeting.',
+    personalization: {
+      rewriteTone: 'gentle',
+      preserveVoice: false,
+    },
   });
   const body = await response.json();
 
@@ -94,6 +98,71 @@ test('rewrite endpoint returns OpenAPI response shape', async () => {
     title: 'I had a rushed work meeting',
     summary: 'I had a rushed work meeting.',
   });
+});
+
+test('rewrite endpoint defaults personalization when omitted', async () => {
+  let capturedRequest: unknown;
+  const server = createApiServer({
+    aiProvider: {
+      async rewrite(request) {
+        capturedRequest = request;
+        return { rewrittenText: 'ok' };
+      },
+      async detectThemes() {
+        return { themes: [] };
+      },
+      async transcribe() {
+        return { transcript: 'ok' };
+      },
+      async suggestResources() {
+        return { suggestions: [] };
+      },
+    },
+  });
+
+  await new Promise<void>((resolve) => {
+    server.listen(0, '127.0.0.1', resolve);
+  });
+
+  const address = server.address();
+
+  if (address === null || typeof address === 'string') {
+    throw new Error('Expected server to listen on a TCP address.');
+  }
+
+  const serverBaseUrl = `http://127.0.0.1:${address.port}`;
+
+  try {
+    const response = await postJson(
+      '/v1/entries/rewrite',
+      { originalText: 'raw note' },
+      serverBaseUrl,
+    );
+    const body = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(body, { rewrittenText: 'ok' });
+    assert.deepEqual(capturedRequest, {
+      originalText: 'raw note',
+      personalization: {
+        rewriteTone: 'balanced',
+        preserveVoice: true,
+      },
+    });
+  } finally {
+    server.closeAllConnections();
+    server.closeIdleConnections();
+    await new Promise<void>((resolve, reject) => {
+      server.close((error) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+
+        resolve();
+      });
+    });
+  }
 });
 
 test('theme endpoint returns OpenAPI response shape', async () => {
@@ -181,6 +250,24 @@ test('rewrite endpoint rejects malformed requests', async () => {
   assert.deepEqual(body, {
     error: 'bad_request',
     message: 'Expected non-empty string "originalText".',
+  });
+});
+
+test('rewrite endpoint rejects invalid personalization payloads', async () => {
+  const response = await postJson('/v1/entries/rewrite', {
+    originalText: 'raw note',
+    personalization: {
+      rewriteTone: 'unknown',
+      preserveVoice: 'yes',
+    },
+  });
+  const body = await response.json();
+
+  assert.equal(response.status, 400);
+  assert.deepEqual(body, {
+    error: 'bad_request',
+    message:
+      'Expected "rewriteTone" to be one of: balanced, gentle, encouraging, reflective.',
   });
 });
 

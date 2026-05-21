@@ -3,6 +3,7 @@ import 'package:lumen/src/api/generated/lumen_api_client.dart';
 import '../domain/ai_results.dart';
 import '../domain/journal_ai_service.dart';
 import '../domain/journal_theme.dart';
+import '../domain/rewrite_personalization.dart';
 
 class ApiJournalAiService implements JournalAiService {
   const ApiJournalAiService({required this.client});
@@ -13,9 +14,15 @@ class ApiJournalAiService implements JournalAiService {
   Future<RewriteResult> rewriteEntry({
     required String originalText,
     JournalRewriteSource source = JournalRewriteSource.unspecified,
+    RewritePersonalization? personalization,
   }) async {
     final response = await client.rewriteEntry(
-      RewriteEntryRequest(originalText: originalText),
+      RewriteEntryRequest(
+        originalText: originalText,
+        personalization: ApiRewritePersonalization.fromJson(
+          (personalization ?? RewritePersonalization.defaults).toApiJson(),
+        ),
+      ),
     );
 
     return RewriteResult(

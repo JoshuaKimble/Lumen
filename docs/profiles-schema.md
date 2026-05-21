@@ -42,9 +42,10 @@ existing Flutter enums that already drive local settings behavior, so the
 cloud-backed profile layer and device-local settings layer speak the same
 storage values.
 
-`apps/api` and `packages/api_contracts` do not yet contain profile types.
-When those packages are created, their contracts should mirror the storage
-values documented here instead of inventing new names.
+The rewrite API contract now mirrors these values through the optional
+`personalization` object on `POST /v1/entries/rewrite`, with explicit defaults
+of `rewriteTone = balanced` and `preserveVoice = true` for backward
+compatibility when older clients omit personalization.
 
 ## RLS-Ready Design
 

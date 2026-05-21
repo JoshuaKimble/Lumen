@@ -81,12 +81,43 @@ class LumenApiClient {
 }
 
 class RewriteEntryRequest {
-  const RewriteEntryRequest({required this.originalText});
+  const RewriteEntryRequest({
+    required this.originalText,
+    this.personalization,
+  });
 
   final String originalText;
+  final ApiRewritePersonalization? personalization;
 
   Map<String, Object?> toJson() {
-    return {'originalText': originalText};
+    return {
+      'originalText': originalText,
+      if (personalization != null) 'personalization': personalization!.toJson(),
+    };
+  }
+}
+
+class ApiRewritePersonalization {
+  const ApiRewritePersonalization({
+    required this.rewriteTone,
+    required this.preserveVoice,
+  });
+
+  factory ApiRewritePersonalization.fromJson(Map<String, Object?> json) {
+    return ApiRewritePersonalization(
+      rewriteTone: _requiredString(json, 'rewriteTone'),
+      preserveVoice: _requiredBool(json, 'preserveVoice'),
+    );
+  }
+
+  final String rewriteTone;
+  final bool preserveVoice;
+
+  Map<String, Object?> toJson() {
+    return {
+      'rewriteTone': rewriteTone,
+      'preserveVoice': preserveVoice,
+    };
   }
 }
 
@@ -348,6 +379,16 @@ String _requiredString(Map<String, Object?> json, String key) {
   }
 
   throw FormatException('Expected string "$key".');
+}
+
+bool _requiredBool(Map<String, Object?> json, String key) {
+  final value = json[key];
+
+  if (value is bool) {
+    return value;
+  }
+
+  throw FormatException('Expected required bool "$key".');
 }
 
 String? _optionalString(Map<String, Object?> json, String key) {

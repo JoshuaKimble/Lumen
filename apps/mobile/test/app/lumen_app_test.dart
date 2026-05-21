@@ -17,6 +17,7 @@ import 'package:lumen/src/features/journal/domain/journal_ai_service.dart';
 import 'package:lumen/src/features/journal/domain/journal_entry.dart';
 import 'package:lumen/src/features/journal/domain/journal_theme.dart';
 import 'package:lumen/src/features/journal/domain/related_resource.dart';
+import 'package:lumen/src/features/journal/domain/rewrite_personalization.dart';
 import 'package:lumen/src/features/journal/domain/voice_recorder.dart';
 import 'package:lumen/src/features/journal/domain/voice_recording.dart';
 import 'package:lumen/src/features/journal/domain/voice_transcription_service.dart';
@@ -851,6 +852,7 @@ class _ControlledAiService implements JournalAiService {
   Future<RewriteResult> rewriteEntry({
     required String originalText,
     JournalRewriteSource source = JournalRewriteSource.unspecified,
+    RewritePersonalization? personalization,
   }) async {
     _source = source;
     return _rewrite.future;
@@ -872,6 +874,7 @@ class _ImmediateAiService implements JournalAiService {
   Future<RewriteResult> rewriteEntry({
     required String originalText,
     JournalRewriteSource source = JournalRewriteSource.unspecified,
+    RewritePersonalization? personalization,
   }) async {
     return RewriteResult(
       rewrittenText: '[Test AI: ${source.testLabel}] $rewrittenText',
@@ -905,6 +908,7 @@ class _FailingAiService implements JournalAiService {
   Future<RewriteResult> rewriteEntry({
     required String originalText,
     JournalRewriteSource source = JournalRewriteSource.unspecified,
+    RewritePersonalization? personalization,
   }) async {
     throw StateError('AI unavailable');
   }

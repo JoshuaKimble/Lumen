@@ -228,6 +228,23 @@
           "originalText": {
             "type": "string",
             "minLength": 1
+          },
+          "personalization": {
+            "$ref": "#/components/schemas/RewritePersonalization"
+          }
+        }
+      },
+      "RewritePersonalization": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["rewriteTone", "preserveVoice"],
+        "properties": {
+          "rewriteTone": {
+            "type": "string",
+            "enum": ["balanced", "gentle", "encouraging", "reflective"]
+          },
+          "preserveVoice": {
+            "type": "boolean"
           }
         }
       },

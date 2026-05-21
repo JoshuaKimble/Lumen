@@ -5,6 +5,12 @@ import type { AiGatewayProvider } from './ai/aiGatewayProvider.js';
 import { createConfiguredAiProvider } from './ai/aiProviderFactory.js';
 import { AiProviderError } from './ai/providerError.js';
 import {
+  defaultRewritePersonalization,
+  rewriteToneValues,
+  type RewritePersonalization,
+  type RewriteTone,
+} from './ai/aiGatewayProvider.js';
+import {
   buildRewritePrompt,
   buildThemeDetectionPrompt,
 } from './ai/journalAiPrompts.js';
@@ -18,6 +24,7 @@ import { sendJson } from './http/json.js';
 import { readJsonBody } from './http/readJson.js';
 import {
   BadRequestError,
+  requireBoolean,
   rejectUnknownKeys,
   requireNonEmptyString,
   requireObject,
@@ -82,9 +89,12 @@ async function routeRequest(
 
   if (request.method === 'POST' && request.url === '/v1/entries/rewrite') {
     const body = requireObject(await readJsonBody(request));
-    rejectUnknownKeys(body, ['originalText']);
+    rejectUnknownKeys(body, ['originalText', 'personalization']);
     const requestBody = {
       originalText: requireNonEmptyString(body, 'originalText'),
+      personalization:
+        requireOptionalRewritePersonalization(body, 'personalization') ??
+        defaultRewritePersonalization,
     };
     buildRewritePrompt(requestBody);
     const result = validateRewriteResult(await aiProvider.rewrite(requestBody));
@@ -205,6 +215,40 @@ function requireOptionalStringArray(
 
     return item.trim();
   });
+}
+
+function requireOptionalRewritePersonalization(
+  body: Record<string, unknown>,
+  key: string,
+): RewritePersonalization | undefined {
+  const value = body[key];
+
+  if (value === undefined) {
+    return undefined;
+  }
+
+  const personalization = requireObject(value);
+  rejectUnknownKeys(personalization, ['rewriteTone', 'preserveVoice']);
+
+  return {
+    rewriteTone: requireRewriteTone(personalization, 'rewriteTone'),
+    preserveVoice: requireBoolean(personalization, 'preserveVoice'),
+  };
+}
+
+function requireRewriteTone(
+  body: Record<string, unknown>,
+  key: string,
+): RewriteTone {
+  const value = body[key];
+
+  if (typeof value !== 'string' || !rewriteToneValues.includes(value as RewriteTone)) {
+    throw new BadRequestError(
+      `Expected "${key}" to be one of: ${rewriteToneValues.join(', ')}.`,
+    );
+  }
+
+  return value as RewriteTone;
 }
 
 function mapProviderErrorToHttp(

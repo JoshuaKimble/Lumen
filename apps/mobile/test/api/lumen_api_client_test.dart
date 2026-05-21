@@ -7,6 +7,8 @@ import 'package:lumen/src/api/generated/lumen_api_client.dart';
 import 'package:lumen/src/features/journal/data/api_journal_ai_service.dart';
 import 'package:lumen/src/features/journal/data/api_voice_transcription_service.dart';
 import 'package:lumen/src/features/journal/data/voice_recording_audio_reader.dart';
+import 'package:lumen/src/features/journal/domain/rewrite_personalization.dart';
+import 'package:lumen/src/features/profiles/domain/rewrite_tone_preference.dart';
 import 'package:lumen/src/features/journal/domain/voice_recording.dart';
 import 'package:lumen/src/features/journal/domain/voice_recording_audio.dart';
 
@@ -17,7 +19,10 @@ void main() {
       httpClient: MockClient((request) async {
         expect(request.method, 'POST');
         expect(request.url.path, '/v1/entries/rewrite');
-        expect(request.body, '{"originalText":"raw note"}');
+        expect(
+          request.body,
+          '{"originalText":"raw note","personalization":{"rewriteTone":"gentle","preserveVoice":false}}',
+        );
 
         return http.Response(
           '{"rewrittenText":"clear note","title":"Generated","summary":"Short"}',
@@ -27,7 +32,13 @@ void main() {
     );
 
     final response = await client.rewriteEntry(
-      const RewriteEntryRequest(originalText: 'raw note'),
+      const RewriteEntryRequest(
+        originalText: 'raw note',
+        personalization: ApiRewritePersonalization(
+          rewriteTone: 'gentle',
+          preserveVoice: false,
+        ),
+      ),
     );
 
     expect(response.rewrittenText, 'clear note');
@@ -125,12 +136,38 @@ void main() {
       ),
     );
 
-    final rewrite = await service.rewriteEntry(originalText: 'raw note');
+    final rewrite = await service.rewriteEntry(
+      originalText: 'raw note',
+      personalization: const RewritePersonalization(
+        rewriteTone: RewriteTonePreference.reflective,
+        preserveVoice: false,
+      ),
+    );
     final themes = await service.detectThemes(text: 'work note');
 
     expect(rewrite.rewrittenText, 'clear note');
     expect(rewrite.title, 'Generated');
     expect(themes.themes.single.displayName, 'Work');
+  });
+
+  test('defaults rewrite personalization when none is provided', () async {
+    final service = ApiJournalAiService(
+      client: LumenApiClient(
+        baseUri: Uri.parse('http://localhost:3000'),
+        httpClient: MockClient((request) async {
+          expect(
+            request.body,
+            '{"originalText":"raw note","personalization":{"rewriteTone":"balanced","preserveVoice":true}}',
+          );
+
+          return http.Response('{"rewrittenText":"clear note"}', 200);
+        }),
+      ),
+    );
+
+    final rewrite = await service.rewriteEntry(originalText: 'raw note');
+
+    expect(rewrite.rewrittenText, 'clear note');
   });
 
   test('adapts recorded audio to transcription API request', () async {

@@ -1,6 +1,7 @@
 import '../domain/ai_results.dart';
 import '../domain/journal_ai_service.dart';
 import '../domain/journal_theme.dart';
+import '../domain/rewrite_personalization.dart';
 
 class MockJournalAiService implements JournalAiService {
   const MockJournalAiService();
@@ -9,6 +10,7 @@ class MockJournalAiService implements JournalAiService {
   Future<RewriteResult> rewriteEntry({
     required String originalText,
     JournalRewriteSource source = JournalRewriteSource.unspecified,
+    RewritePersonalization? personalization,
   }) async {
     final normalizedText = originalText.trim();
     final summary = _summaryFor(normalizedText);

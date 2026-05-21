@@ -7,8 +7,28 @@ export interface TranscriptionResult {
   readonly transcript: string;
 }
 
+export const rewriteToneValues = [
+  'balanced',
+  'gentle',
+  'encouraging',
+  'reflective',
+] as const;
+
+export type RewriteTone = (typeof rewriteToneValues)[number];
+
+export interface RewritePersonalization {
+  readonly rewriteTone: RewriteTone;
+  readonly preserveVoice: boolean;
+}
+
+export const defaultRewritePersonalization: RewritePersonalization = {
+  rewriteTone: 'balanced',
+  preserveVoice: true,
+};
+
 export interface RewriteRequest {
   readonly originalText: string;
+  readonly personalization?: RewritePersonalization;
 }
 
 export interface RewriteResult {
