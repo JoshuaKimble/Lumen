@@ -1,13 +1,14 @@
 # Supabase Migration Workflow (M1)
 
-This runbook defines the migration and seed workflow used by Lumen during M1.
-It is designed to be reproducible from a clean machine.
+This runbook defines the migration workflow used by Lumen before public launch.
+It supports both the shared cloud Supabase project and optional local CLI
+isolation.
 
 ## Prerequisites
 
 - Install Supabase CLI:
   https://supabase.com/docs/guides/cli/getting-started
-- Docker Desktop running locally (required by Supabase local stack)
+- Docker Desktop running locally only if you choose the optional local stack
 
 ## Repository Structure
 
@@ -15,7 +16,29 @@ It is designed to be reproducible from a clean machine.
 - Migrations: `supabase/migrations/*.sql`
 - Seed data: `supabase/seed.sql`
 
-## Core Commands
+## Shared Cloud Defaults
+
+The default prelaunch path is the shared cloud Supabase project described in
+[supabase-environment-strategy.md](/Users/joshuakimble/Documents/workspace/apps/Lumen/docs/supabase-environment-strategy.md).
+
+Expected local env source:
+
+- `apps/api/.env`
+
+Required shared-cloud vars:
+
+- `LUMEN_USE_SUPABASE=true`
+- `LUMEN_SUPABASE_URL=...`
+- `LUMEN_SUPABASE_DB_URL=...`
+
+Current default:
+
+- Use the Supabase transaction-pooler connection string for
+  `LUMEN_SUPABASE_DB_URL`.
+- Do not use the direct connection string from this local environment because
+  it is not currently routable.
+
+## Optional Local Stack Commands
 
 From repo root:
 
@@ -28,7 +51,32 @@ From repo root:
 
 ## New Contributor Quickstart
 
-From a clean clone, run:
+For the default shared-cloud flow:
+
+```sh
+./scripts/check_supabase.sh
+./scripts/check_supabase_cloud.sh
+```
+
+Bootstrap is considered successful when:
+
+- shared-cloud env vars are present
+- the cloud database answers a health query
+- remote migration history is readable
+
+Known limitation:
+
+- Transaction-pooler connections can intermittently fail Supabase CLI
+  verification steps with prepared-statement errors even when connectivity and
+  migration application are otherwise working.
+
+To manually apply pending repo migrations to the shared cloud project:
+
+```sh
+./scripts/supabase_push_cloud.sh
+```
+
+For optional isolated local stack work:
 
 ```sh
 ./scripts/supabase_start.sh
@@ -54,19 +102,22 @@ Example:
 ./scripts/supabase_migration_new.sh add_profiles_table
 ```
 
-## Standard Local Flow
+## Standard Workflow
 
-1. Start local Supabase:
-   `./scripts/supabase_start.sh`
-2. Create migration:
+1. Create migration:
    `./scripts/supabase_migration_new.sh <name>`
-3. Edit generated SQL migration under `supabase/migrations/`
-4. Apply all migrations and seed from scratch:
-   `./scripts/supabase_reset.sh`
-5. Check service health:
-   `./scripts/supabase_status.sh`
-6. Stop stack when done:
-   `./scripts/supabase_stop.sh`
+2. Edit generated SQL migration under `supabase/migrations/`
+3. Run static Supabase safety checks:
+   `./scripts/check_supabase.sh`
+4. Run shared cloud connectivity + migration-history checks:
+   `./scripts/check_supabase_cloud.sh`
+5. Commit and push to `master`; CI is the canonical shared-cloud migration
+   deploy path and runs `./scripts/supabase_push_cloud.sh` after the other
+   checks pass.
+6. If the shared cloud schema must be updated before CI runs, manually run:
+   `./scripts/supabase_push_cloud.sh`
+7. If you need isolated schema verification, optionally run:
+   `./scripts/check_supabase_migrations.sh`
 
 ## Seed Strategy
 
@@ -89,17 +140,27 @@ CI runs `./scripts/check_supabase.sh` and will fail if:
 - required env-file ignore patterns are missing in `.gitignore`
 - obvious secret-like values are committed in tracked source files
 
-CI also runs `./scripts/check_supabase_migrations.sh` and will fail if:
+On `push` to `master`, CI also runs `./scripts/check_supabase_cloud.sh` and
+`./scripts/supabase_push_cloud.sh`. The deploy job will fail if:
 
-- local Supabase stack cannot start in CI
-- `supabase db reset` cannot apply committed migrations and seed
+- required shared-cloud Supabase vars are missing
+- the shared cloud database cannot be reached
+- remote migration history cannot be read
+- pending migrations cannot be applied cleanly
 
 Run locally before pushing:
 
 ```sh
 ./scripts/check_supabase.sh
-./scripts/check_supabase_migrations.sh
+./scripts/check_supabase_cloud.sh
 ```
+
+Run `./scripts/check_supabase_migrations.sh` only when you explicitly want the
+optional local-stack migration replay.
+
+Run `./scripts/supabase_push_cloud.sh` only when you intentionally want to
+apply repo migrations from your local machine instead of waiting for the CI
+deploy job.
 
 ## Troubleshooting
 
@@ -130,3 +191,15 @@ rerun:
 ./scripts/supabase_stop.sh
 ./scripts/supabase_start.sh
 ```
+
+### Shared cloud validation fails
+
+Confirm `apps/api/.env` or your shell exports include:
+
+- `LUMEN_USE_SUPABASE=true`
+- `LUMEN_SUPABASE_URL`
+- `LUMEN_SUPABASE_DB_URL`
+
+If the failure mentions prepared statements already existing, retry with a fresh
+CLI process and remember that this is a known transaction-pooler limitation
+rather than necessarily a bad credential or unreachable project.

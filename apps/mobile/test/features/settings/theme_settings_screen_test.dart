@@ -263,7 +263,7 @@ Future<void> _pumpSignedInApp(
           const SupabaseClientConfig(
             enabled: true,
             url: 'https://example.supabase.co',
-            anonKey: 'anon-key',
+            publishableKey: 'sb_publishable_example',
           ),
         ),
         authServiceProvider.overrideWithValue(

@@ -70,13 +70,34 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Run Supabase checks
+        run: ./scripts/check_supabase.sh
+
+  supabase-cloud:
+    name: Supabase Cloud Deploy
+    runs-on: ubuntu-latest
+    needs:
+      - mobile
+      - api
+      - contracts
+      - supabase
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    environment: production
+    env:
+      LUMEN_USE_SUPABASE: ${{ vars.LUMEN_USE_SUPABASE }}
+      LUMEN_SUPABASE_URL: ${{ vars.LUMEN_SUPABASE_URL }}
+      LUMEN_SUPABASE_DB_URL: ${{ secrets.LUMEN_SUPABASE_DB_URL }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
         with:
           version: latest
 
-      - name: Run Supabase checks
-        run: ./scripts/check_supabase.sh
+      - name: Run Supabase shared cloud check
+        run: ./scripts/check_supabase_cloud.sh
 
-      - name: Run Supabase migration apply check
-        run: ./scripts/check_supabase_migrations.sh
+      - name: Push Supabase migrations to shared cloud
+        run: ./scripts/supabase_push_cloud.sh

@@ -11,7 +11,7 @@ Future<void> main() async {
   if (supabaseConfig.enabled) {
     await Supabase.initialize(
       url: supabaseConfig.url,
-      anonKey: supabaseConfig.anonKey,
+      anonKey: supabaseConfig.publishableKey,
     );
   }
   runApp(const ProviderScope(child: LumenApp()));

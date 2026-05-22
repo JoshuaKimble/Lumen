@@ -1,7 +1,7 @@
 export interface SupabaseServerConfig {
   readonly enabled: boolean;
   readonly url: string;
-  readonly serviceRoleKey: string;
+  readonly secretKey: string;
 }
 
 export function parseSupabaseServerConfig(
@@ -13,14 +13,14 @@ export function parseSupabaseServerConfig(
     return {
       enabled: false,
       url: '',
-      serviceRoleKey: '',
+      secretKey: '',
     };
   }
 
   return {
     enabled: true,
     url: requireValue(env, 'LUMEN_SUPABASE_URL'),
-    serviceRoleKey: requireValue(env, 'LUMEN_SUPABASE_SERVICE_ROLE_KEY'),
+    secretKey: requireValue(env, 'LUMEN_SUPABASE_SECRET_KEY'),
   };
 }
 

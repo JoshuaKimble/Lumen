@@ -70,7 +70,7 @@ scan_pattern() {
 }
 
 scan_pattern 'sk-(proj|live|test)-[A-Za-z0-9]+' "OpenAI-style API key"
-scan_pattern 'SUPABASE_SERVICE_ROLE_KEY=.*[^[:space:]]' "service-role key assignment"
+scan_pattern 'SUPABASE_(SERVICE_ROLE|SECRET)_KEY=.*[^[:space:]]' "privileged Supabase key assignment"
 scan_pattern 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+' "JWT token"
 
 rm -f /tmp/lumen_secret_scan.tmp

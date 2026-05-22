@@ -67,10 +67,10 @@ When enabled, the API fails fast on startup if required vars are missing:
 ```sh
 LUMEN_USE_SUPABASE=true
 LUMEN_SUPABASE_URL=https://your-project-ref.supabase.co
-LUMEN_SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+LUMEN_SUPABASE_SECRET_KEY=sb_secret_...
 ```
 
-Service-role keys are server-only and must never be exposed to Flutter clients.
+Secret keys are server-only and must never be exposed to Flutter clients.
 
 ## Privacy And Error Handling
 

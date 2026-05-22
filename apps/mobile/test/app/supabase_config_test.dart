@@ -7,6 +7,6 @@ void main() {
 
     expect(config.enabled, isFalse);
     expect(config.url, isEmpty);
-    expect(config.anonKey, isEmpty);
+    expect(config.publishableKey, isEmpty);
   });
 }

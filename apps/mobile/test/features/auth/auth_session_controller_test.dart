@@ -19,7 +19,11 @@ void main() {
       final container = ProviderContainer(
         overrides: [
           supabaseClientConfigProvider.overrideWithValue(
-            const SupabaseClientConfig(enabled: false, url: '', anonKey: ''),
+            const SupabaseClientConfig(
+              enabled: false,
+              url: '',
+              publishableKey: '',
+            ),
           ),
           authServiceProvider.overrideWithValue(_FakeAuthService()),
         ],
@@ -45,7 +49,7 @@ void main() {
             const SupabaseClientConfig(
               enabled: true,
               url: 'https://example.supabase.co',
-              anonKey: 'anon-key',
+              publishableKey: 'sb_publishable_example',
             ),
           ),
           authServiceProvider.overrideWithValue(
@@ -83,7 +87,7 @@ void main() {
             const SupabaseClientConfig(
               enabled: true,
               url: 'https://example.supabase.co',
-              anonKey: 'anon-key',
+              publishableKey: 'sb_publishable_example',
             ),
           ),
           authServiceProvider.overrideWithValue(

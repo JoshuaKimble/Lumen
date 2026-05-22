@@ -1,26 +1,41 @@
-# Supabase Environment Strategy (M1)
+# Supabase Environment Strategy
 
-Status: active for Epic M1 foundation work.
+Status: active for prelaunch development.
 
-This document defines environment strategy for Supabase across `dev`,
-`staging`, and `prod` for Lumen.
+This document defines how Lumen uses Supabase before the app is publicly
+launched.
+
+## Current Strategy
+
+Lumen uses one shared cloud Supabase project for local development and CI.
+
+This is intentional.
+
+- The app is not publicly launched yet.
+- Auth, profiles, and future cloud-backed features need one consistent backend.
+- We want local bug bashes and CI validation to exercise the same real target.
+- Separate `dev`, `staging`, and `prod` Supabase projects are deferred until
+  release hardening is closer and the deployment process is worth formalizing.
+
+The durable decision record is:
+
+- [0006-shared-cloud-supabase-prelaunch.md](/Users/joshuakimble/Documents/workspace/apps/Lumen/docs/decisions/0006-shared-cloud-supabase-prelaunch.md)
 
 ## Goals
 
-- Keep environment separation explicit and enforceable.
+- Keep one shared source of truth for prelaunch auth/profile behavior.
 - Keep secrets out of git and out of Flutter runtime where not appropriate.
-- Keep ownership and rotation responsibilities clear.
-- Keep local development reproducible for a small team.
+- Make CI and local manual testing use the same Supabase target.
+- Preserve a clean path to future environment splitting without pretending it
+  already exists.
 
 ## Environment Mapping
 
-Use one Supabase project per environment.
-
-| Environment | Purpose | Supabase Project Naming | Project URL Source | Anon Key Source | Service Role Key Source |
-| --- | --- | --- | --- | --- | --- |
-| `dev` | Local integration and day-to-day engineering | `lumen-dev` | Supabase dashboard project settings (`Project URL`) | Supabase dashboard API settings (`anon/public`) | Supabase dashboard API settings (`service_role`) |
-| `staging` | Pre-release validation and smoke testing | `lumen-staging` | Supabase dashboard project settings (`Project URL`) | Supabase dashboard API settings (`anon/public`) | Supabase dashboard API settings (`service_role`) |
-| `prod` | Live user data and production traffic | `lumen-prod` | Supabase dashboard project settings (`Project URL`) | Supabase dashboard API settings (`anon/public`) | Supabase dashboard API settings (`service_role`) |
+| Stage | Current Supabase Model | Notes |
+| --- | --- | --- |
+| Local development | Shared cloud project | Default path for Flutter and API work. |
+| CI | Shared cloud project | Used for connectivity and migration-history validation. |
+| Release hardening | Separate projects later | Split into `dev` / `staging` / `prod` when publishing becomes real. |
 
 ## Runtime Placement Rules
 
@@ -28,17 +43,18 @@ Use one Supabase project per environment.
 
 - Allowed:
   - Supabase project URL
-  - Supabase anon/public key
+  - Supabase publishable key
 - Not allowed:
-  - Supabase service-role key
+  - Supabase secret key
   - OpenAI API key or provider secrets
 
 ### API (`apps/api`)
 
 - Allowed:
   - Supabase project URL
-  - Supabase service-role key (server-side only)
-  - OpenAI provider secrets (existing policy unchanged)
+  - Supabase secret key (server-side only, if needed)
+  - Database connection string for CLI/cloud validation
+  - OpenAI provider secrets
 - Not allowed:
   - Client-distributed secret handling
 
@@ -48,60 +64,64 @@ Use one Supabase project per environment.
 
 - `LUMEN_USE_SUPABASE=true|false`
 - `LUMEN_SUPABASE_URL=<project-url>`
-- `LUMEN_SUPABASE_ANON_KEY=<anon-key>`
+- `LUMEN_SUPABASE_PUBLISHABLE_KEY=<publishable-key>`
 
-### API (`apps/api/.env`)
+### API and Local Tooling (`apps/api/.env`)
 
 - `LUMEN_USE_SUPABASE=true|false`
 - `LUMEN_SUPABASE_URL=<project-url>`
-- `LUMEN_SUPABASE_SERVICE_ROLE_KEY=<service-role-key>`
+- `LUMEN_SUPABASE_PUBLISHABLE_KEY=<publishable-key>`
+- `LUMEN_SUPABASE_SECRET_KEY=<secret-key>` for privileged server access only
+- `LUMEN_SUPABASE_DB_URL=<percent-encoded-db-connection-string>`
 
 Do not commit real values. Commit example files only.
 
-## Ownership and Access Control
+## CI Strategy
 
-Use least privilege by default.
+CI uses the shared cloud Supabase project as the canonical schema deploy path
+for `master`.
 
-- Project owner:
-  - `JoshuaKimble` (account owner for initial setup and billing)
-- Engineering collaborators:
-  - invite as Supabase members with minimum role needed
-  - avoid owner-level permissions unless operationally required
-- CI/CD secret managers:
-  - GitHub repository secrets (or environment-scoped secrets) for runtime keys
-  - no plain-text secrets in workflow YAML
+Current expectations:
 
-## Secret Rotation Policy
+- `./scripts/check_supabase.sh` remains the static safety guard.
+- Pull requests and non-deploy CI runs validate code and migration files, but
+  must not mutate the shared cloud project.
+- On `push` to `master`, CI runs `./scripts/check_supabase_cloud.sh` and then
+  `./scripts/supabase_push_cloud.sh`.
+- CI must not auto-reset or auto-seed the shared cloud database.
 
-- Rotate keys immediately on suspected exposure.
-- Planned cadence:
-  - `dev`: quarterly or as needed
-  - `staging`: quarterly
-  - `prod`: quarterly minimum, or earlier for incidents
-- Any rotation event requires:
-  1. update secret store values
-  2. verify runtime startup in affected env
-  3. post-rotation smoke check
-  4. short changelog note in issue/task history
+Required GitHub secrets:
+
+- `LUMEN_SUPABASE_URL`
+- `LUMEN_SUPABASE_DB_URL`
 
 ## Local Development Strategy
 
-- Local development uses Supabase CLI/local stack where practical.
-- Local env values come from non-committed env files.
-- Seed/migration commands and troubleshooting are documented in:
-  - `docs/supabase-local-development.md` (issue `#59`)
+Use the shared cloud project by default.
 
-## Security Boundaries (Non-Negotiable)
+- Flutter web builds should receive Supabase client values through
+  `./scripts/dev_web_api.sh`.
+- Local auth/profile testing should hit the same Supabase project that CI uses.
+- `apps/api/.env` is the canonical local source for shared-cloud Supabase
+  values.
+- `LUMEN_SUPABASE_DB_URL` currently uses the Supabase transaction pooler
+  because direct database connections are not reachable from the current local
+  environment.
+- When schema changes need to exist before the next CI deploy, run
+  `./scripts/supabase_push_cloud.sh` manually from your local environment.
 
-- Service-role key never ships in mobile/web bundle.
-- OpenAI credentials remain server-side in `apps/api`.
-- Supabase RLS policy work remains part of later security milestones, but M1
-  must preserve the key-boundary guarantees above.
+The local Supabase CLI stack is still allowed for isolated schema experiments,
+but it is no longer the default prelaunch workflow.
 
-## Implementation Dependencies
+## Operational Guardrails
 
-- Strategy decisions in this doc are authoritative for:
-  - `#56` migration workflow setup
-  - `#58` runtime config bootstrap
-  - `#59` runbook documentation
-  - `#60` CI env-safety checks
+- Treat the shared cloud project as prelaunch data, not production data.
+- Avoid destructive remote commands in automation.
+- Keep secret keys server-only.
+- Prefer additive, forward-safe migrations because app commits may land before
+  the `master` deploy job finishes.
+- Expect occasional Supabase CLI verification issues against the transaction
+  pooler because transaction mode does not fully support prepared statements.
+- Rotate keys immediately if exposure is suspected.
+- Revisit the single-project strategy before public release and split
+  environments then.
