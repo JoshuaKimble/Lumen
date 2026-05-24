@@ -47,6 +47,8 @@ export function createApiServer(dependencies: AppDependencies = {}): Server {
   const aiProvider = dependencies.aiProvider ?? createConfiguredAiProvider();
 
   return createServer(async (request, response) => {
+    applyCorsHeaders(request, response);
+
     try {
       await routeRequest(request, response, aiProvider);
     } catch (error) {
@@ -79,6 +81,12 @@ async function routeRequest(
   response: Parameters<typeof sendJson>[0],
   aiProvider: AiGatewayProvider,
 ): Promise<void> {
+  if (request.method === 'OPTIONS') {
+    response.writeHead(204);
+    response.end();
+    return;
+  }
+
   if (request.method === 'GET' && request.url === '/health') {
     sendJson(response, 200, {
       status: 'ok',
@@ -154,6 +162,29 @@ async function routeRequest(
   sendJson(response, 404, {
     error: 'not_found',
   });
+}
+
+function applyCorsHeaders(
+  request: IncomingMessage,
+  response: Parameters<typeof sendJson>[0],
+): void {
+  const origin = request.headers.origin;
+
+  if (origin !== undefined && isAllowedOrigin(origin)) {
+    response.setHeader('access-control-allow-origin', origin);
+    response.setHeader('vary', 'Origin');
+  }
+
+  response.setHeader(
+    'access-control-allow-methods',
+    'GET, POST, OPTIONS',
+  );
+  response.setHeader('access-control-allow-headers', 'content-type');
+  response.setHeader('access-control-max-age', '600');
+}
+
+function isAllowedOrigin(origin: string): boolean {
+  return /^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/.test(origin);
 }
 
 function decodeAudioBase64(value: string): Uint8Array {

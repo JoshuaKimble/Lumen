@@ -12,6 +12,28 @@ class RecordVoiceRecorder implements VoiceRecorder {
   final AudioRecorder _recorder;
   DateTime? _startedAt;
 
+  @visibleForTesting
+  static RecordConfig configForPlatform({required bool isWeb}) {
+    if (isWeb) {
+      return webConfigs.first;
+    }
+
+    return const RecordConfig(encoder: AudioEncoder.aacLc);
+  }
+
+  @visibleForTesting
+  static const webConfigs = <RecordConfig>[
+    RecordConfig(encoder: AudioEncoder.wav, numChannels: 1),
+    RecordConfig(encoder: AudioEncoder.pcm16bits, numChannels: 1),
+  ];
+
+  @visibleForTesting
+  static String fileNameForPlatform(DateTime startedAt, {required bool isWeb}) {
+    final extension = isWeb ? 'wav' : 'm4a';
+
+    return 'lumen-${startedAt.microsecondsSinceEpoch}.$extension';
+  }
+
   @override
   Future<bool> hasPermission() {
     return _recorder.hasPermission();
@@ -21,10 +43,32 @@ class RecordVoiceRecorder implements VoiceRecorder {
   Future<void> start({required DateTime startedAt}) async {
     _startedAt = startedAt;
 
-    await _recorder.start(
-      const RecordConfig(encoder: AudioEncoder.aacLc),
-      path: await _recordingPath(startedAt),
-    );
+    final path = await _recordingPath(startedAt);
+
+    if (!kIsWeb) {
+      await _recorder.start(configForPlatform(isWeb: false), path: path);
+      return;
+    }
+
+    Object? lastError;
+    StackTrace? lastStackTrace;
+
+    for (final config in webConfigs) {
+      try {
+        await _recorder.start(config, path: path);
+        return;
+      } catch (error, stackTrace) {
+        lastError = error;
+        lastStackTrace = stackTrace;
+        debugPrint(
+          'Voice recorder web start failed for ${config.encoder.name}: $error',
+        );
+      }
+    }
+
+    if (lastError != null && lastStackTrace != null) {
+      Error.throwWithStackTrace(lastError, lastStackTrace);
+    }
   }
 
   @override
@@ -46,14 +90,12 @@ class RecordVoiceRecorder implements VoiceRecorder {
   }
 
   Future<String> _recordingPath(DateTime startedAt) async {
-    final fileName = 'lumen-${startedAt.microsecondsSinceEpoch}.m4a';
-
     if (kIsWeb) {
-      return fileName;
+      return '';
     }
 
     final directory = await getTemporaryDirectory();
 
-    return '${directory.path}/$fileName';
+    return '${directory.path}/${fileNameForPlatform(startedAt, isWeb: false)}';
   }
 }

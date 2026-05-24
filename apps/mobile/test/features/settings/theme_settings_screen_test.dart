@@ -224,6 +224,29 @@ void main() {
     );
     expect(find.text('Profile settings'), findsOneWidget);
   });
+
+  testWidgets('signed-in settings can sign out', (tester) async {
+    final authService = _FakeAuthService(
+      currentSession: const AuthSession(
+        userId: 'user-1',
+        email: 'user@example.com',
+        emailVerified: true,
+      ),
+    );
+    await _pumpSignedInApp(
+      tester,
+      profileService: _FakeProfileService(profile: _sampleProfile()),
+      authService: authService,
+    );
+
+    await tester.tap(find.text('Settings').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Sign out'));
+    await tester.pumpAndSettle();
+
+    expect(authService.didLogout, isTrue);
+    expect(find.text('Sign out'), findsNothing);
+  });
 }
 
 Future<void> _pumpApp(
@@ -255,6 +278,7 @@ Future<void> _pumpSignedInApp(
   ThemePreferenceRepository? themeRepository,
   ScriptureAppPreferenceRepository? scriptureRepository,
   required _FakeProfileService profileService,
+  _FakeAuthService? authService,
 }) async {
   await tester.pumpWidget(
     ProviderScope(
@@ -267,13 +291,14 @@ Future<void> _pumpSignedInApp(
           ),
         ),
         authServiceProvider.overrideWithValue(
-          _FakeAuthService(
-            currentSession: const AuthSession(
-              userId: 'user-1',
-              email: 'user@example.com',
-              emailVerified: true,
-            ),
-          ),
+          authService ??
+              _FakeAuthService(
+                currentSession: const AuthSession(
+                  userId: 'user-1',
+                  email: 'user@example.com',
+                  emailVerified: true,
+                ),
+              ),
         ),
         profileServiceProvider.overrideWithValue(profileService),
         journalRepositoryProvider.overrideWithValue(
@@ -339,6 +364,7 @@ class _FakeAuthService implements AuthService {
   _FakeAuthService({required this.currentSession});
 
   final AuthSession? currentSession;
+  var didLogout = false;
 
   @override
   Future<AuthSession?> getCurrentSession() async => currentSession;
@@ -353,7 +379,9 @@ class _FakeAuthService implements AuthService {
   }
 
   @override
-  Future<void> logout() async {}
+  Future<void> logout() async {
+    didLogout = true;
+  }
 
   @override
   Future<AuthSession> register({

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -220,11 +221,16 @@ class _VoiceRecordingScreenState extends ConsumerState<VoiceRecordingScreen> {
           _status = VoiceRecordingStatus.recording;
         });
       }
-    } catch (_) {
+    } catch (error, stackTrace) {
+      debugPrint('Unable to start recording: $error');
+      debugPrintStack(stackTrace: stackTrace);
+
       if (mounted) {
         setState(() {
           _status = VoiceRecordingStatus.error;
-          _errorMessage = 'Unable to start recording.';
+          _errorMessage = kDebugMode
+              ? 'Unable to start recording. $error'
+              : 'Unable to start recording.';
         });
       }
     }
@@ -259,11 +265,16 @@ class _VoiceRecordingScreenState extends ConsumerState<VoiceRecordingScreen> {
       });
 
       await _transcribeRecording(recording);
-    } catch (_) {
+    } catch (error, stackTrace) {
+      debugPrint('Unable to stop recording: $error');
+      debugPrintStack(stackTrace: stackTrace);
+
       if (mounted) {
         setState(() {
           _status = VoiceRecordingStatus.error;
-          _errorMessage = 'Unable to stop recording.';
+          _errorMessage = kDebugMode
+              ? 'Unable to stop recording. $error'
+              : 'Unable to stop recording.';
         });
       }
     }
@@ -281,11 +292,16 @@ class _VoiceRecordingScreenState extends ConsumerState<VoiceRecordingScreen> {
           _status = VoiceRecordingStatus.reviewingTranscript;
         });
       }
-    } catch (_) {
+    } catch (error, stackTrace) {
+      debugPrint('Unable to transcribe recording: $error');
+      debugPrintStack(stackTrace: stackTrace);
+
       if (mounted) {
         setState(() {
           _status = VoiceRecordingStatus.error;
-          _errorMessage = 'Unable to transcribe the recording.';
+          _errorMessage = kDebugMode
+              ? 'Unable to transcribe the recording. $error'
+              : 'Unable to transcribe the recording.';
         });
       }
     }

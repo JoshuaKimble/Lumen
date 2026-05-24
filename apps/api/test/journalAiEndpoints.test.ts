@@ -354,6 +354,31 @@ test('returns not_found for unknown routes', async () => {
   });
 });
 
+test('transcription endpoint responds to CORS preflight', async () => {
+  const response = await fetch(`${baseUrl}/v1/transcriptions`, {
+    method: 'OPTIONS',
+    headers: {
+      origin: 'http://127.0.0.1:51910',
+      'access-control-request-method': 'POST',
+      'access-control-request-headers': 'content-type',
+    },
+  });
+
+  assert.equal(response.status, 204);
+  assert.equal(
+    response.headers.get('access-control-allow-origin'),
+    'http://127.0.0.1:51910',
+  );
+  assert.equal(
+    response.headers.get('access-control-allow-methods'),
+    'GET, POST, OPTIONS',
+  );
+  assert.equal(
+    response.headers.get('access-control-allow-headers'),
+    'content-type',
+  );
+});
+
 test('transcription endpoint rejects audio larger than 10 MB', async () => {
   const tooLargeAudio = Buffer.alloc(10 * 1024 * 1024 + 1).toString('base64');
 

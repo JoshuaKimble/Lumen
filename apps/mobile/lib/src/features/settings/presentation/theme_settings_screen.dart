@@ -188,6 +188,16 @@ class ThemeSettingsScreen extends ConsumerWidget {
                   : context.goNamed(loginRouteName),
             ),
           ),
+          if (hasSignedInProfile) ...[
+            const SizedBox(height: 12),
+            FilledButton.tonalIcon(
+              onPressed: () {
+                ref.read(authSessionControllerProvider.notifier).logout();
+              },
+              icon: const Icon(Icons.logout),
+              label: const Text('Sign out'),
+            ),
+          ],
         ],
       ),
     );
