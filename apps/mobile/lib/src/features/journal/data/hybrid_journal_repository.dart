@@ -2,22 +2,27 @@ import '../domain/journal_cloud_store.dart';
 import '../domain/journal_entry.dart';
 import '../domain/journal_local_store.dart';
 import '../domain/journal_repository.dart';
+import 'journal_sync_coordinator.dart';
 
 class HybridJournalRepository implements JournalRepository {
   const HybridJournalRepository({
     required JournalLocalStore localStore,
     JournalCloudStore? cloudStore,
+    JournalSyncCoordinator? syncCoordinator,
   }) : _localStore = localStore,
-       _cloudStore = cloudStore;
+       _cloudStore = cloudStore,
+       _syncCoordinator = syncCoordinator;
 
   final JournalLocalStore _localStore;
   final JournalCloudStore? _cloudStore;
+  final JournalSyncCoordinator? _syncCoordinator;
 
   bool get hasCloudStore => _cloudStore != null;
 
   @override
-  Future<void> deleteEntry(String id) {
-    return _localStore.deleteEntry(id);
+  Future<void> deleteEntry(String id) async {
+    await _localStore.deleteEntry(id);
+    await _syncCoordinator?.enqueueDelete(id);
   }
 
   @override
@@ -36,9 +41,8 @@ class HybridJournalRepository implements JournalRepository {
   }
 
   @override
-  Future<void> saveEntry(JournalEntry entry) {
-    // Write-through sync lands in later M6 issues. For now, the hybrid layer
-    // centralizes composition while preserving the current local-first UX.
-    return _localStore.saveEntry(entry);
+  Future<void> saveEntry(JournalEntry entry) async {
+    await _localStore.saveEntry(entry);
+    await _syncCoordinator?.enqueueSave(entry);
   }
 }
