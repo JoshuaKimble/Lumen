@@ -1,9 +1,9 @@
 import '../domain/journal_entry.dart';
-import '../domain/journal_repository.dart';
+import '../domain/journal_local_store.dart';
 import '../domain/entry_source.dart';
 import '../domain/journal_theme.dart';
 
-class InMemoryJournalRepository implements JournalRepository {
+class InMemoryJournalRepository implements JournalLocalStore {
   InMemoryJournalRepository({List<JournalEntry>? seedEntries})
     : _entries = seedEntries == null ? _starterEntries() : [...seedEntries];
 

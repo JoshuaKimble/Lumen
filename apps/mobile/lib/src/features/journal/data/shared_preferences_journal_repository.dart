@@ -3,10 +3,10 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../domain/journal_entry.dart';
-import '../domain/journal_repository.dart';
+import '../domain/journal_local_store.dart';
 import 'journal_entry_json_mapper.dart';
 
-class SharedPreferencesJournalRepository implements JournalRepository {
+class SharedPreferencesJournalRepository implements JournalLocalStore {
   const SharedPreferencesJournalRepository({
     required SharedPreferencesAsync preferences,
     JournalEntryJsonMapper mapper = const JournalEntryJsonMapper(),
