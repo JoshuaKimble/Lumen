@@ -149,6 +149,7 @@ class _FakeSuggestionService implements ResourceSuggestionService {
   Future<List<RelatedResource>> suggest({
     required String text,
     List<String> themeIds = const [],
+    ScriptureAppPreference preference = ScriptureAppPreference.none,
   }) async {
     return const [
       RelatedResource(
@@ -178,6 +179,7 @@ class _ScriptureSuggestionService implements ResourceSuggestionService {
   Future<List<RelatedResource>> suggest({
     required String text,
     List<String> themeIds = const [],
+    ScriptureAppPreference preference = ScriptureAppPreference.none,
   }) async {
     return const [
       RelatedResource(

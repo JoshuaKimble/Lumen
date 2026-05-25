@@ -1,13 +1,20 @@
 import '../domain/related_resource.dart';
 import '../domain/resource_suggestion_service.dart';
+import '../../settings/domain/scripture_app_preference.dart';
+import 'scripture_resource_link_resolver.dart';
 
 class MockResourceSuggestionService implements ResourceSuggestionService {
-  const MockResourceSuggestionService();
+  const MockResourceSuggestionService({
+    this.scriptureLinkResolver = const ScriptureResourceLinkResolver(),
+  });
+
+  final ScriptureResourceLinkResolver scriptureLinkResolver;
 
   @override
   Future<List<RelatedResource>> suggest({
     required String text,
     List<String> themeIds = const [],
+    ScriptureAppPreference preference = ScriptureAppPreference.none,
   }) async {
     final normalizedText = text.toLowerCase();
     final matchedIds = <String>{...themeIds};
@@ -29,7 +36,17 @@ class MockResourceSuggestionService implements ResourceSuggestionService {
             .toList(growable: false)
           ..sort((a, b) => b.confidence.compareTo(a.confidence));
 
-    return suggestions.take(5).toList(growable: false);
+    return suggestions
+        .take(5)
+        .map(
+          (resource) => resource.copyWith(
+            url: scriptureLinkResolver.resolve(
+              resource,
+              preference: preference,
+            ),
+          ),
+        )
+        .toList(growable: false);
   }
 
   @override

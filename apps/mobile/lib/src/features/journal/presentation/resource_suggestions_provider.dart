@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../settings/data/scripture_app_preference_provider.dart';
+import '../../settings/domain/scripture_app_preference.dart';
 import '../data/resource_feedback_repository.dart';
 import '../data/resource_suggestion_service_provider.dart';
 import '../data/shared_preferences_resource_feedback_repository.dart';
@@ -88,9 +90,16 @@ final resourceSuggestionsProvider =
       ref,
       query,
     ) async {
+      final preference =
+          ref.watch(scriptureAppPreferenceControllerProvider).asData?.value ??
+          ScriptureAppPreference.none;
       final suggestions = await ref
           .watch(resourceSuggestionServiceProvider)
-          .suggest(text: query.text, themeIds: query.themeIds);
+          .suggest(
+            text: query.text,
+            themeIds: query.themeIds,
+            preference: preference,
+          );
       final feedback =
           ref.watch(resourceFeedbackControllerProvider).asData?.value ??
           const <String, ResourceFeedbackAction>{};

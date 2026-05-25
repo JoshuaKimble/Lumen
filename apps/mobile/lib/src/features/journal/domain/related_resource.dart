@@ -27,4 +27,32 @@ class RelatedResource {
   final String? entryId;
   final String? themeId;
   final String? description;
+
+  RelatedResource copyWith({
+    String? id,
+    String? title,
+    String? type,
+    String? sourceType,
+    String? matchReason,
+    double? confidence,
+    Uri? url,
+    String? scriptureReference,
+    String? entryId,
+    String? themeId,
+    String? description,
+  }) {
+    return RelatedResource(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      type: type ?? this.type,
+      sourceType: sourceType ?? this.sourceType,
+      matchReason: matchReason ?? this.matchReason,
+      confidence: confidence ?? this.confidence,
+      url: url ?? this.url,
+      scriptureReference: scriptureReference ?? this.scriptureReference,
+      entryId: entryId ?? this.entryId,
+      themeId: themeId ?? this.themeId,
+      description: description ?? this.description,
+    );
+  }
 }
