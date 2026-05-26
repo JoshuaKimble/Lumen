@@ -126,21 +126,18 @@ child rows for now.
 
 ## RLS And Data API Readiness
 
-This migration is RLS-ready but does **not** enable RLS policies or grant Data
-API access yet.
+M7 enables RLS on all four journal tables and applies explicit ownership
+policies:
 
-That is intentional:
+- `anon` has no access
+- `authenticated` can `select`, `insert`, `update`, and `delete` only rows
+  where `user_id = auth.uid()`
+- `update` policies use both `USING` and `WITH CHECK`
+- `service_role` retains explicit grants for server-only workflows
 
-- M7 owns the final RLS policy design.
-- New Supabase projects may no longer auto-expose `public` tables to the Data
-  API by default, and explicit grants without RLS would be unsafe.
-
-The intended future policy shape is per-user ownership:
-
-- `select` only your own rows
-- `insert` only rows whose `user_id` matches `auth.uid()`
-- `update` only your own rows with matching `WITH CHECK`
-- `delete` only your own rows
+This keeps the journal schema safe in `public` even when tables are reachable
+through Supabase APIs, and it matches the local-first sync model already used
+in Flutter repositories.
 
 ## App Model Alignment
 

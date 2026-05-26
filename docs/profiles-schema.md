@@ -47,19 +47,15 @@ The rewrite API contract now mirrors these values through the optional
 of `rewriteTone = balanced` and `preserveVoice = true` for backward
 compatibility when older clients omit personalization.
 
-## RLS-Ready Design
+## RLS Design
 
-This schema is prepared for RLS work without enabling policies yet:
+M7 enables RLS on `public.profiles` and applies explicit ownership policies:
 
-- user ownership is anchored on `profiles.id = auth.users.id`
-- cascade delete preserves account-deletion semantics
-- onboarding state is stored on the owned row rather than inferred elsewhere
-- normalized preference values allow explicit `select` and `update` policies
+- `anon` has no access to profile rows
+- `authenticated` may `select`, `insert`, `update`, and `delete` only the row
+  whose `id` matches `auth.uid()`
+- the `update` policy includes both `USING` and `WITH CHECK`
+- `service_role` keeps explicit grants for server-only paths
 
-The intended future policy shape is:
-
-- authenticated users may `select` only their own profile row
-- authenticated users may `insert` only a row whose `id` matches `auth.uid()`
-- authenticated users may `update` only their own row
-
-RLS policies remain part of the later security milestone rather than M3.
+That matches the intended ownership model from M3 while making the table safe
+for Supabase API access in the exposed `public` schema.
