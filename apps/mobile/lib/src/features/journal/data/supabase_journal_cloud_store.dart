@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../domain/entry_source.dart';
+import '../domain/journal_cloud_entry_page.dart';
 import '../domain/journal_cloud_store.dart';
 import '../domain/journal_entry.dart';
 import '../domain/journal_theme.dart';
@@ -45,6 +46,26 @@ class SupabaseJournalCloudStore implements JournalCloudStore {
   }
 
   @override
+  Future<JournalCloudEntryPage> listEntriesPage({
+    required String userId,
+    required int limit,
+    DateTime? beforeCreatedAt,
+  }) async {
+    final rows = await _selectEntries(
+      userId: userId,
+      limit: limit,
+      beforeCreatedAt: beforeCreatedAt,
+    );
+    final entries = rows.map(_entryFromRow).toList(growable: false)
+      ..sort((left, right) => right.createdAt.compareTo(left.createdAt));
+    return JournalCloudEntryPage(
+      entries: entries,
+      hasMore: entries.length == limit,
+      nextBeforeCreatedAt: entries.isEmpty ? null : entries.last.createdAt,
+    );
+  }
+
+  @override
   Future<void> saveEntry({
     required String userId,
     required JournalEntry entry,
@@ -72,8 +93,10 @@ class SupabaseJournalCloudStore implements JournalCloudStore {
   Future<List<Map<String, dynamic>>> _selectEntries({
     required String userId,
     String? entryId,
+    int? limit,
+    DateTime? beforeCreatedAt,
   }) async {
-    final query = _client
+    var query = _client
         .from('journal_entries')
         .select('''
           *,
@@ -98,9 +121,17 @@ class SupabaseJournalCloudStore implements JournalCloudStore {
           )
         ''')
         .eq('user_id', userId);
-    final response = entryId == null
-        ? await query
-        : await query.eq('id', entryId);
+    if (beforeCreatedAt != null) {
+      query = query.lt('created_at', beforeCreatedAt.toUtc().toIso8601String());
+    }
+    if (entryId != null) {
+      query = query.eq('id', entryId);
+    }
+    final orderedQuery = query.order('created_at', ascending: false);
+    if (limit != null) {
+      orderedQuery.limit(limit);
+    }
+    final response = await orderedQuery;
     return (response as List<Object?>).whereType<Map<String, dynamic>>().toList(
       growable: false,
     );

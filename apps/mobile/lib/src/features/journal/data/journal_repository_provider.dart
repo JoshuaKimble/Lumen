@@ -8,8 +8,10 @@ import '../../../app/supabase_config.dart';
 import '../../auth/data/auth_session_controller.dart';
 import '../domain/journal_repository.dart';
 import 'hybrid_journal_repository.dart';
+import 'journal_hydration_controller.dart';
 import 'journal_sync_coordinator.dart';
 import 'journal_sync_diagnostics_controller.dart';
+import 'journal_repository_refresh_controller.dart';
 import 'shared_preferences_journal_repository.dart';
 import 'shared_preferences_journal_sync_queue_store.dart';
 import 'supabase_journal_cloud_store.dart';
@@ -30,19 +32,34 @@ final journalRepositoryProvider = Provider<JournalRepository>((ref) {
     return HybridJournalRepository(localStore: localStore);
   }
 
+  final cloudStore = SupabaseJournalCloudStore(
+    client: Supabase.instance.client,
+  );
+  final queueStore = SharedPreferencesJournalSyncQueueStore(
+    preferences: preferences,
+  );
+
   final syncCoordinator = JournalSyncCoordinator(
-    queueStore: SharedPreferencesJournalSyncQueueStore(
-      preferences: preferences,
-    ),
-    cloudStore: SupabaseJournalCloudStore(client: Supabase.instance.client),
+    queueStore: queueStore,
+    cloudStore: cloudStore,
     currentUserId: () => userId,
     diagnosticsSink: ref.read(journalSyncDiagnosticsProvider.notifier),
   );
-  unawaited(syncCoordinator.flushPendingWrites());
-
-  return HybridJournalRepository(
+  final repository = HybridJournalRepository(
     localStore: localStore,
-    cloudStore: SupabaseJournalCloudStore(client: Supabase.instance.client),
+    cloudStore: cloudStore,
     syncCoordinator: syncCoordinator,
+    hydrationController: JournalHydrationController(
+      localStore: localStore,
+      cloudStore: cloudStore,
+      queueStore: queueStore,
+      currentUserId: () => userId,
+      onDataChanged: () {
+        ref.read(journalRepositoryRefreshProvider.notifier).bump();
+      },
+    ),
   );
+  unawaited(syncCoordinator.flushPendingWrites());
+  unawaited(repository.hydrateFromCloud());
+  return repository;
 });

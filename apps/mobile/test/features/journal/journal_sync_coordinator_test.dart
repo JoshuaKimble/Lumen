@@ -4,6 +4,7 @@ import 'package:lumen/src/features/journal/data/journal_sync_coordinator.dart';
 import 'package:lumen/src/features/journal/data/journal_sync_diagnostics_controller.dart';
 import 'package:lumen/src/features/journal/data/journal_sync_queue_store.dart';
 import 'package:lumen/src/features/journal/domain/entry_source.dart';
+import 'package:lumen/src/features/journal/domain/journal_cloud_entry_page.dart';
 import 'package:lumen/src/features/journal/domain/journal_cloud_store.dart';
 import 'package:lumen/src/features/journal/domain/journal_entry.dart';
 import 'package:lumen/src/features/journal/domain/journal_sync_operation.dart';
@@ -168,6 +169,15 @@ class _RecordingJournalCloudStore implements JournalCloudStore {
   @override
   Future<List<JournalEntry>> listEntries({required String userId}) async {
     return const [];
+  }
+
+  @override
+  Future<JournalCloudEntryPage> listEntriesPage({
+    required String userId,
+    required int limit,
+    DateTime? beforeCreatedAt,
+  }) async {
+    return const JournalCloudEntryPage(entries: [], hasMore: false);
   }
 
   @override
