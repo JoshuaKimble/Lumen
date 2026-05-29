@@ -271,6 +271,20 @@ test('rewrite endpoint rejects invalid personalization payloads', async () => {
   });
 });
 
+test('rewrite endpoint rejects client-supplied ownership fields', async () => {
+  const response = await postJson('/v1/entries/rewrite', {
+    originalText: 'raw note',
+    userId: 'user-2',
+  });
+  const body = await response.json();
+
+  assert.equal(response.status, 400);
+  assert.deepEqual(body, {
+    error: 'bad_request',
+    message: 'Unexpected field "userId".',
+  });
+});
+
 test('theme endpoint rejects unknown fields', async () => {
   const response = await postJson('/v1/entries/themes/detect', {
     text: 'work',

@@ -55,6 +55,27 @@ for (const schemaName of requiredSchemas) {
   }
 }
 
+if (!contract.components?.securitySchemes?.bearerAuth) {
+  fail('missing security scheme bearerAuth');
+}
+
+const resourceFeedbackOperation = contract.paths?.['/v1/resources/feedback']?.post;
+if (!resourceFeedbackOperation) {
+  fail('missing POST /v1/resources/feedback');
+} else {
+  const hasBearerSecurity = Array.isArray(resourceFeedbackOperation.security)
+    && resourceFeedbackOperation.security.some((item) => item?.bearerAuth);
+  if (!hasBearerSecurity) {
+    fail('expected POST /v1/resources/feedback to require bearerAuth');
+  }
+
+  for (const statusCode of ['401', '403']) {
+    if (!resourceFeedbackOperation.responses?.[statusCode]) {
+      fail(`expected POST /v1/resources/feedback to define ${statusCode} response`);
+    }
+  }
+}
+
 if (process.exitCode) {
   process.exit();
 }

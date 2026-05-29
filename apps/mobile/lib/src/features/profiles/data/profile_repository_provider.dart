@@ -15,5 +15,6 @@ final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
 
   return SupabaseProfileRepository(
     adapter: SupabaseClientProfilesAdapter(Supabase.instance.client),
+    currentUserId: () => Supabase.instance.client.auth.currentUser?.id,
   );
 });

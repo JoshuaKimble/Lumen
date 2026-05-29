@@ -1,10 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:http/http.dart' as http;
-import 'package:lumen/src/api/generated/lumen_api_client.dart';
 
 import '../domain/resource_suggestion_service.dart';
-import 'api_base_url.dart';
 import 'api_resource_suggestion_service.dart';
+import 'lumen_api_client_provider.dart';
 import 'mock_resource_suggestion_service.dart';
 import 'resource_link_opener.dart';
 import 'scripture_resource_link_resolver.dart';
@@ -16,10 +14,7 @@ final resourceSuggestionServiceProvider = Provider<ResourceSuggestionService>((
 ) {
   if (_useApiAi) {
     return ApiResourceSuggestionService(
-      client: LumenApiClient(
-        baseUri: Uri.parse(resolveApiBaseUrl()),
-        httpClient: http.Client(),
-      ),
+      client: ref.watch(lumenApiClientProvider),
     );
   }
 

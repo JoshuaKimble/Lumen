@@ -6,11 +6,18 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+typedef LumenApiAccessTokenProvider = Future<String?> Function();
+
 class LumenApiClient {
-  const LumenApiClient({required this.baseUri, required this.httpClient});
+  const LumenApiClient({
+    required this.baseUri,
+    required this.httpClient,
+    this.accessTokenProvider,
+  });
 
   final Uri baseUri;
   final http.Client httpClient;
+  final LumenApiAccessTokenProvider? accessTokenProvider;
 
   Future<RewriteEntryResponse> rewriteEntry(RewriteEntryRequest request) async {
     final response = await _postJson('/v1/entries/rewrite', request.toJson());
@@ -48,7 +55,11 @@ class LumenApiClient {
   Future<ResourceFeedbackResponse> submitResourceFeedback(
     ResourceFeedbackRequest request,
   ) async {
-    final response = await _postJson('/v1/resources/feedback', request.toJson());
+    final response = await _postJson(
+      '/v1/resources/feedback',
+      request.toJson(),
+      requiresAuth: true,
+    );
 
     return ResourceFeedbackResponse.fromJson(response);
   }
@@ -56,10 +67,11 @@ class LumenApiClient {
   Future<Map<String, Object?>> _postJson(
     String path,
     Map<String, Object?> body,
+    {bool requiresAuth = false}
   ) async {
     final response = await httpClient.post(
       baseUri.resolve(path),
-      headers: const {'content-type': 'application/json'},
+      headers: await _jsonHeaders(requiresAuth: requiresAuth),
       body: jsonEncode(body),
     );
     final decodedBody = jsonDecode(response.body);
@@ -77,6 +89,24 @@ class LumenApiClient {
     }
 
     throw const FormatException('Expected JSON object response.');
+  }
+
+  Future<Map<String, String>> _jsonHeaders({required bool requiresAuth}) async {
+    final headers = <String, String>{'content-type': 'application/json'};
+
+    if (!requiresAuth) {
+      return headers;
+    }
+
+    final token = await accessTokenProvider?.call();
+    if (token == null || token.trim().isEmpty) {
+      throw StateError(
+        'Authenticated API request requires an access token.',
+      );
+    }
+
+    headers['authorization'] = 'Bearer ${token.trim()}';
+    return headers;
   }
 }
 

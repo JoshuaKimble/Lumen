@@ -109,6 +109,8 @@ formatters that rewrite files unless the task includes code changes.
 - `docs/github-task-backlog.md` is the GitHub-ready task backlog when issues
   need to be created or reviewed.
 - `docs/architecture.md` is the canonical architecture overview.
+- `docs/privacy-controls-v1.md` is the canonical V1 privacy, retention, export,
+  and auditability plan.
 - `docs/principles.md` is the canonical clean-code principles guide.
 - `docs/decisions/` contains architecture decision records.
 - Add a new decision record when changing state management, routing, persistence,

@@ -18,7 +18,8 @@ boundary.
 npm test
 ```
 
-Regenerate the Flutter client after changing rewrite or theme contracts:
+Regenerate the Flutter client after changing the contract, especially for
+authenticated resource or AI endpoint changes:
 
 ```sh
 npm run generate:flutter

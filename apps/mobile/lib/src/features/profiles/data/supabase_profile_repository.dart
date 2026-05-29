@@ -4,6 +4,8 @@ import '../domain/profile_repository.dart';
 import '../domain/user_profile.dart';
 import 'user_profile_mapper.dart';
 
+typedef CurrentProfileUserId = String? Function();
+
 abstract interface class SupabaseProfilesAdapter {
   Future<Map<String, dynamic>?> fetchProfile(String userId);
 
@@ -39,13 +41,18 @@ class SupabaseClientProfilesAdapter implements SupabaseProfilesAdapter {
 }
 
 class SupabaseProfileRepository implements ProfileRepository {
-  SupabaseProfileRepository({required SupabaseProfilesAdapter adapter})
-    : _adapter = adapter;
+  SupabaseProfileRepository({
+    required SupabaseProfilesAdapter adapter,
+    required CurrentProfileUserId currentUserId,
+  }) : _adapter = adapter,
+       _currentUserId = currentUserId;
 
   final SupabaseProfilesAdapter _adapter;
+  final CurrentProfileUserId _currentUserId;
 
   @override
   Future<UserProfile?> getProfile(String userId) async {
+    _assertOwnUserId(userId);
     final row = await _adapter.fetchProfile(userId);
     if (row == null) {
       return null;
@@ -56,7 +63,22 @@ class SupabaseProfileRepository implements ProfileRepository {
 
   @override
   Future<UserProfile> saveProfile(UserProfile profile) async {
+    _assertOwnUserId(profile.id);
     final row = await _adapter.upsertProfile(UserProfileMapper.toRow(profile));
     return UserProfileMapper.fromRow(row);
+  }
+
+  void _assertOwnUserId(String userId) {
+    final authenticatedUserId = _currentUserId();
+    if (authenticatedUserId == null) {
+      throw StateError(
+        'Supabase profile access requires an authenticated user session.',
+      );
+    }
+    if (authenticatedUserId != userId) {
+      throw StateError(
+        'Supabase profile access only supports the authenticated user.',
+      );
+    }
   }
 }

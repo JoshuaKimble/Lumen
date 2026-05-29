@@ -2,6 +2,8 @@ import { Buffer } from 'node:buffer';
 import { createServer, type IncomingMessage, type Server } from 'node:http';
 
 import type { AiGatewayProvider } from './ai/aiGatewayProvider.js';
+import { AuthVerificationError, type AuthVerifier } from './auth/authVerifier.js';
+import { SupabaseAuthVerifier } from './auth/supabaseAuthVerifier.js';
 import { createConfiguredAiProvider } from './ai/aiProviderFactory.js';
 import { AiProviderError } from './ai/providerError.js';
 import {
@@ -25,13 +27,24 @@ import { readJsonBody } from './http/readJson.js';
 import {
   BadRequestError,
   requireBoolean,
+  requireOptionalNonEmptyString,
   rejectUnknownKeys,
   requireNonEmptyString,
   requireObject,
 } from './http/requestValidation.js';
+import {
+  resourceFeedbackActions,
+  ResourceFeedbackStoreError,
+  type ResourceFeedbackAction,
+  type ResourceFeedbackStore,
+} from './resourceFeedback/resourceFeedbackStore.js';
+import { SupabaseResourceFeedbackStore } from './resourceFeedback/supabaseResourceFeedbackStore.js';
+import { parseSupabaseServerConfig } from './supabase/supabaseConfig.js';
 
 export interface AppDependencies {
   readonly aiProvider?: AiGatewayProvider;
+  readonly authVerifier?: AuthVerifier;
+  readonly resourceFeedbackStore?: ResourceFeedbackStore;
 }
 
 const acceptedAudioMimeTypes = new Set([
@@ -45,12 +58,29 @@ const maxAudioBytes = 10 * 1024 * 1024;
 
 export function createApiServer(dependencies: AppDependencies = {}): Server {
   const aiProvider = dependencies.aiProvider ?? createConfiguredAiProvider();
+  const supabaseConfig = parseSupabaseServerConfig(process.env);
+  const authVerifier =
+    dependencies.authVerifier ??
+    (supabaseConfig.enabled
+      ? new SupabaseAuthVerifier({config: supabaseConfig})
+      : undefined);
+  const resourceFeedbackStore =
+    dependencies.resourceFeedbackStore ??
+    (supabaseConfig.enabled
+      ? new SupabaseResourceFeedbackStore({config: supabaseConfig})
+      : undefined);
 
   return createServer(async (request, response) => {
     applyCorsHeaders(request, response);
 
     try {
-      await routeRequest(request, response, aiProvider);
+      await routeRequest(
+        request,
+        response,
+        aiProvider,
+        authVerifier,
+        resourceFeedbackStore,
+      );
     } catch (error) {
       if (error instanceof BadRequestError) {
         sendJson(response, 400, {
@@ -69,6 +99,28 @@ export function createApiServer(dependencies: AppDependencies = {}): Server {
         return;
       }
 
+      if (error instanceof AuthVerificationError) {
+        sendJson(response, 401, {
+          error: 'unauthorized',
+          message: error.message,
+        });
+        return;
+      }
+
+      if (error instanceof ResourceFeedbackStoreError) {
+        sendJson(response, error.code === 'invalid_reference' ? 400 : 503, {
+          error:
+            error.code === 'invalid_reference'
+              ? 'bad_request'
+              : 'internal_server_error',
+          message:
+            error.code === 'invalid_reference'
+              ? error.message
+              : 'Resource feedback is temporarily unavailable.',
+        });
+        return;
+      }
+
       sendJson(response, 500, {
         error: 'internal_server_error',
       });
@@ -80,6 +132,8 @@ async function routeRequest(
   request: IncomingMessage,
   response: Parameters<typeof sendJson>[0],
   aiProvider: AiGatewayProvider,
+  authVerifier?: AuthVerifier,
+  resourceFeedbackStore?: ResourceFeedbackStore,
 ): Promise<void> {
   if (request.method === 'OPTIONS') {
     response.writeHead(204);
@@ -144,6 +198,41 @@ async function routeRequest(
     return;
   }
 
+  if (request.method === 'POST' && request.url === '/v1/resources/feedback') {
+    if (authVerifier == null || resourceFeedbackStore == null) {
+      sendJson(response, 503, {
+        error: 'internal_server_error',
+      });
+      return;
+    }
+
+    const body = requireObject(await readJsonBody(request));
+    rejectUnknownKeys(body, ['resourceId', 'action', 'entryId', 'themeId', 'note']);
+    const accessToken = requireBearerToken(request);
+    const user = await authVerifier.verifyAccessToken(accessToken);
+    const requestBody = {
+      resourceId: requireNonEmptyString(body, 'resourceId').trim(),
+      action: requireResourceFeedbackAction(body, 'action'),
+      entryId: requireOptionalNonEmptyString(body, 'entryId'),
+      themeId: requireOptionalNonEmptyString(body, 'themeId'),
+      note: requireOptionalNote(body, 'note'),
+    };
+
+    await resourceFeedbackStore.saveFeedback({
+      userId: user.id,
+      resourceId: requestBody.resourceId,
+      action: requestBody.action,
+      entryId: requestBody.entryId,
+      themeId: requestBody.themeId,
+      note: requestBody.note,
+    });
+
+    sendJson(response, 202, {
+      status: 'accepted',
+    });
+    return;
+  }
+
   if (request.method === 'POST' && request.url === '/v1/transcriptions') {
     const body = requireObject(await readJsonBody(request));
     rejectUnknownKeys(body, ['audioBase64', 'mimeType']);
@@ -179,7 +268,10 @@ function applyCorsHeaders(
     'access-control-allow-methods',
     'GET, POST, OPTIONS',
   );
-  response.setHeader('access-control-allow-headers', 'content-type');
+  response.setHeader(
+    'access-control-allow-headers',
+    'authorization, content-type',
+  );
   response.setHeader('access-control-max-age', '600');
 }
 
@@ -267,6 +359,43 @@ function requireOptionalRewritePersonalization(
   };
 }
 
+function requireResourceFeedbackAction(
+  body: Record<string, unknown>,
+  key: string,
+): ResourceFeedbackAction {
+  const value = body[key];
+
+  if (
+    typeof value !== 'string' ||
+    !resourceFeedbackActions.includes(value as ResourceFeedbackAction)
+  ) {
+    throw new BadRequestError(
+      `Expected "${key}" to be one of: ${resourceFeedbackActions.join(', ')}.`,
+    );
+  }
+
+  return value as ResourceFeedbackAction;
+}
+
+function requireOptionalNote(
+  body: Record<string, unknown>,
+  key: string,
+): string | undefined {
+  const note = requireOptionalNonEmptyString(body, key);
+
+  if (note == null) {
+    return undefined;
+  }
+
+  if (note.length > 500) {
+    throw new BadRequestError(
+      `Expected "${key}" to be 500 characters or fewer.`,
+    );
+  }
+
+  return note;
+}
+
 function requireRewriteTone(
   body: Record<string, unknown>,
   key: string,
@@ -280,6 +409,23 @@ function requireRewriteTone(
   }
 
   return value as RewriteTone;
+}
+
+function requireBearerToken(request: IncomingMessage): string {
+  const authorization = request.headers.authorization;
+
+  if (typeof authorization !== 'string') {
+    throw new AuthVerificationError('Missing bearer token.');
+  }
+
+  const match = /^Bearer\s+(.+)$/.exec(authorization.trim());
+  const token = match?.[1]?.trim();
+
+  if (token == null || token.length === 0) {
+    throw new AuthVerificationError('Missing bearer token.');
+  }
+
+  return token;
 }
 
 function mapProviderErrorToHttp(

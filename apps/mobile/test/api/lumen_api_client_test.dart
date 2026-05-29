@@ -116,6 +116,64 @@ void main() {
     );
   });
 
+  test('calls typed resource feedback endpoint', () async {
+    final client = LumenApiClient(
+      baseUri: Uri.parse('http://localhost:3000'),
+      accessTokenProvider: () async => 'access-token-1',
+      httpClient: MockClient((request) async {
+        expect(request.method, 'POST');
+        expect(request.url.path, '/v1/resources/feedback');
+        expect(request.headers['authorization'], 'Bearer access-token-1');
+        expect(
+          request.body,
+          '{"resourceId":"resource-1","action":"save","entryId":"entry-1","themeId":"hope"}',
+        );
+
+        return http.Response('{"status":"accepted"}', 202);
+      }),
+    );
+
+    final response = await client.submitResourceFeedback(
+      const ResourceFeedbackRequest(
+        resourceId: 'resource-1',
+        action: 'save',
+        entryId: 'entry-1',
+        themeId: 'hope',
+      ),
+    );
+
+    expect(response.status, 'accepted');
+  });
+
+  test(
+    'throws clear error when protected request has no access token',
+    () async {
+      final client = LumenApiClient(
+        baseUri: Uri.parse('http://localhost:3000'),
+        accessTokenProvider: () async => null,
+        httpClient: MockClient((request) async {
+          throw StateError('request should not be sent');
+        }),
+      );
+
+      await expectLater(
+        client.submitResourceFeedback(
+          const ResourceFeedbackRequest(
+            resourceId: 'resource-1',
+            action: 'save',
+          ),
+        ),
+        throwsA(
+          isA<StateError>().having(
+            (error) => error.message,
+            'message',
+            'Authenticated API request requires an access token.',
+          ),
+        ),
+      );
+    },
+  );
+
   test('adapts API client responses to journal AI service results', () async {
     final service = ApiJournalAiService(
       client: LumenApiClient(

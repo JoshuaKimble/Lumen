@@ -4,6 +4,7 @@ import 'package:http/testing.dart';
 import 'package:lumen/src/api/generated/lumen_api_client.dart';
 import 'package:lumen/src/features/journal/data/api_resource_suggestion_service.dart';
 import 'package:lumen/src/features/journal/data/mock_resource_suggestion_service.dart';
+import 'package:lumen/src/features/journal/domain/resource_suggestion_service.dart';
 import 'package:lumen/src/features/settings/domain/scripture_app_preference.dart';
 
 void main() {
@@ -82,5 +83,38 @@ void main() {
       expect(suggestions, hasLength(1));
       expect(suggestions.single.url, isNull);
     });
+
+    test(
+      'submits authenticated resource feedback through the API client',
+      () async {
+        final service = ApiResourceSuggestionService(
+          client: LumenApiClient(
+            baseUri: Uri.parse('http://localhost:3000'),
+            accessTokenProvider: () async => 'session-token-1',
+            httpClient: MockClient((request) async {
+              expect(request.method, 'POST');
+              expect(request.url.path, '/v1/resources/feedback');
+              expect(
+                request.headers['authorization'],
+                'Bearer session-token-1',
+              );
+              expect(
+                request.body,
+                '{"resourceId":"resource-1","action":"dismiss","entryId":"entry-1","themeId":"stress"}',
+              );
+
+              return http.Response('{"status":"accepted"}', 202);
+            }),
+          ),
+        );
+
+        await service.submitFeedback(
+          resourceId: 'resource-1',
+          action: ResourceFeedbackAction.dismiss,
+          entryId: 'entry-1',
+          themeId: 'stress',
+        );
+      },
+    );
   });
 }

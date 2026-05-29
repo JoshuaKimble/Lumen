@@ -162,7 +162,12 @@
       "post": {
         "operationId": "submitResourceFeedback",
         "summary": "Submit feedback on related resource suggestions",
-        "description": "Accepts optional user feedback signals for future suggestion ranking.",
+        "description": "Accepts authenticated user feedback signals for future suggestion ranking and user-owned resource state.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -186,15 +191,49 @@
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         }
       }
     }
   },
   "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Supabase access token for the authenticated Lumen user."
+      }
+    },
     "responses": {
       "BadRequest": {
         "description": "Invalid request.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiError"
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Missing or invalid authentication.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiError"
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "Authenticated but not allowed to access the requested user-owned resource.",
         "content": {
           "application/json": {
             "schema": {
@@ -475,7 +514,19 @@
         "required": ["error"],
         "properties": {
           "error": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "bad_request",
+              "unauthorized",
+              "forbidden",
+              "not_found",
+              "provider_rate_limited",
+              "provider_timeout",
+              "provider_unavailable",
+              "provider_response_invalid",
+              "provider_error",
+              "internal_server_error"
+            ]
           },
           "message": {
             "type": "string"

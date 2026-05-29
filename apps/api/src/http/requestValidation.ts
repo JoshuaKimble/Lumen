@@ -28,6 +28,23 @@ export function requireNonEmptyString(
   return value;
 }
 
+export function requireOptionalNonEmptyString(
+  body: JsonObject,
+  key: string,
+): string | undefined {
+  const value = body[key];
+
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (typeof value !== 'string' || value.trim().length === 0) {
+    throw new BadRequestError(`Expected non-empty string "${key}".`);
+  }
+
+  return value.trim();
+}
+
 export function requireBoolean(body: JsonObject, key: string): boolean {
   const value = body[key];
 

@@ -77,6 +77,10 @@ For Supabase local database setup and migration workflows, use
 - Read `docs/workflow.md` before changing the GitHub issue workflow.
 - Read `docs/github-task-backlog.md` before creating or revising GitHub tasks.
 - Read `docs/architecture.md` before changing structure.
+- Read `docs/privacy-controls-v1.md` before changing privacy, retention,
+  export, or auditability expectations.
+- Read `docs/security-boundaries.md` before changing auth, RLS, or user-owned
+  data boundaries.
 - Read `docs/supabase-environment-strategy.md` before Supabase environment or
   secret-management work.
 - Add decision records under `docs/decisions/` for durable architecture changes.

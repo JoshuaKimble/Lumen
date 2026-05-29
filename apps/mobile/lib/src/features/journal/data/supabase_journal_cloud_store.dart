@@ -6,23 +6,32 @@ import '../domain/journal_cloud_store.dart';
 import '../domain/journal_entry.dart';
 import '../domain/journal_theme.dart';
 import '../domain/related_resource.dart';
+import 'supabase_journal_cloud_adapter.dart';
+
+typedef CurrentJournalCloudUserId = String? Function();
 
 class SupabaseJournalCloudStore implements JournalCloudStore {
-  const SupabaseJournalCloudStore({required SupabaseClient client})
-    : _client = client;
+  SupabaseJournalCloudStore({
+    SupabaseJournalCloudAdapter? adapter,
+    SupabaseClient? client,
+    CurrentJournalCloudUserId? currentUserId,
+  }) : assert(
+         adapter != null || client != null,
+         'Provide either a Supabase client or a cloud adapter.',
+       ),
+       _adapter = adapter ?? SupabaseClientJournalCloudAdapter(client!),
+       _currentUserId = currentUserId ?? (() => client!.auth.currentUser?.id);
 
-  final SupabaseClient _client;
+  final SupabaseJournalCloudAdapter _adapter;
+  final CurrentJournalCloudUserId _currentUserId;
 
   @override
   Future<void> deleteEntry({
     required String userId,
     required String entryId,
   }) async {
-    await _client
-        .from('journal_entries')
-        .delete()
-        .eq('user_id', userId)
-        .eq('id', entryId);
+    _assertOwnUserId(userId);
+    await _adapter.deleteEntry(userId: userId, entryId: entryId);
   }
 
   @override
@@ -30,6 +39,7 @@ class SupabaseJournalCloudStore implements JournalCloudStore {
     required String userId,
     required String entryId,
   }) async {
+    _assertOwnUserId(userId);
     final rows = await _selectEntries(userId: userId, entryId: entryId);
     if (rows.isEmpty) {
       return null;
@@ -39,6 +49,7 @@ class SupabaseJournalCloudStore implements JournalCloudStore {
 
   @override
   Future<List<JournalEntry>> listEntries({required String userId}) async {
+    _assertOwnUserId(userId);
     final rows = await _selectEntries(userId: userId);
     final entries = rows.map(_entryFromRow).toList(growable: false)
       ..sort((left, right) => right.createdAt.compareTo(left.createdAt));
@@ -51,6 +62,7 @@ class SupabaseJournalCloudStore implements JournalCloudStore {
     required int limit,
     DateTime? beforeCreatedAt,
   }) async {
+    _assertOwnUserId(userId);
     final rows = await _selectEntries(
       userId: userId,
       limit: limit,
@@ -70,21 +82,27 @@ class SupabaseJournalCloudStore implements JournalCloudStore {
     required String userId,
     required JournalEntry entry,
   }) async {
-    await _client.from('journal_entries').upsert({
-      'user_id': userId,
-      'id': entry.id,
-      'title': entry.title,
-      'summary': entry.summary,
-      'source': entry.source.name,
-      'original_text': entry.originalText,
-      'rewritten_text': entry.rewrittenText,
-      'last_regenerated_at': entry.lastRegeneratedAt?.toUtc().toIso8601String(),
-      'created_at': entry.createdAt.toUtc().toIso8601String(),
-      'updated_at': entry.updatedAt.toUtc().toIso8601String(),
-      'client_updated_at': entry.updatedAt.toUtc().toIso8601String(),
-      'version': 1,
-      'sync_state': 'synced',
-    });
+    _assertOwnUserId(userId);
+    await _adapter.upsertEntry(
+      userId: userId,
+      row: {
+        'user_id': userId,
+        'id': entry.id,
+        'title': entry.title,
+        'summary': entry.summary,
+        'source': entry.source.name,
+        'original_text': entry.originalText,
+        'rewritten_text': entry.rewrittenText,
+        'last_regenerated_at': entry.lastRegeneratedAt
+            ?.toUtc()
+            .toIso8601String(),
+        'created_at': entry.createdAt.toUtc().toIso8601String(),
+        'updated_at': entry.updatedAt.toUtc().toIso8601String(),
+        'client_updated_at': entry.updatedAt.toUtc().toIso8601String(),
+        'version': 1,
+        'sync_state': 'synced',
+      },
+    );
 
     await _replaceThemes(userId: userId, entry: entry);
     await _replaceResources(userId: userId, entry: entry);
@@ -96,44 +114,11 @@ class SupabaseJournalCloudStore implements JournalCloudStore {
     int? limit,
     DateTime? beforeCreatedAt,
   }) async {
-    var query = _client
-        .from('journal_entries')
-        .select('''
-          *,
-          journal_themes (
-            theme_id,
-            name,
-            display_name,
-            weight
-          ),
-          related_resources (
-            resource_id,
-            entry_id,
-            theme_id,
-            title,
-            type,
-            source_type,
-            match_reason,
-            confidence,
-            url,
-            scripture_reference,
-            description
-          )
-        ''')
-        .eq('user_id', userId);
-    if (beforeCreatedAt != null) {
-      query = query.lt('created_at', beforeCreatedAt.toUtc().toIso8601String());
-    }
-    if (entryId != null) {
-      query = query.eq('id', entryId);
-    }
-    final orderedQuery = query.order('created_at', ascending: false);
-    if (limit != null) {
-      orderedQuery.limit(limit);
-    }
-    final response = await orderedQuery;
-    return (response as List<Object?>).whereType<Map<String, dynamic>>().toList(
-      growable: false,
+    return _adapter.selectEntries(
+      userId: userId,
+      entryId: entryId,
+      limit: limit,
+      beforeCreatedAt: beforeCreatedAt,
     );
   }
 
@@ -141,60 +126,62 @@ class SupabaseJournalCloudStore implements JournalCloudStore {
     required String userId,
     required JournalEntry entry,
   }) async {
-    await _client
-        .from('journal_themes')
-        .delete()
-        .eq('user_id', userId)
-        .eq('entry_id', entry.id);
-
-    if (entry.themes.isEmpty) {
-      return;
-    }
-
-    await _client.from('journal_themes').upsert([
-      for (final theme in entry.themes)
-        {
-          'user_id': userId,
-          'entry_id': entry.id,
-          'theme_id': theme.id,
-          'name': theme.name,
-          'display_name': theme.displayName,
-          'weight': theme.weight,
-        },
-    ]);
+    await _adapter.replaceThemes(
+      userId: userId,
+      entryId: entry.id,
+      rows: [
+        for (final theme in entry.themes)
+          {
+            'user_id': userId,
+            'entry_id': entry.id,
+            'theme_id': theme.id,
+            'name': theme.name,
+            'display_name': theme.displayName,
+            'weight': theme.weight,
+          },
+      ],
+    );
   }
 
   Future<void> _replaceResources({
     required String userId,
     required JournalEntry entry,
   }) async {
-    await _client
-        .from('related_resources')
-        .delete()
-        .eq('user_id', userId)
-        .eq('entry_id', entry.id);
+    await _adapter.replaceResources(
+      userId: userId,
+      entryId: entry.id,
+      rows: [
+        for (final resource in entry.resources)
+          {
+            'user_id': userId,
+            'resource_id': resource.id,
+            'entry_id': resource.entryId ?? entry.id,
+            'theme_id': resource.themeId,
+            'title': resource.title,
+            'type': resource.type,
+            'source_type': resource.sourceType,
+            'match_reason': resource.matchReason,
+            'confidence': resource.confidence,
+            'url': resource.url?.toString(),
+            'scripture_reference': resource.scriptureReference,
+            'description': resource.description,
+          },
+      ],
+    );
+  }
 
-    if (entry.resources.isEmpty) {
-      return;
+  void _assertOwnUserId(String userId) {
+    final authenticatedUserId = _currentUserId();
+    if (authenticatedUserId == null) {
+      throw StateError(
+        'Supabase journal cloud access requires an authenticated user session.',
+      );
     }
-
-    await _client.from('related_resources').upsert([
-      for (final resource in entry.resources)
-        {
-          'user_id': userId,
-          'resource_id': resource.id,
-          'entry_id': resource.entryId ?? entry.id,
-          'theme_id': resource.themeId,
-          'title': resource.title,
-          'type': resource.type,
-          'source_type': resource.sourceType,
-          'match_reason': resource.matchReason,
-          'confidence': resource.confidence,
-          'url': resource.url?.toString(),
-          'scripture_reference': resource.scriptureReference,
-          'description': resource.description,
-        },
-    ]);
+    if (authenticatedUserId != userId) {
+      throw StateError(
+        'Supabase journal cloud access only supports the authenticated user.',
+      );
+    }
   }
 
   JournalEntry _entryFromRow(Map<String, dynamic> row) {
