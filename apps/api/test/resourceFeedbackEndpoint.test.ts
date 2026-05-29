@@ -82,19 +82,25 @@ test('accepts authenticated resource feedback and persists it', async () => {
 });
 
 test('rejects feedback without bearer token', async () => {
-  await withTestServer({}, async (baseUrl) => {
-    const response = await postFeedback(baseUrl, {
-      resourceId: 'resource-1',
-      action: 'dismiss',
-    });
-    const body = await response.json();
+  await withTestServer(
+    {
+      authVerifier: new RecordingAuthVerifier(),
+      resourceFeedbackStore: new RecordingResourceFeedbackStore(),
+    },
+    async (baseUrl) => {
+      const response = await postFeedback(baseUrl, {
+        resourceId: 'resource-1',
+        action: 'dismiss',
+      });
+      const body = await response.json();
 
-    assert.equal(response.status, 401);
-    assert.deepEqual(body, {
-      error: 'unauthorized',
-      message: 'Missing bearer token.',
-    });
-  });
+      assert.equal(response.status, 401);
+      assert.deepEqual(body, {
+        error: 'unauthorized',
+        message: 'Missing bearer token.',
+      });
+    },
+  );
 });
 
 test('rejects invalid feedback actions', async () => {

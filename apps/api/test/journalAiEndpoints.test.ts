@@ -389,7 +389,7 @@ test('transcription endpoint responds to CORS preflight', async () => {
   );
   assert.equal(
     response.headers.get('access-control-allow-headers'),
-    'content-type',
+    'authorization, content-type',
   );
 });
 

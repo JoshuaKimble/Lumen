@@ -5,7 +5,6 @@ import 'package:lumen/src/features/journal/domain/entry_source.dart';
 import 'package:lumen/src/features/journal/domain/journal_entry.dart';
 import 'package:lumen/src/features/journal/domain/journal_theme.dart';
 import 'package:lumen/src/features/journal/domain/related_resource.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() {
   test('reads entries for the authenticated user', () async {
@@ -21,8 +20,8 @@ void main() {
           'title': 'Title',
           'summary': 'Summary',
           'last_regenerated_at': null,
-          'journal_themes': const [],
-          'related_resources': const [],
+          'journal_themes': const <Map<String, Object?>>[],
+          'related_resources': const <Map<String, Object?>>[],
         },
       ],
     );
