@@ -1,0 +1,61 @@
+{
+  "name": "cloud-shared",
+  "variables": [
+    {
+      "name": "api_base_url",
+      "value": "http://127.0.0.1:3000",
+      "enabled": true,
+      "secret": false,
+      "type": "text"
+    },
+    {
+      "name": "access_token",
+      "value": "",
+      "enabled": true,
+      "secret": true,
+      "type": "text"
+    },
+    {
+      "name": "invalid_access_token",
+      "value": "not-a-real-token",
+      "enabled": true,
+      "secret": false,
+      "type": "text"
+    },
+    {
+      "name": "resource_id",
+      "value": "manual-qa-resource",
+      "enabled": true,
+      "secret": false,
+      "type": "text"
+    },
+    {
+      "name": "supabase_url",
+      "value": "https://jqcnjqsjoqfrwmbzpbtp.supabase.co",
+      "enabled": true,
+      "secret": false,
+      "type": "text"
+    },
+    {
+      "name": "supabase_publishable_key",
+      "value": "",
+      "enabled": true,
+      "secret": true,
+      "type": "text"
+    },
+    {
+      "name": "supabase_email",
+      "value": "",
+      "enabled": true,
+      "secret": true,
+      "type": "text"
+    },
+    {
+      "name": "supabase_password",
+      "value": "",
+      "enabled": true,
+      "secret": true,
+      "type": "text"
+    }
+  ]
+}

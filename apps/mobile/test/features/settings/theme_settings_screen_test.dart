@@ -247,6 +247,34 @@ void main() {
     expect(authService.didLogout, isTrue);
     expect(find.text('Sign out'), findsNothing);
   });
+
+  testWidgets('signed-in settings can request password reset email', (
+    tester,
+  ) async {
+    final authService = _FakeAuthService(
+      currentSession: const AuthSession(
+        userId: 'user-1',
+        email: 'user@example.com',
+        emailVerified: true,
+      ),
+    );
+    await _pumpSignedInApp(
+      tester,
+      profileService: _FakeProfileService(profile: _sampleProfile()),
+      authService: authService,
+    );
+
+    await tester.tap(find.text('Settings').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Send password reset email'));
+    await tester.pumpAndSettle();
+
+    expect(authService.requestedPasswordResetForEmail, 'user@example.com');
+    expect(
+      find.text('Password reset instructions sent to your email.'),
+      findsOneWidget,
+    );
+  });
 }
 
 Future<void> _pumpApp(
@@ -365,6 +393,7 @@ class _FakeAuthService implements AuthService {
 
   final AuthSession? currentSession;
   var didLogout = false;
+  String? requestedPasswordResetForEmail;
 
   @override
   Future<AuthSession?> getCurrentSession() async => currentSession;
@@ -393,7 +422,9 @@ class _FakeAuthService implements AuthService {
   }
 
   @override
-  Future<void> requestPasswordReset({required String email}) async {}
+  Future<void> requestPasswordReset({required String email}) async {
+    requestedPasswordResetForEmail = email;
+  }
 
   @override
   Future<void> resendVerificationEmail({required String email}) async {}

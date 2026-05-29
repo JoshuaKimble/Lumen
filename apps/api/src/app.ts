@@ -83,6 +83,7 @@ export function createApiServer(dependencies: AppDependencies = {}): Server {
       );
     } catch (error) {
       if (error instanceof BadRequestError) {
+        logApiEvent('warn', 'bad_request', request, {message: error.message});
         sendJson(response, 400, {
           error: 'bad_request',
           message: error.message,
@@ -91,6 +92,9 @@ export function createApiServer(dependencies: AppDependencies = {}): Server {
       }
 
       if (error instanceof AiProviderError) {
+        logApiEvent('error', 'ai_provider_error', request, {
+          kind: error.kind,
+        });
         const mapped = mapProviderErrorToHttp(error);
         sendJson(response, mapped.statusCode, {
           error: mapped.errorCode,
@@ -100,6 +104,9 @@ export function createApiServer(dependencies: AppDependencies = {}): Server {
       }
 
       if (error instanceof AuthVerificationError) {
+        logApiEvent('warn', 'auth_verification_failed', request, {
+          message: error.message,
+        });
         sendJson(response, 401, {
           error: 'unauthorized',
           message: error.message,
@@ -108,6 +115,10 @@ export function createApiServer(dependencies: AppDependencies = {}): Server {
       }
 
       if (error instanceof ResourceFeedbackStoreError) {
+        logApiEvent('error', 'resource_feedback_store_error', request, {
+          code: error.code,
+          message: error.message,
+        });
         sendJson(response, error.code === 'invalid_reference' ? 400 : 503, {
           error:
             error.code === 'invalid_reference'
@@ -121,6 +132,9 @@ export function createApiServer(dependencies: AppDependencies = {}): Server {
         return;
       }
 
+      logApiEvent('error', 'unhandled_error', request, {
+        errorType: error instanceof Error ? error.name : typeof error,
+      });
       sendJson(response, 500, {
         error: 'internal_server_error',
       });
@@ -199,7 +213,20 @@ async function routeRequest(
   }
 
   if (request.method === 'POST' && request.url === '/v1/resources/feedback') {
+    logApiEvent('info', 'resource_feedback_request_received', request, {
+      hasAuthorizationHeader: typeof request.headers.authorization === 'string',
+    });
+
     if (authVerifier == null || resourceFeedbackStore == null) {
+      logApiEvent('error', 'resource_feedback_dependencies_missing', request, {
+        hasAuthVerifier: authVerifier != null,
+        hasResourceFeedbackStore: resourceFeedbackStore != null,
+        useSupabaseEnv: process.env.LUMEN_USE_SUPABASE ?? '',
+        hasSupabaseUrl: Boolean(process.env.LUMEN_SUPABASE_URL?.trim()),
+        hasSupabaseSecretKey: Boolean(
+          process.env.LUMEN_SUPABASE_SECRET_KEY?.trim(),
+        ),
+      });
       sendJson(response, 503, {
         error: 'internal_server_error',
       });
@@ -210,6 +237,9 @@ async function routeRequest(
     rejectUnknownKeys(body, ['resourceId', 'action', 'entryId', 'themeId', 'note']);
     const accessToken = requireBearerToken(request);
     const user = await authVerifier.verifyAccessToken(accessToken);
+    logApiEvent('info', 'resource_feedback_token_verified', request, {
+      userId: user.id,
+    });
     const requestBody = {
       resourceId: requireNonEmptyString(body, 'resourceId').trim(),
       action: requireResourceFeedbackAction(body, 'action'),
@@ -225,6 +255,14 @@ async function routeRequest(
       entryId: requestBody.entryId,
       themeId: requestBody.themeId,
       note: requestBody.note,
+    });
+    logApiEvent('info', 'resource_feedback_saved', request, {
+      userId: user.id,
+      resourceId: requestBody.resourceId,
+      action: requestBody.action,
+      hasEntryId: requestBody.entryId != null,
+      hasThemeId: requestBody.themeId != null,
+      hasNote: requestBody.note != null,
     });
 
     sendJson(response, 202, {
@@ -462,5 +500,30 @@ function mapProviderErrorToHttp(
         errorCode: 'provider_error',
         message: 'AI provider request failed.',
       };
+  }
+}
+
+function logApiEvent(
+  level: 'info' | 'warn' | 'error',
+  event: string,
+  request: IncomingMessage,
+  details: Record<string, unknown> = {},
+): void {
+  const payload = {
+    event,
+    method: request.method ?? '',
+    path: request.url ?? '',
+    ...details,
+  };
+
+  switch (level) {
+    case 'info':
+      console.info('[lumen-api]', payload);
+      return;
+    case 'warn':
+      console.warn('[lumen-api]', payload);
+      return;
+    case 'error':
+      console.error('[lumen-api]', payload);
   }
 }

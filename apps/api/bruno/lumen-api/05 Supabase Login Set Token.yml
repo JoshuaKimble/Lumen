@@ -1,0 +1,45 @@
+info:
+  name: 05 Supabase Login Set Token
+  type: http
+  seq: 5
+
+http:
+  method: POST
+  url: "{{supabase_url}}/auth/v1/token?grant_type=password"
+  auth: none
+  headers:
+    - name: content-type
+      value: application/json
+    - name: apikey
+      value: "{{supabase_publishable_key}}"
+    - name: Authorization
+      value: Bearer {{supabase_publishable_key}}
+    - name: Accept
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "email": "{{supabase_email}}",
+        "password": "{{supabase_password}}"
+      }
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+tests: |
+  test("returns 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("sets access_token env var", function() {
+    const body = res.getBody();
+    expect(body.access_token).to.be.a("string");
+    expect(body.access_token.length).to.be.greaterThan(20);
+    bru.setEnvVar("access_token", body.access_token);
+  });
+
+docs: Logs into Supabase using env credentials and updates the Bruno access_token variable.

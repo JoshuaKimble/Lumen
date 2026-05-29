@@ -1,0 +1,70 @@
+info:
+  name: 10 Feedback Success
+  type: http
+  seq: 10
+
+http:
+  method: POST
+  url: "{{api_base_url}}/v1/resources/feedback"
+  auth: inherit
+  headers:
+    - name: content-type
+      value: application/json
+    - name: Accept
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "resourceId": "{{resource_id}}",
+        "action": "save"
+      }
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const existingToken = bru.getEnvVar("access_token");
+        if (typeof existingToken === "string" && existingToken.trim().length > 0) {
+          return;
+        }
+
+        const requiredKeys = [
+          "supabase_url",
+          "supabase_publishable_key",
+          "supabase_email",
+          "supabase_password",
+        ];
+
+        for (const key of requiredKeys) {
+          const value = bru.getEnvVar(key);
+          if (typeof value !== "string" || value.trim().length === 0) {
+            throw new Error(
+              `Missing environment variable "${key}" for automatic token login.`,
+            );
+          }
+        }
+
+        await bru.runRequest("05 Supabase Login Set Token");
+
+        const refreshedToken = bru.getEnvVar("access_token");
+        if (typeof refreshedToken !== "string" || refreshedToken.trim().length === 0) {
+          throw new Error("Automatic token login ran, but access_token was still empty.");
+        }
+
+tests: |
+  test("returns 202", function() {
+    expect(res.getStatus()).to.equal(202);
+  });
+
+  test("returns accepted status", function() {
+    expect(res.getBody().status).to.equal("accepted");
+  });
+
+docs: Valid authenticated request for the protected resource feedback endpoint.

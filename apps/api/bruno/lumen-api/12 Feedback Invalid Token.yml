@@ -1,0 +1,40 @@
+info:
+  name: 12 Feedback Invalid Token
+  type: http
+  seq: 12
+
+http:
+  method: POST
+  url: "{{api_base_url}}/v1/resources/feedback"
+  auth: none
+  headers:
+    - name: content-type
+      value: application/json
+    - name: Accept
+      value: application/json
+    - name: Authorization
+      value: Bearer {{invalid_access_token}}
+  body:
+    type: json
+    data: |-
+      {
+        "resourceId": "{{resource_id}}",
+        "action": "save"
+      }
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+tests: |
+  test("returns 401", function() {
+    expect(res.getStatus()).to.equal(401);
+  });
+
+  test("returns unauthorized error", function() {
+    expect(res.getBody().error).to.equal("unauthorized");
+  });
+
+docs: Verifies invalid bearer tokens are rejected safely.

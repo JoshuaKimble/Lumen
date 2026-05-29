@@ -65,6 +65,26 @@ class AuthSessionController extends AsyncNotifier<AuthSession?> {
     state = AsyncData(session);
   }
 
+  Future<void> requestPasswordResetForCurrentUser() async {
+    final authService = ref.read(authServiceProvider);
+    final session =
+        state.asData?.value ?? await authService.getCurrentSession();
+    if (session == null) {
+      throw StateError(
+        'Cannot request password reset without an active session.',
+      );
+    }
+
+    final email = session.email;
+    if (email == null || email.isEmpty) {
+      throw StateError(
+        'Cannot request password reset without an email on the current session.',
+      );
+    }
+
+    await authService.requestPasswordReset(email: email);
+  }
+
   Future<void> _syncProfileForSession(
     AuthSession? session, {
     bool swallowFailure = false,

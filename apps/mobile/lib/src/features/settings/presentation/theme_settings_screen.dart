@@ -190,6 +190,37 @@ class ThemeSettingsScreen extends ConsumerWidget {
           ),
           if (hasSignedInProfile) ...[
             const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () async {
+                try {
+                  await ref
+                      .read(authSessionControllerProvider.notifier)
+                      .requestPasswordResetForCurrentUser();
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Password reset instructions sent to your email.',
+                        ),
+                      ),
+                    );
+                  }
+                } catch (_) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Unable to send password reset email right now.',
+                        ),
+                      ),
+                    );
+                  }
+                }
+              },
+              icon: const Icon(Icons.lock_reset_outlined),
+              label: const Text('Send password reset email'),
+            ),
+            const SizedBox(height: 12),
             FilledButton.tonalIcon(
               onPressed: () {
                 ref.read(authSessionControllerProvider.notifier).logout();
