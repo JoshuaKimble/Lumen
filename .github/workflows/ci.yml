@@ -97,7 +97,7 @@ jobs:
           version: latest
 
       - name: Run Supabase shared cloud check
-        run: ./scripts/check_supabase_cloud.sh
+        run: bash ./scripts/check_supabase_cloud.sh
 
       - name: Push Supabase migrations to shared cloud
-        run: ./scripts/supabase_push_cloud.sh
+        run: bash ./scripts/supabase_push_cloud.sh
