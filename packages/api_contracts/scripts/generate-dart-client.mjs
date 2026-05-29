@@ -15,6 +15,7 @@ assertOperation('/v1/entries/themes/detect', 'post', 'detectEntryThemes');
 assertOperation('/v1/transcriptions', 'post', 'createTranscription');
 assertOperation('/v1/resources/suggest', 'post', 'suggestResources');
 assertOperation('/v1/resources/feedback', 'post', 'submitResourceFeedback');
+assertOperation('/v1/account/delete', 'post', 'deleteAccount');
 
 const output = `// Generated from packages/api_contracts/openapi/openapi.json.
 // Regenerate with: npm --prefix packages/api_contracts run generate:flutter
@@ -80,6 +81,16 @@ class LumenApiClient {
     );
 
     return ResourceFeedbackResponse.fromJson(response);
+  }
+
+  Future<DeleteAccountResponse> deleteAccount(DeleteAccountRequest request) async {
+    final response = await _postJson(
+      '/v1/account/delete',
+      request.toJson(),
+      requiresAuth: true,
+    );
+
+    return DeleteAccountResponse.fromJson(response);
   }
 
   Future<Map<String, Object?>> _postJson(
@@ -382,6 +393,26 @@ class ResourceFeedbackResponse {
 
   factory ResourceFeedbackResponse.fromJson(Map<String, Object?> json) {
     return ResourceFeedbackResponse(status: _requiredString(json, 'status'));
+  }
+
+  final String status;
+}
+
+class DeleteAccountRequest {
+  const DeleteAccountRequest({required this.confirmation});
+
+  final String confirmation;
+
+  Map<String, Object?> toJson() {
+    return {'confirmation': confirmation};
+  }
+}
+
+class DeleteAccountResponse {
+  const DeleteAccountResponse({required this.status});
+
+  factory DeleteAccountResponse.fromJson(Map<String, Object?> json) {
+    return DeleteAccountResponse(status: _requiredString(json, 'status'));
   }
 
   final String status;

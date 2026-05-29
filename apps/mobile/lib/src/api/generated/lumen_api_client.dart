@@ -64,6 +64,16 @@ class LumenApiClient {
     return ResourceFeedbackResponse.fromJson(response);
   }
 
+  Future<DeleteAccountResponse> deleteAccount(DeleteAccountRequest request) async {
+    final response = await _postJson(
+      '/v1/account/delete',
+      request.toJson(),
+      requiresAuth: true,
+    );
+
+    return DeleteAccountResponse.fromJson(response);
+  }
+
   Future<Map<String, Object?>> _postJson(
     String path,
     Map<String, Object?> body,
@@ -364,6 +374,26 @@ class ResourceFeedbackResponse {
 
   factory ResourceFeedbackResponse.fromJson(Map<String, Object?> json) {
     return ResourceFeedbackResponse(status: _requiredString(json, 'status'));
+  }
+
+  final String status;
+}
+
+class DeleteAccountRequest {
+  const DeleteAccountRequest({required this.confirmation});
+
+  final String confirmation;
+
+  Map<String, Object?> toJson() {
+    return {'confirmation': confirmation};
+  }
+}
+
+class DeleteAccountResponse {
+  const DeleteAccountResponse({required this.status});
+
+  factory DeleteAccountResponse.fromJson(Map<String, Object?> json) {
+    return DeleteAccountResponse(status: _requiredString(json, 'status'));
   }
 
   final String status;

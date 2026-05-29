@@ -200,6 +200,49 @@
           }
         }
       }
+    },
+    "/v1/account/delete": {
+      "post": {
+        "operationId": "deleteAccount",
+        "summary": "Delete the authenticated account",
+        "description": "Irreversibly deletes the authenticated user's auth account and cascades owned profile/journal data.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteAccountRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Account deletion accepted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteAccountResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -505,6 +548,28 @@
           "status": {
             "type": "string",
             "const": "accepted"
+          }
+        }
+      },
+      "DeleteAccountRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["confirmation"],
+        "properties": {
+          "confirmation": {
+            "type": "string",
+            "const": "DELETE"
+          }
+        }
+      },
+      "DeleteAccountResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["status"],
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "deleted"
           }
         }
       },

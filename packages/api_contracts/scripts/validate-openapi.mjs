@@ -12,6 +12,7 @@ const requiredPaths = [
   ['post', '/v1/transcriptions'],
   ['post', '/v1/resources/suggest'],
   ['post', '/v1/resources/feedback'],
+  ['post', '/v1/account/delete'],
 ];
 
 const requiredSchemas = [
@@ -27,6 +28,8 @@ const requiredSchemas = [
   'RelatedResourceSuggestion',
   'ResourceFeedbackRequest',
   'ResourceFeedbackResponse',
+  'DeleteAccountRequest',
+  'DeleteAccountResponse',
   'ApiError',
 ];
 

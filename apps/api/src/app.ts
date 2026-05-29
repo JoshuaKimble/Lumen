@@ -39,12 +39,18 @@ import {
   type ResourceFeedbackStore,
 } from './resourceFeedback/resourceFeedbackStore.js';
 import { SupabaseResourceFeedbackStore } from './resourceFeedback/supabaseResourceFeedbackStore.js';
+import {
+  AccountDeletionStoreError,
+  type AccountDeletionStore,
+} from './accountDeletion/accountDeletionStore.js';
+import { SupabaseAccountDeletionStore } from './accountDeletion/supabaseAccountDeletionStore.js';
 import { parseSupabaseServerConfig } from './supabase/supabaseConfig.js';
 
 export interface AppDependencies {
   readonly aiProvider?: AiGatewayProvider;
   readonly authVerifier?: AuthVerifier;
   readonly resourceFeedbackStore?: ResourceFeedbackStore;
+  readonly accountDeletionStore?: AccountDeletionStore;
 }
 
 const acceptedAudioMimeTypes = new Set([
@@ -69,6 +75,11 @@ export function createApiServer(dependencies: AppDependencies = {}): Server {
     (supabaseConfig.enabled
       ? new SupabaseResourceFeedbackStore({config: supabaseConfig})
       : undefined);
+  const accountDeletionStore =
+    dependencies.accountDeletionStore ??
+    (supabaseConfig.enabled
+      ? new SupabaseAccountDeletionStore({config: supabaseConfig})
+      : undefined);
 
   return createServer(async (request, response) => {
     applyCorsHeaders(request, response);
@@ -80,6 +91,7 @@ export function createApiServer(dependencies: AppDependencies = {}): Server {
         aiProvider,
         authVerifier,
         resourceFeedbackStore,
+        accountDeletionStore,
       );
     } catch (error) {
       if (error instanceof BadRequestError) {
@@ -132,6 +144,18 @@ export function createApiServer(dependencies: AppDependencies = {}): Server {
         return;
       }
 
+      if (error instanceof AccountDeletionStoreError) {
+        logApiEvent('error', 'account_deletion_store_error', request, {
+          code: error.code,
+          message: error.message,
+        });
+        sendJson(response, 503, {
+          error: 'internal_server_error',
+          message: 'Account deletion is temporarily unavailable.',
+        });
+        return;
+      }
+
       logApiEvent('error', 'unhandled_error', request, {
         errorType: error instanceof Error ? error.name : typeof error,
       });
@@ -148,6 +172,7 @@ async function routeRequest(
   aiProvider: AiGatewayProvider,
   authVerifier?: AuthVerifier,
   resourceFeedbackStore?: ResourceFeedbackStore,
+  accountDeletionStore?: AccountDeletionStore,
 ): Promise<void> {
   if (request.method === 'OPTIONS') {
     response.writeHead(204);
@@ -267,6 +292,31 @@ async function routeRequest(
 
     sendJson(response, 202, {
       status: 'accepted',
+    });
+    return;
+  }
+
+  if (request.method === 'POST' && request.url === '/v1/account/delete') {
+    if (authVerifier == null || accountDeletionStore == null) {
+      sendJson(response, 503, {
+        error: 'internal_server_error',
+      });
+      return;
+    }
+
+    const body = requireObject(await readJsonBody(request));
+    rejectUnknownKeys(body, ['confirmation']);
+    const confirmation = requireNonEmptyString(body, 'confirmation');
+    if (confirmation != 'DELETE') {
+      throw new BadRequestError('Expected "confirmation" to be "DELETE".');
+    }
+
+    const accessToken = requireBearerToken(request);
+    const user = await authVerifier.verifyAccessToken(accessToken);
+    await accountDeletionStore.deleteAccount(user.id);
+
+    sendJson(response, 202, {
+      status: 'deleted',
     });
     return;
   }

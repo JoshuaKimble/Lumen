@@ -5,8 +5,10 @@ import 'package:go_router/go_router.dart';
 import '../../../app/router.dart';
 import '../../auth/data/auth_session_controller.dart';
 import '../../profiles/data/current_user_profile_controller.dart';
+import '../data/account_deletion_service_provider.dart';
 import '../data/scripture_app_preference_provider.dart';
 import '../data/theme_preference_provider.dart';
+import '../domain/account_deletion_failure.dart';
 import '../domain/scripture_app_preference.dart';
 import '../domain/theme_preference.dart';
 
@@ -227,6 +229,54 @@ class ThemeSettingsScreen extends ConsumerWidget {
               },
               icon: const Icon(Icons.logout),
               label: const Text('Sign out'),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () async {
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Delete account?'),
+                    content: const Text(
+                      'This permanently deletes your profile, journal data, and account. This action cannot be undone.',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(false),
+                        child: const Text('Cancel'),
+                      ),
+                      FilledButton(
+                        onPressed: () => Navigator.of(context).pop(true),
+                        child: const Text('Delete account'),
+                      ),
+                    ],
+                  ),
+                );
+
+                if (confirmed != true) {
+                  return;
+                }
+
+                try {
+                  await ref
+                      .read(accountDeletionServiceProvider)
+                      .deleteCurrentAccount();
+                  await ref
+                      .read(authSessionControllerProvider.notifier)
+                      .logout();
+                  if (context.mounted) {
+                    context.goNamed(loginRouteName);
+                  }
+                } on AccountDeletionFailure catch (error) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text(error.message)));
+                  }
+                }
+              },
+              icon: const Icon(Icons.delete_forever_outlined),
+              label: const Text('Delete account'),
             ),
           ],
         ],
