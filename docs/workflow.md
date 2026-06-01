@@ -77,5 +77,9 @@ Use [supabase-environment-strategy.md](/Users/joshuakimble/Documents/workspace/a
 as the source of truth for Supabase environment mapping, key ownership, and
 rotation policy.
 
+Use [production-config-inventory.md](/Users/joshuakimble/Documents/workspace/apps/Lumen/docs/production-config-inventory.md)
+as the source of truth for production API/web configuration ownership across
+Render, Cloudflare Pages, GitHub Actions, and local `.env`.
+
 Use [supabase-migration-workflow.md](/Users/joshuakimble/Documents/workspace/apps/Lumen/docs/supabase-migration-workflow.md)
 for local Supabase migration and seed workflows.
