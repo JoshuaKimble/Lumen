@@ -32,6 +32,9 @@ Scope:
 | `LUMEN_SUPABASE_DB_URL` | CI migration deploy | Yes | GH Actions secret (`production`) | local `.env` | Use direct connection (`:5432`) for GitHub-hosted runners |
 | `LUMEN_API_BASE_URL` | Flutter web API calls | No | Cloudflare Pages | local shell/dev script | Public API origin |
 | `LUMEN_USE_API_AI` | Flutter web AI path toggle | No | Cloudflare Pages | local shell/dev script | Build-time Dart define |
+| `CLOUDFLARE_PAGES_PROJECT_NAME` | Web deploy pipeline | No | GH Actions variable | Cloudflare Pages project settings | Wrangler deploy target |
+| `CLOUDFLARE_API_TOKEN` | Web deploy pipeline | Yes | GH Actions secret (`production`) | n/a | Token with Cloudflare Pages deploy permissions |
+| `CLOUDFLARE_ACCOUNT_ID` | Web deploy pipeline | Yes | GH Actions secret (`production`) | n/a | Cloudflare account identifier |
 | `PORT` | API runtime process port | No | Render | n/a | Render-provided |
 
 ## Required Production Notes
@@ -89,6 +92,25 @@ These are intentional duplicates because each execution environment is isolated.
 - Ran `./scripts/check_supabase.sh` successfully:
   - confirms env ignore coverage
   - scans tracked files for obvious committed secrets
+
+## Cloudflare Pages Manual Setup
+
+One-time requirements before the CI web deploy workflow can run:
+
+1. Create the Cloudflare Pages project.
+2. Set the Pages production branch to `master`.
+3. Add GitHub repository variables:
+   - `LUMEN_API_BASE_URL`
+   - `LUMEN_SUPABASE_URL`
+   - `LUMEN_SUPABASE_PUBLISHABLE_KEY`
+   - `CLOUDFLARE_PAGES_PROJECT_NAME`
+4. Add GitHub `production` environment secrets:
+   - `CLOUDFLARE_API_TOKEN`
+   - `CLOUDFLARE_ACCOUNT_ID`
+
+After setup, web deploy is handled by:
+
+- `.github/workflows/web-pages.yml`
 
 ## Related Issues
 
