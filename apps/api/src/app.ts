@@ -364,7 +364,25 @@ function applyCorsHeaders(
 }
 
 function isAllowedOrigin(origin: string): boolean {
-  return /^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/.test(origin);
+  if (/^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/.test(origin)) {
+    return true;
+  }
+
+  const configuredOrigin = process.env.LUMEN_ALLOWED_WEB_ORIGIN?.trim();
+
+  if (configuredOrigin == null || configuredOrigin.length === 0) {
+    return false;
+  }
+
+  return normalizeOrigin(configuredOrigin) === normalizeOrigin(origin);
+}
+
+function normalizeOrigin(value: string): string {
+  try {
+    return new URL(value).origin;
+  } catch {
+    return value;
+  }
 }
 
 function decodeAudioBase64(value: string): Uint8Array {

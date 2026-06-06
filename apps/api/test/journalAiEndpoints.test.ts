@@ -393,6 +393,107 @@ test('transcription endpoint responds to CORS preflight', async () => {
   );
 });
 
+test('cors allows configured production web origin', async () => {
+  const previousOrigin = process.env.LUMEN_ALLOWED_WEB_ORIGIN;
+  process.env.LUMEN_ALLOWED_WEB_ORIGIN = 'https://lumen-app.pages.dev';
+
+  const server = createApiServer();
+
+  await new Promise<void>((resolve) => {
+    server.listen(0, '127.0.0.1', resolve);
+  });
+
+  const address = server.address();
+
+  if (address === null || typeof address === 'string') {
+    throw new Error('Expected server to listen on a TCP address.');
+  }
+
+  const serverBaseUrl = `http://127.0.0.1:${address.port}`;
+
+  try {
+    const response = await fetch(`${serverBaseUrl}/health`, {
+      headers: {
+        origin: 'https://lumen-app.pages.dev',
+      },
+    });
+
+    assert.equal(response.status, 200);
+    assert.equal(
+      response.headers.get('access-control-allow-origin'),
+      'https://lumen-app.pages.dev',
+    );
+  } finally {
+    if (previousOrigin == null) {
+      delete process.env.LUMEN_ALLOWED_WEB_ORIGIN;
+    } else {
+      process.env.LUMEN_ALLOWED_WEB_ORIGIN = previousOrigin;
+    }
+
+    server.closeAllConnections();
+    server.closeIdleConnections();
+    await new Promise<void>((resolve, reject) => {
+      server.close((error) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+
+        resolve();
+      });
+    });
+  }
+});
+
+test('cors rejects unknown non-local origins', async () => {
+  const previousOrigin = process.env.LUMEN_ALLOWED_WEB_ORIGIN;
+  delete process.env.LUMEN_ALLOWED_WEB_ORIGIN;
+
+  const server = createApiServer();
+
+  await new Promise<void>((resolve) => {
+    server.listen(0, '127.0.0.1', resolve);
+  });
+
+  const address = server.address();
+
+  if (address === null || typeof address === 'string') {
+    throw new Error('Expected server to listen on a TCP address.');
+  }
+
+  const serverBaseUrl = `http://127.0.0.1:${address.port}`;
+
+  try {
+    const response = await fetch(`${serverBaseUrl}/health`, {
+      headers: {
+        origin: 'https://example.com',
+      },
+    });
+
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('access-control-allow-origin'), null);
+  } finally {
+    if (previousOrigin == null) {
+      delete process.env.LUMEN_ALLOWED_WEB_ORIGIN;
+    } else {
+      process.env.LUMEN_ALLOWED_WEB_ORIGIN = previousOrigin;
+    }
+
+    server.closeAllConnections();
+    server.closeIdleConnections();
+    await new Promise<void>((resolve, reject) => {
+      server.close((error) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+
+        resolve();
+      });
+    });
+  }
+});
+
 test('transcription endpoint rejects audio larger than 10 MB', async () => {
   const tooLargeAudio = Buffer.alloc(10 * 1024 * 1024 + 1).toString('base64');
 

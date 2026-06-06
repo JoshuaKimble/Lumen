@@ -49,6 +49,10 @@ These values are read by `./scripts/dev_web_api.sh` and forwarded into the
 Flutter web build as `dart-define`s. Do not use a Supabase secret key in
 the web client bundle.
 
+The API allows localhost browser origins by default. `LUMEN_ALLOWED_WEB_ORIGIN`
+is only needed in deployed environments to admit the production Flutter web
+origin.
+
 For prelaunch work, this shared cloud project is the default local target. The
 local Supabase CLI stack remains optional for isolated schema replay only.
 If your local code depends on a migration that has not been applied yet, either

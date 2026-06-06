@@ -72,6 +72,19 @@ LUMEN_SUPABASE_SECRET_KEY=sb_secret_...
 
 Secret keys are server-only and must never be exposed to Flutter clients.
 
+## CORS Configuration
+
+The API always allows localhost browser origins for local development.
+
+Set this environment variable in deployed API environments to allow the
+production Flutter web origin:
+
+```sh
+LUMEN_ALLOWED_WEB_ORIGIN=https://lumen-app.pages.dev
+```
+
+Use the exact deployed web origin only. Do not include path segments.
+
 ## Privacy And Error Handling
 
 - The API remains stateless for journal data in the MVP.

@@ -32,6 +32,7 @@ Scope:
 | `LUMEN_SUPABASE_DB_URL` | CI migration deploy | Yes | GH Actions secret (`production`) | local `.env` | Use direct connection (`:5432`) for GitHub-hosted runners |
 | `LUMEN_API_BASE_URL` | Flutter web API calls | No | Cloudflare Pages | local shell/dev script | Public API origin |
 | `LUMEN_USE_API_AI` | Flutter web AI path toggle | No | Cloudflare Pages | local shell/dev script | Build-time Dart define |
+| `LUMEN_ALLOWED_WEB_ORIGIN` | API browser CORS allowlist | No | Render | local `.env` | Exact production web origin; localhost remains allowed automatically |
 | `CLOUDFLARE_PAGES_PROJECT_NAME` | Web deploy pipeline | No | GH Actions variable | Cloudflare Pages project settings | Wrangler deploy target |
 | `CLOUDFLARE_API_TOKEN` | Web deploy pipeline | Yes | GH Actions secret (`production`) | n/a | Token with Cloudflare Pages deploy permissions |
 | `CLOUDFLARE_ACCOUNT_ID` | Web deploy pipeline | Yes | GH Actions secret (`production`) | n/a | Cloudflare account identifier |
@@ -58,17 +59,20 @@ Scope:
 
 ### Allowed CORS origins
 
-- Current API behavior is hardcoded to allow only localhost origins in
-  [apps/api/src/app.ts](/Users/joshuakimble/Documents/workspace/apps/Lumen/apps/api/src/app.ts).
-- Production CORS origin configuration must be completed before production web
-  rollout (tracked by issue `#95`).
+- The API always allows localhost origins for local development.
+- Production browser access must set `LUMEN_ALLOWED_WEB_ORIGIN` in Render to
+  the exact deployed Flutter web origin.
+- The current production URL plan is documented in
+  [production-domains-and-auth.md](/Users/joshuakimble/Documents/workspace/apps/Lumen/docs/production-domains-and-auth.md).
 
 ### Auth site URL and redirect URLs
 
 - Supabase Auth `SITE_URL` and redirect URL allowlist must include:
-  - production web URL (Cloudflare Pages custom domain)
+  - production web URL
+  - password reset route URL
   - local development URL(s)
-- Final production domain and auth URL alignment is tracked by issue `#95`.
+- The selected production-first URLs and setup steps are documented in
+  [production-domains-and-auth.md](/Users/joshuakimble/Documents/workspace/apps/Lumen/docs/production-domains-and-auth.md).
 
 ## Duplicate-Value Justification
 
@@ -81,6 +85,9 @@ Some values must exist in more than one system:
 - `LUMEN_USE_SUPABASE`
   - Render: runtime behavior
   - GitHub Actions: deploy safety checks
+- `LUMEN_ALLOWED_WEB_ORIGIN`
+  - Render: production API CORS policy
+  - local `.env`: optional manual production-like verification
 - `LUMEN_SUPABASE_DB_URL`
   - GitHub Actions: production migration deploy path
   - local `.env`: manual migration tooling parity
@@ -111,6 +118,7 @@ One-time requirements before the CI web deploy workflow can run:
 After setup, web deploy is handled by:
 
 - `.github/workflows/web-pages.yml`
+- [production-domains-and-auth.md](/Users/joshuakimble/Documents/workspace/apps/Lumen/docs/production-domains-and-auth.md)
 
 ## Related Issues
 
