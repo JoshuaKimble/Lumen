@@ -73,6 +73,62 @@ jobs:
       - name: Run Supabase checks
         run: ./scripts/check_supabase.sh
 
+  web-build:
+    name: Web Build
+    runs-on: ubuntu-latest
+    needs:
+      - mobile
+    environment: production
+    env:
+      LUMEN_API_BASE_URL: ${{ vars.LUMEN_API_BASE_URL }}
+      LUMEN_SUPABASE_URL: ${{ vars.LUMEN_SUPABASE_URL }}
+      LUMEN_SUPABASE_PUBLISHABLE_KEY: ${{ vars.LUMEN_SUPABASE_PUBLISHABLE_KEY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate required web build variables
+        run: |
+          required_vars=(
+            LUMEN_API_BASE_URL
+            LUMEN_SUPABASE_URL
+            LUMEN_SUPABASE_PUBLISHABLE_KEY
+          )
+          for key in "${required_vars[@]}"; do
+            value="${!key:-}"
+            if [[ -z "$value" ]]; then
+              echo "Missing required web build variable: $key" >&2
+              exit 1
+            fi
+          done
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install Flutter dependencies
+        working-directory: apps/mobile
+        run: flutter pub get
+
+      - name: Build Flutter web
+        working-directory: apps/mobile
+        run: |
+          flutter build web --pwa-strategy=none \
+            --dart-define=LUMEN_USE_API_AI=true \
+            --dart-define=LUMEN_API_BASE_URL="${LUMEN_API_BASE_URL}" \
+            --dart-define=LUMEN_USE_SUPABASE=true \
+            --dart-define=LUMEN_SUPABASE_URL="${LUMEN_SUPABASE_URL}" \
+            --dart-define=LUMEN_SUPABASE_PUBLISHABLE_KEY="${LUMEN_SUPABASE_PUBLISHABLE_KEY}"
+
+      - name: Upload web artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-web-build
+          path: apps/mobile/build/web
+          if-no-files-found: error
+
   supabase-cloud:
     name: Supabase Cloud Deploy
     runs-on: ubuntu-latest
@@ -101,3 +157,45 @@ jobs:
 
       - name: Push Supabase migrations to shared cloud
         run: bash ./scripts/supabase_push_cloud.sh
+
+  web-deploy:
+    name: Web Deploy
+    runs-on: ubuntu-latest
+    needs:
+      - web-build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    environment: production
+    steps:
+      - name: Download web artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: flutter-web-build
+          path: web-dist
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Deploy to Cloudflare Pages
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_PAGES_PROJECT_NAME: ${{ vars.CLOUDFLARE_PAGES_PROJECT_NAME }}
+        run: |
+          if [[ -z "${CLOUDFLARE_API_TOKEN}" ]]; then
+            echo "Missing required secret: CLOUDFLARE_API_TOKEN" >&2
+            exit 1
+          fi
+          if [[ -z "${CLOUDFLARE_ACCOUNT_ID}" ]]; then
+            echo "Missing required secret: CLOUDFLARE_ACCOUNT_ID" >&2
+            exit 1
+          fi
+          if [[ -z "${CLOUDFLARE_PAGES_PROJECT_NAME}" ]]; then
+            echo "Missing required Cloudflare Pages project variable: CLOUDFLARE_PAGES_PROJECT_NAME" >&2
+            exit 1
+          fi
+
+          npx --yes wrangler@4 pages deploy web-dist \
+            --project-name "${CLOUDFLARE_PAGES_PROJECT_NAME}" \
+            --branch master
