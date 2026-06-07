@@ -1,10 +1,37 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lumen/src/features/auth/data/auth_email_redirect_urls.dart';
 import 'package:lumen/src/features/auth/data/supabase_auth_service.dart';
 import 'package:lumen/src/features/auth/domain/auth_failure.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:async';
 
 void main() {
+  group('AuthEmailRedirectUrls', () {
+    test('builds auth redirects from the current web origin', () {
+      final redirects = AuthEmailRedirectUrls.forCurrentOrigin(
+        Uri.parse('https://lumen-50b.pages.dev/auth/register'),
+      );
+
+      expect(
+        redirects.emailConfirmation,
+        'https://lumen-50b.pages.dev/auth/login',
+      );
+      expect(
+        redirects.passwordReset,
+        'https://lumen-50b.pages.dev/auth/reset-password',
+      );
+    });
+
+    test('returns empty redirects for non-http origins', () {
+      final redirects = AuthEmailRedirectUrls.forCurrentOrigin(
+        Uri.parse('file:///app/index.html'),
+      );
+
+      expect(redirects.emailConfirmation, isNull);
+      expect(redirects.passwordReset, isNull);
+    });
+  });
+
   group('mapSupabaseAuthError', () {
     test('maps invalid credentials', () {
       final failure = mapSupabaseAuthError(
@@ -111,7 +138,7 @@ void main() {
 
     test('maps register errors through normalized AuthFailure', () async {
       final adapter = _FakeSupabaseAuthAdapter(
-        onSignUp: ({required email, required password}) async {
+        onSignUp: ({required email, required password, emailRedirectTo}) async {
           throw const AuthException('User already registered');
         },
       );
@@ -133,6 +160,51 @@ void main() {
         ),
       );
     });
+
+    test(
+      'passes explicit auth email redirects to signup, resend, and reset',
+      () async {
+        final adapter = _FakeSupabaseAuthAdapter(
+          onSignUp:
+              ({required email, required password, emailRedirectTo}) async {
+                throw const AuthException('boom');
+              },
+        );
+        final service = SupabaseAuthService(
+          adapter: adapter,
+          emailRedirectUrls: const AuthEmailRedirectUrls(
+            emailConfirmation: 'https://lumen.test/auth/login',
+            passwordReset: 'https://lumen.test/auth/reset-password',
+          ),
+        );
+
+        await expectLater(
+          service.register(email: 'new@example.com', password: 'password123'),
+          throwsA(
+            isA<AuthFailure>().having(
+              (e) => e.code,
+              'code',
+              AuthFailureCode.unknown,
+            ),
+          ),
+        );
+        await service.resendVerificationEmail(email: 'new@example.com');
+        await service.requestPasswordReset(email: 'new@example.com');
+
+        expect(
+          adapter.lastSignUpEmailRedirectTo,
+          'https://lumen.test/auth/login',
+        );
+        expect(
+          adapter.lastResendEmailRedirectTo,
+          'https://lumen.test/auth/login',
+        );
+        expect(
+          adapter.lastPasswordResetRedirectTo,
+          'https://lumen.test/auth/reset-password',
+        );
+      },
+    );
   });
 }
 
@@ -142,6 +214,7 @@ class _FakeSupabaseAuthAdapter implements SupabaseAuthAdapter {
   final Future<AuthResponse> Function({
     required String email,
     required String password,
+    String? emailRedirectTo,
   })?
   onSignUp;
   final Future<AuthResponse> Function({
@@ -153,12 +226,21 @@ class _FakeSupabaseAuthAdapter implements SupabaseAuthAdapter {
   @override
   Session? get currentSession => null;
 
-  @override
-  Future<void> resetPasswordForEmail(String email) async {}
+  String? lastPasswordResetRedirectTo;
+  String? lastResendEmailRedirectTo;
+  String? lastSignUpEmailRedirectTo;
 
   @override
-  Future<void> resendSignup({required String email}) async {
-    throw UnimplementedError();
+  Future<void> resetPasswordForEmail(String email, {String? redirectTo}) async {
+    lastPasswordResetRedirectTo = redirectTo;
+  }
+
+  @override
+  Future<void> resendSignup({
+    required String email,
+    String? emailRedirectTo,
+  }) async {
+    lastResendEmailRedirectTo = emailRedirectTo;
   }
 
   @override
@@ -180,12 +262,18 @@ class _FakeSupabaseAuthAdapter implements SupabaseAuthAdapter {
   Future<AuthResponse> signUp({
     required String email,
     required String password,
+    String? emailRedirectTo,
   }) {
+    lastSignUpEmailRedirectTo = emailRedirectTo;
     final handler = onSignUp;
     if (handler == null) {
       throw UnimplementedError();
     }
-    return handler(email: email, password: password);
+    return handler(
+      email: email,
+      password: password,
+      emailRedirectTo: emailRedirectTo,
+    );
   }
 
   @override

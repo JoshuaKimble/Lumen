@@ -121,6 +121,13 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
       if (!mounted) {
         return;
       }
+      if (error.code == AuthFailureCode.rateLimited) {
+        setState(() {
+          _successText =
+              'A reset email was already sent recently. Please wait a moment before requesting another one.';
+        });
+        return;
+      }
       setState(() {
         _errorText = error.message;
       });

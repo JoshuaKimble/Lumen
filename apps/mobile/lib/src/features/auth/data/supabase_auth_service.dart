@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'auth_email_redirect_urls.dart';
 import '../domain/auth_failure.dart';
 import '../domain/auth_service.dart';
 import '../domain/auth_session.dart';
@@ -10,6 +11,7 @@ abstract class SupabaseAuthAdapter {
   Future<AuthResponse> signUp({
     required String email,
     required String password,
+    String? emailRedirectTo,
   });
 
   Future<AuthResponse> signInWithPassword({
@@ -19,11 +21,11 @@ abstract class SupabaseAuthAdapter {
 
   Future<void> signOut();
 
-  Future<void> resetPasswordForEmail(String email);
+  Future<void> resetPasswordForEmail(String email, {String? redirectTo});
 
   Future<UserResponse> updateUser(UserAttributes attributes);
 
-  Future<void> resendSignup({required String email});
+  Future<void> resendSignup({required String email, String? emailRedirectTo});
 
   Session? get currentSession;
 }
@@ -53,13 +55,18 @@ class SupabaseClientAuthAdapter implements SupabaseAuthAdapter {
   Future<AuthResponse> signUp({
     required String email,
     required String password,
+    String? emailRedirectTo,
   }) {
-    return _client.auth.signUp(email: email, password: password);
+    return _client.auth.signUp(
+      email: email,
+      password: password,
+      emailRedirectTo: emailRedirectTo,
+    );
   }
 
   @override
-  Future<void> resetPasswordForEmail(String email) {
-    return _client.auth.resetPasswordForEmail(email);
+  Future<void> resetPasswordForEmail(String email, {String? redirectTo}) {
+    return _client.auth.resetPasswordForEmail(email, redirectTo: redirectTo);
   }
 
   @override
@@ -68,16 +75,27 @@ class SupabaseClientAuthAdapter implements SupabaseAuthAdapter {
   }
 
   @override
-  Future<void> resendSignup({required String email}) async {
-    await _client.auth.resend(type: OtpType.signup, email: email);
+  Future<void> resendSignup({
+    required String email,
+    String? emailRedirectTo,
+  }) async {
+    await _client.auth.resend(
+      type: OtpType.signup,
+      email: email,
+      emailRedirectTo: emailRedirectTo,
+    );
   }
 }
 
 class SupabaseAuthService implements AuthService {
-  SupabaseAuthService({required SupabaseAuthAdapter adapter})
-    : _adapter = adapter;
+  SupabaseAuthService({
+    required SupabaseAuthAdapter adapter,
+    AuthEmailRedirectUrls emailRedirectUrls = const AuthEmailRedirectUrls(),
+  }) : _adapter = adapter,
+       _emailRedirectUrls = emailRedirectUrls;
 
   final SupabaseAuthAdapter _adapter;
+  final AuthEmailRedirectUrls _emailRedirectUrls;
 
   @override
   Future<AuthSession?> getCurrentSession() async {
@@ -120,7 +138,11 @@ class SupabaseAuthService implements AuthService {
     required String password,
   }) async {
     try {
-      final response = await _adapter.signUp(email: email, password: password);
+      final response = await _adapter.signUp(
+        email: email,
+        password: password,
+        emailRedirectTo: _emailRedirectUrls.emailConfirmation,
+      );
       final authSession = _toAuthSession(response.session);
       if (authSession != null) {
         return authSession;
@@ -156,7 +178,10 @@ class SupabaseAuthService implements AuthService {
   @override
   Future<void> requestPasswordReset({required String email}) async {
     try {
-      await _adapter.resetPasswordForEmail(email);
+      await _adapter.resetPasswordForEmail(
+        email,
+        redirectTo: _emailRedirectUrls.passwordReset,
+      );
     } catch (error) {
       throw mapSupabaseAuthError(error);
     }
@@ -174,7 +199,10 @@ class SupabaseAuthService implements AuthService {
   @override
   Future<void> resendVerificationEmail({required String email}) async {
     try {
-      await _adapter.resendSignup(email: email);
+      await _adapter.resendSignup(
+        email: email,
+        emailRedirectTo: _emailRedirectUrls.emailConfirmation,
+      );
     } catch (error) {
       throw mapSupabaseAuthError(error);
     }

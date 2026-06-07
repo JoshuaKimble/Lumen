@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../app/supabase_config.dart';
 import '../domain/auth_service.dart';
+import 'auth_email_redirect_urls.dart';
 import 'supabase_auth_service.dart';
 
 final authServiceProvider = Provider<AuthService>((ref) {
@@ -15,5 +16,6 @@ final authServiceProvider = Provider<AuthService>((ref) {
 
   return SupabaseAuthService(
     adapter: SupabaseClientAuthAdapter(Supabase.instance.client),
+    emailRedirectUrls: AuthEmailRedirectUrls.forCurrentOrigin(Uri.base),
   );
 });

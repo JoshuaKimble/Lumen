@@ -104,6 +104,13 @@ class _VerifyPendingScreenState extends ConsumerState<VerifyPendingScreen> {
       if (!mounted) {
         return;
       }
+      if (error.code == AuthFailureCode.rateLimited) {
+        setState(() {
+          _statusText =
+              'A verification email was already sent recently. Please wait a moment before requesting another one.';
+        });
+        return;
+      }
       setState(() {
         _errorText = error.message;
       });
