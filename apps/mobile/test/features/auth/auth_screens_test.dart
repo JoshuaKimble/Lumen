@@ -111,6 +111,53 @@ void main() {
       expect(find.text('Invalid email or password.'), findsOneWidget);
       expect(find.text('Retry'), findsOneWidget);
     });
+
+    testWidgets('register routes to verify pending when signup is rate limited', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _buildHarness(
+          initialLocation: registerRoutePath,
+          authService: _FakeAuthService(
+            registerError: const AuthFailure(
+              code: AuthFailureCode.rateLimited,
+              message:
+                  'A verification or reset email was sent recently. Please wait a moment before trying again.',
+            ),
+          ),
+          routes: [
+            GoRoute(
+              name: registerRouteName,
+              path: registerRoutePath,
+              builder: (context, state) => const RegisterScreen(),
+            ),
+            GoRoute(
+              name: verifyPendingRouteName,
+              path: verifyPendingRoutePath,
+              builder: (context, state) => VerifyPendingScreen(
+                email: state.uri.queryParameters['email'] ?? '',
+                initialStatusText: state.uri.queryParameters['status'] ==
+                        'email-sent-recently'
+                    ? 'A verification email was already sent recently. Please wait a moment, then use resend if needed.'
+                    : null,
+              ),
+            ),
+          ],
+        ),
+      );
+
+      await tester.enterText(
+        find.byType(TextFormField).at(0),
+        'new@example.com',
+      );
+      await tester.enterText(find.byType(TextFormField).at(1), 'password123');
+      await tester.enterText(find.byType(TextFormField).at(2), 'password123');
+      await tester.tap(find.byIcon(Icons.person_add_alt_1));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Verify your email'), findsOneWidget);
+      expect(find.textContaining('already sent recently'), findsOneWidget);
+    });
   });
 }
 
@@ -128,9 +175,10 @@ Widget _buildHarness({
 }
 
 class _FakeAuthService implements AuthService {
-  _FakeAuthService({this.registerResult, this.loginError});
+  _FakeAuthService({this.registerResult, this.registerError, this.loginError});
 
   final AuthSession? registerResult;
+  final Object? registerError;
   final Object? loginError;
 
   @override
@@ -156,6 +204,10 @@ class _FakeAuthService implements AuthService {
     required String email,
     required String password,
   }) async {
+    final error = registerError;
+    if (error != null) {
+      throw error;
+    }
     return registerResult ??
         AuthSession(userId: '1', email: email, emailVerified: true);
   }

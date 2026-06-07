@@ -2,6 +2,7 @@ enum AuthFailureCode {
   invalidCredentials,
   emailAlreadyRegistered,
   emailNotVerified,
+  rateLimited,
   weakPassword,
   expiredOrInvalidLink,
   networkUnavailable,

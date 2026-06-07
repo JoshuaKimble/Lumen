@@ -21,6 +21,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   bool _isSubmitting = false;
+  bool _showPassword = false;
+  bool _showConfirmPassword = false;
   String? _errorText;
 
   @override
@@ -55,16 +57,42 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             TextFormField(
               controller: _passwordController,
               autofillHints: const [AutofillHints.newPassword],
-              decoration: const InputDecoration(labelText: 'Password'),
-              obscureText: true,
+              decoration: InputDecoration(
+                labelText: 'Password',
+                suffixIcon: IconButton(
+                  onPressed: () {
+                    setState(() {
+                      _showPassword = !_showPassword;
+                    });
+                  },
+                  icon: Icon(
+                    _showPassword ? Icons.visibility_off : Icons.visibility,
+                  ),
+                ),
+              ),
+              obscureText: !_showPassword,
               validator: _validatePassword,
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _confirmPasswordController,
               autofillHints: const [AutofillHints.newPassword],
-              decoration: const InputDecoration(labelText: 'Confirm password'),
-              obscureText: true,
+              decoration: InputDecoration(
+                labelText: 'Confirm password',
+                suffixIcon: IconButton(
+                  onPressed: () {
+                    setState(() {
+                      _showConfirmPassword = !_showConfirmPassword;
+                    });
+                  },
+                  icon: Icon(
+                    _showConfirmPassword
+                        ? Icons.visibility_off
+                        : Icons.visibility,
+                  ),
+                ),
+              ),
+              obscureText: !_showConfirmPassword,
               validator: _validateConfirmPassword,
             ),
             if (_errorText != null)
@@ -126,6 +154,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   }
 
   Future<void> _submit() async {
+    if (_isSubmitting) {
+      return;
+    }
+
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -159,6 +191,16 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       );
     } on AuthFailure catch (error) {
       if (!mounted) {
+        return;
+      }
+      if (error.code == AuthFailureCode.rateLimited) {
+        context.goNamed(
+          verifyPendingRouteName,
+          queryParameters: {
+            'email': email,
+            'status': 'email-sent-recently',
+          },
+        );
         return;
       }
       setState(() {

@@ -177,7 +177,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: verifyPendingRoutePath,
         builder: (context, state) {
           final email = state.uri.queryParameters['email'] ?? '';
-          return VerifyPendingScreen(email: email);
+          final status = state.uri.queryParameters['status'];
+          return VerifyPendingScreen(
+            email: email,
+            initialStatusText: switch (status) {
+              'email-sent-recently' =>
+                'A verification email was already sent recently. Please wait a moment, then use resend if needed.',
+              _ => null,
+            },
+          );
         },
       ),
       GoRoute(

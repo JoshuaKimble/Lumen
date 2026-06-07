@@ -9,9 +9,14 @@ import 'auth_error_notice.dart';
 import 'auth_form_scaffold.dart';
 
 class VerifyPendingScreen extends ConsumerStatefulWidget {
-  const VerifyPendingScreen({required this.email, super.key});
+  const VerifyPendingScreen({
+    required this.email,
+    this.initialStatusText,
+    super.key,
+  });
 
   final String email;
+  final String? initialStatusText;
 
   @override
   ConsumerState<VerifyPendingScreen> createState() =>
@@ -20,7 +25,7 @@ class VerifyPendingScreen extends ConsumerStatefulWidget {
 
 class _VerifyPendingScreenState extends ConsumerState<VerifyPendingScreen> {
   bool _isSubmitting = false;
-  String? _statusText;
+  late String? _statusText = widget.initialStatusText;
   String? _errorText;
 
   @override
@@ -75,6 +80,10 @@ class _VerifyPendingScreenState extends ConsumerState<VerifyPendingScreen> {
   }
 
   Future<void> _resendVerificationEmail() async {
+    if (_isSubmitting) {
+      return;
+    }
+
     setState(() {
       _isSubmitting = true;
       _statusText = null;

@@ -38,6 +38,17 @@ void main() {
       expect(failure.code, AuthFailureCode.weakPassword);
     });
 
+    test('maps rate limited auth errors', () {
+      final failure = mapSupabaseAuthError(
+        const AuthException(
+          '429: For security purposes, you can only request this after 14 seconds.',
+          statusCode: '429',
+        ),
+      );
+
+      expect(failure.code, AuthFailureCode.rateLimited);
+    });
+
     test('maps expired or invalid links', () {
       final failure = mapSupabaseAuthError(
         const AuthException('Expired token'),

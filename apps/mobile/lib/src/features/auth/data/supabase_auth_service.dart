@@ -229,6 +229,16 @@ AuthFailure mapSupabaseAuthError(Object error) {
         message: 'Please verify your email before signing in.',
       );
     }
+    if (message.contains('security purposes') ||
+        message.contains('rate limit') ||
+        message.contains('too many requests') ||
+        statusCode == '429') {
+      return const AuthFailure(
+        code: AuthFailureCode.rateLimited,
+        message:
+            'A verification or reset email was sent recently. Please wait a moment before trying again.',
+      );
+    }
     if (message.contains('weak password') ||
         message.contains('password should')) {
       return const AuthFailure(

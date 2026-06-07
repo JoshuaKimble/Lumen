@@ -21,6 +21,8 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   bool _isSubmitting = false;
+  bool _showPassword = false;
+  bool _showConfirmPassword = false;
   String? _errorText;
 
   @override
@@ -42,18 +44,42 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
           children: [
             TextFormField(
               controller: _passwordController,
-              obscureText: true,
+              obscureText: !_showPassword,
               autofillHints: const [AutofillHints.newPassword],
-              decoration: const InputDecoration(labelText: 'New password'),
+              decoration: InputDecoration(
+                labelText: 'New password',
+                suffixIcon: IconButton(
+                  onPressed: () {
+                    setState(() {
+                      _showPassword = !_showPassword;
+                    });
+                  },
+                  icon: Icon(
+                    _showPassword ? Icons.visibility_off : Icons.visibility,
+                  ),
+                ),
+              ),
               validator: _validatePassword,
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _confirmPasswordController,
-              obscureText: true,
+              obscureText: !_showConfirmPassword,
               autofillHints: const [AutofillHints.newPassword],
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Confirm new password',
+                suffixIcon: IconButton(
+                  onPressed: () {
+                    setState(() {
+                      _showConfirmPassword = !_showConfirmPassword;
+                    });
+                  },
+                  icon: Icon(
+                    _showConfirmPassword
+                        ? Icons.visibility_off
+                        : Icons.visibility,
+                  ),
+                ),
               ),
               validator: _validateConfirmPassword,
             ),
@@ -98,6 +124,10 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
   }
 
   Future<void> _submit() async {
+    if (_isSubmitting) {
+      return;
+    }
+
     if (!_formKey.currentState!.validate()) {
       return;
     }
