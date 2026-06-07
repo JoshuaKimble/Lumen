@@ -22,6 +22,7 @@ jobs:
   web-build:
     name: Web Build
     runs-on: ubuntu-latest
+    environment: production
     env:
       LUMEN_API_BASE_URL: ${{ vars.LUMEN_API_BASE_URL }}
       LUMEN_SUPABASE_URL: ${{ vars.LUMEN_SUPABASE_URL }}
@@ -40,7 +41,7 @@ jobs:
           for key in "${required_vars[@]}"; do
             value="${!key:-}"
             if [[ -z "$value" ]]; then
-              echo "Missing required repository variable: $key" >&2
+              echo "Missing required web build variable: $key" >&2
               exit 1
             fi
           done
@@ -106,7 +107,7 @@ jobs:
             exit 1
           fi
           if [[ -z "${CLOUDFLARE_PAGES_PROJECT_NAME}" ]]; then
-            echo "Missing required repository variable: CLOUDFLARE_PAGES_PROJECT_NAME" >&2
+            echo "Missing required Cloudflare Pages project variable: CLOUDFLARE_PAGES_PROJECT_NAME" >&2
             exit 1
           fi
 
