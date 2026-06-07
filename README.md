@@ -4,8 +4,9 @@ Lumen is a Flutter journal application foundation for Android, iOS, and web.
 The project is optimized for iterative development with Codex by keeping
 architecture and coding standards in repo-canonical documentation.
 
-The project is a monorepo with a Flutter app in `apps/mobile`, a planned Node
-TypeScript AI backend gateway, and planned shared OpenAPI contracts.
+The project is a monorepo with a Flutter app in `apps/mobile`, a Node
+TypeScript AI backend gateway in `apps/api`, and shared OpenAPI contracts in
+`packages/api_contracts`.
 
 ## Toolchain
 
@@ -28,8 +29,17 @@ Known local setup items:
 ./scripts/check.sh
 ```
 
-`./scripts/check.sh` runs Flutter analysis/tests now and will also run API and
-contract checks as those packages are added.
+`./scripts/check.sh` runs the mobile, API, contract, and Supabase safety
+checks used by CI.
+
+API gateway commands:
+
+```sh
+cd apps/api
+npm run typecheck
+npm test
+npm run build
+```
 
 API contract commands:
 
@@ -44,6 +54,9 @@ Flutter app commands:
 cd apps/mobile
 flutter run -d chrome
 ```
+
+For local Flutter web runs against the Node API, use
+`docs/local-api-development.md`.
 
 ## Git Hooks
 
@@ -68,6 +81,20 @@ issue.
 
 For Supabase local database setup and migration workflows, use
 `docs/supabase-migration-workflow.md`.
+
+## Deployments
+
+Production deploys currently use:
+
+- Render for the Node API in `apps/api`
+- Cloudflare Pages for the Flutter web build from `apps/mobile/build/web`
+- GitHub Actions for CI, Cloudflare Pages deploys, and Supabase cloud
+  migrations
+
+Production configuration ownership is documented in:
+
+- `docs/production-config-inventory.md`
+- `docs/production-domains-and-auth.md`
 
 ## Project Memory
 
