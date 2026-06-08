@@ -51,11 +51,14 @@ LUMEN_OPENAI_REWRITE_MODEL=gpt-5-mini
 LUMEN_OPENAI_THEME_MODEL=gpt-5-mini
 LUMEN_OPENAI_TRANSCRIPTION_MODEL=gpt-4o-mini-transcribe
 LUMEN_OPENAI_TIMEOUT_MS=60000
+LUMEN_OPENAI_TRANSCRIPTION_CHUNK_SECONDS=45
 ```
 
 The configured defaults are `gpt-5-mini` for rewrite/theme detection and
 `gpt-4o-mini-transcribe` for transcription. The OpenAI request timeout defaults
-to `60000` milliseconds.
+to `60000` milliseconds. WAV transcription requests are chunked into `45`
+second segments by default to reduce long-recording truncation risk; other
+formats currently remain single-pass.
 
 The gateway must not commit provider API keys or secrets. Local `.env` files are
 ignored by git; keep real API keys out of commits, logs, and test fixtures.

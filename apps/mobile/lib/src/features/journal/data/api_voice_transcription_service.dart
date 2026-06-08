@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:lumen/src/api/generated/lumen_api_client.dart';
 
 import '../domain/voice_recording.dart';
+import '../domain/voice_transcription_exception.dart';
 import '../domain/voice_transcription_service.dart';
 import 'voice_recording_audio_reader.dart';
 
@@ -24,6 +25,10 @@ class ApiVoiceTranscriptionService implements VoiceTranscriptionService {
         mimeType: audio.mimeType,
       ),
     );
+
+    if (response.transcript.trim().isEmpty) {
+      throw const NoSpeechDetectedException();
+    }
 
     return response.transcript;
   }

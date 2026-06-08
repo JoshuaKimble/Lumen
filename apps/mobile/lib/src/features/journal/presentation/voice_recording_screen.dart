@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../api/generated/lumen_api_client.dart';
 import '../../../app/router.dart';
 import '../data/journal_ai_service_provider.dart';
 import '../data/journal_repository_provider.dart';
@@ -12,6 +13,9 @@ import '../domain/journal_ai_service.dart';
 import '../domain/journal_entry.dart';
 import '../data/voice_recorder_provider.dart';
 import '../domain/voice_recording.dart';
+import '../domain/voice_recording_attempt.dart';
+import '../domain/voice_transcription_exception.dart';
+import 'voice_recording_history_controller.dart';
 import 'journal_entries_provider.dart';
 import 'journal_entry_provider.dart';
 
@@ -29,6 +33,7 @@ class _VoiceRecordingScreenState extends ConsumerState<VoiceRecordingScreen> {
 
   VoiceRecordingStatus _status = VoiceRecordingStatus.idle;
   VoiceRecording? _recording;
+  String? _activeAttemptId;
   String? _errorMessage;
 
   bool get _isStarting => _status == VoiceRecordingStatus.starting;
@@ -52,6 +57,7 @@ class _VoiceRecordingScreenState extends ConsumerState<VoiceRecordingScreen> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final historyValue = ref.watch(voiceRecordingHistoryControllerProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Voice entry')),
@@ -150,6 +156,12 @@ class _VoiceRecordingScreenState extends ConsumerState<VoiceRecordingScreen> {
                 const SizedBox(height: 24),
                 _CapturedRecording(recording: recording),
               ],
+              const SizedBox(height: 24),
+              _TranscriptionHistorySection(
+                historyValue: historyValue,
+                onRetry: _retryAttempt,
+                onUseTranscript: _useAttemptTranscript,
+              ),
             ],
           ),
         ),
@@ -196,6 +208,7 @@ class _VoiceRecordingScreenState extends ConsumerState<VoiceRecordingScreen> {
       _status = VoiceRecordingStatus.starting;
       _errorMessage = null;
       _recording = null;
+      _activeAttemptId = null;
       _transcriptController.clear();
     });
 
@@ -261,10 +274,23 @@ class _VoiceRecordingScreenState extends ConsumerState<VoiceRecordingScreen> {
 
       setState(() {
         _recording = recording;
+        _activeAttemptId = null;
         _status = VoiceRecordingStatus.transcribing;
       });
 
-      await _transcribeRecording(recording);
+      final attempt = await ref
+          .read(voiceRecordingHistoryControllerProvider.notifier)
+          .createAttempt(recording);
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _activeAttemptId = attempt.id;
+      });
+
+      await _transcribeRecording(attempt);
     } catch (error, stackTrace) {
       debugPrint('Unable to stop recording: $error');
       debugPrintStack(stackTrace: stackTrace);
@@ -280,28 +306,39 @@ class _VoiceRecordingScreenState extends ConsumerState<VoiceRecordingScreen> {
     }
   }
 
-  Future<void> _transcribeRecording(VoiceRecording recording) async {
+  Future<void> _transcribeRecording(VoiceRecordingAttempt attempt) async {
     try {
       final transcript = await ref
           .read(voiceTranscriptionServiceProvider)
-          .transcribe(recording);
+          .transcribe(attempt.recording);
+
+      await ref
+          .read(voiceRecordingHistoryControllerProvider.notifier)
+          .markTranscribed(attempt.id, transcript);
 
       if (mounted) {
         setState(() {
           _transcriptController.text = transcript;
+          _recording = attempt.recording;
+          _activeAttemptId = attempt.id;
           _status = VoiceRecordingStatus.reviewingTranscript;
         });
       }
     } catch (error, stackTrace) {
       debugPrint('Unable to transcribe recording: $error');
       debugPrintStack(stackTrace: stackTrace);
+      final message = _transcriptionFailureMessage(error);
+
+      await ref
+          .read(voiceRecordingHistoryControllerProvider.notifier)
+          .markFailed(attempt.id, message);
 
       if (mounted) {
         setState(() {
           _status = VoiceRecordingStatus.error;
-          _errorMessage = kDebugMode
-              ? 'Unable to transcribe the recording. $error'
-              : 'Unable to transcribe the recording.';
+          _recording = attempt.recording;
+          _activeAttemptId = attempt.id;
+          _errorMessage = message;
         });
       }
     }
@@ -350,6 +387,11 @@ class _VoiceRecordingScreenState extends ConsumerState<VoiceRecordingScreen> {
     }
 
     await repository.saveEntry(entry);
+    if (_activeAttemptId case final attemptId?) {
+      await ref
+          .read(voiceRecordingHistoryControllerProvider.notifier)
+          .markSaved(attemptId);
+    }
     ref.invalidate(journalEntriesProvider);
     ref.invalidate(journalEntryProvider(entry.id));
 
@@ -359,6 +401,59 @@ class _VoiceRecordingScreenState extends ConsumerState<VoiceRecordingScreen> {
         pathParameters: {'entryId': entry.id},
       );
     }
+  }
+
+  Future<void> _retryAttempt(VoiceRecordingAttempt attempt) async {
+    setState(() {
+      _status = VoiceRecordingStatus.transcribing;
+      _recording = attempt.recording;
+      _activeAttemptId = attempt.id;
+      _errorMessage = null;
+      _transcriptController.clear();
+    });
+
+    await ref
+        .read(voiceRecordingHistoryControllerProvider.notifier)
+        .markTranscribing(attempt.id);
+    await _transcribeRecording(attempt);
+  }
+
+  void _useAttemptTranscript(VoiceRecordingAttempt attempt) {
+    if (!attempt.hasTranscript) {
+      return;
+    }
+
+    setState(() {
+      _status = VoiceRecordingStatus.reviewingTranscript;
+      _recording = attempt.recording;
+      _activeAttemptId = attempt.id;
+      _errorMessage = null;
+      _transcriptController.text = attempt.transcript!;
+    });
+  }
+
+  String _transcriptionFailureMessage(Object error) {
+    if (error is NoSpeechDetectedException) {
+      return 'No speech was detected in the recording. Try again closer to the microphone.';
+    }
+
+    if (error is LumenApiException) {
+      if (error.error.error == 'provider_timeout') {
+        return 'The AI transcription request timed out. Please try again.';
+      }
+
+      if (error.error.message case final message?) {
+        return message;
+      }
+
+      return 'Unable to transcribe the recording right now.';
+    }
+
+    if (kDebugMode) {
+      return 'Unable to transcribe the recording. $error';
+    }
+
+    return 'Unable to transcribe the recording.';
   }
 }
 
@@ -404,6 +499,205 @@ class _CapturedRecording extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _TranscriptionHistorySection extends StatelessWidget {
+  const _TranscriptionHistorySection({
+    required this.historyValue,
+    required this.onRetry,
+    required this.onUseTranscript,
+  });
+
+  final AsyncValue<List<VoiceRecordingAttempt>> historyValue;
+  final Future<void> Function(VoiceRecordingAttempt attempt) onRetry;
+  final void Function(VoiceRecordingAttempt attempt) onUseTranscript;
+
+  @override
+  Widget build(BuildContext context) {
+    return historyValue.when(
+      data: (value) {
+        if (value.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Recent recordings',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 12),
+            for (final attempt in value)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _VoiceRecordingAttemptTile(
+                  attempt: attempt,
+                  onRetry: () => onRetry(attempt),
+                  onUseTranscript: attempt.hasTranscript
+                      ? () => onUseTranscript(attempt)
+                      : null,
+                ),
+              ),
+          ],
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
+    );
+  }
+}
+
+class _VoiceRecordingAttemptTile extends StatelessWidget {
+  const _VoiceRecordingAttemptTile({
+    required this.attempt,
+    required this.onRetry,
+    required this.onUseTranscript,
+  });
+
+  final VoiceRecordingAttempt attempt;
+  final Future<void> Function() onRetry;
+  final VoidCallback? onUseTranscript;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final duration = attempt.recording.stoppedAt.difference(
+      attempt.recording.startedAt,
+    );
+
+    return ExpansionTile(
+      tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      collapsedShape: RoundedRectangleBorder(
+        side: BorderSide(color: colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      shape: RoundedRectangleBorder(
+        side: BorderSide(color: colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      title: Row(
+        children: [
+          Expanded(child: Text(_statusLabel(attempt.status))),
+          const SizedBox(width: 12),
+          _StatusChip(status: attempt.status),
+        ],
+      ),
+      subtitle: Text(
+        '${_formatTimestamp(attempt.recording.stoppedAt)} • ${duration.inSeconds}s',
+      ),
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                attempt.recording.uri,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+              if (attempt.errorMessage case final message?) ...[
+                const SizedBox(height: 12),
+                Text(
+                  message,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: colorScheme.error),
+                ),
+              ],
+              if (attempt.transcript case final transcript?) ...[
+                const SizedBox(height: 12),
+                Text(transcript, style: Theme.of(context).textTheme.bodyMedium),
+              ],
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  if (attempt.status == VoiceRecordingAttemptStatus.failed)
+                    OutlinedButton.icon(
+                      onPressed: onRetry,
+                      icon: const Icon(Icons.refresh_outlined),
+                      label: const Text('Retry transcription'),
+                    ),
+                  if (onUseTranscript case final callback?)
+                    TextButton.icon(
+                      onPressed: callback,
+                      icon: const Icon(Icons.edit_note_outlined),
+                      label: const Text('Use transcript'),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _statusLabel(VoiceRecordingAttemptStatus status) {
+    return switch (status) {
+      VoiceRecordingAttemptStatus.transcribing => 'Transcribing',
+      VoiceRecordingAttemptStatus.transcribed => 'Transcript ready',
+      VoiceRecordingAttemptStatus.failed => 'Transcription failed',
+      VoiceRecordingAttemptStatus.saved => 'Saved as journal entry',
+    };
+  }
+
+  String _formatTimestamp(DateTime value) {
+    final localValue = value.toLocal();
+    final hour = localValue.hour % 12 == 0 ? 12 : localValue.hour % 12;
+    final minute = localValue.minute.toString().padLeft(2, '0');
+    final suffix = localValue.hour >= 12 ? 'PM' : 'AM';
+    return '${localValue.month}/${localValue.day}/${localValue.year} $hour:$minute $suffix';
+  }
+}
+
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({required this.status});
+
+  final VoiceRecordingAttemptStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final (label, backgroundColor, foregroundColor) = switch (status) {
+      VoiceRecordingAttemptStatus.failed => (
+        'Failed',
+        colorScheme.errorContainer,
+        colorScheme.onErrorContainer,
+      ),
+      VoiceRecordingAttemptStatus.transcribing => (
+        'Pending',
+        colorScheme.secondaryContainer,
+        colorScheme.onSecondaryContainer,
+      ),
+      VoiceRecordingAttemptStatus.transcribed => (
+        'Ready',
+        colorScheme.primaryContainer,
+        colorScheme.onPrimaryContainer,
+      ),
+      VoiceRecordingAttemptStatus.saved => (
+        'Saved',
+        colorScheme.tertiaryContainer,
+        colorScheme.onTertiaryContainer,
+      ),
+    };
+
+    return Chip(
+      label: Text(label),
+      backgroundColor: backgroundColor,
+      labelStyle: Theme.of(
+        context,
+      ).textTheme.labelMedium?.copyWith(color: foregroundColor),
+      side: BorderSide.none,
+      visualDensity: VisualDensity.compact,
     );
   }
 }

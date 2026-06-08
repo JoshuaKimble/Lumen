@@ -20,9 +20,13 @@ import 'package:lumen/src/features/journal/domain/related_resource.dart';
 import 'package:lumen/src/features/journal/domain/rewrite_personalization.dart';
 import 'package:lumen/src/features/journal/domain/voice_recorder.dart';
 import 'package:lumen/src/features/journal/domain/voice_recording.dart';
+import 'package:lumen/src/features/journal/domain/voice_recording_attempt.dart';
+import 'package:lumen/src/features/journal/domain/voice_recording_history_store.dart';
+import 'package:lumen/src/features/journal/domain/voice_transcription_exception.dart';
 import 'package:lumen/src/features/journal/domain/voice_transcription_service.dart';
 import 'package:lumen/src/features/journal/data/voice_recorder_provider.dart';
 import 'package:lumen/src/features/journal/data/voice_transcription_service_provider.dart';
+import 'package:lumen/src/features/journal/presentation/voice_recording_history_controller.dart';
 import 'package:lumen/src/features/profiles/data/profile_service_provider.dart';
 import 'package:lumen/src/features/profiles/domain/profile_service.dart';
 import 'package:lumen/src/features/profiles/domain/rewrite_tone_preference.dart';
@@ -41,6 +45,9 @@ void main() {
         overrides: [
           journalRepositoryProvider.overrideWithValue(
             InMemoryJournalRepository(),
+          ),
+          voiceRecordingHistoryStoreProvider.overrideWithValue(
+            _InMemoryVoiceRecordingHistoryStore(),
           ),
         ],
         child: const LumenApp(),
@@ -628,6 +635,9 @@ void main() {
             InMemoryJournalRepository(seedEntries: const []),
           ),
           voiceRecorderProvider.overrideWithValue(recorder),
+          voiceRecordingHistoryStoreProvider.overrideWithValue(
+            _InMemoryVoiceRecordingHistoryStore(),
+          ),
           voiceTranscriptionServiceProvider.overrideWithValue(
             const _FakeVoiceTranscriptionService(
               transcript: 'This is the reviewed transcript.',
@@ -670,6 +680,9 @@ void main() {
         overrides: [
           journalRepositoryProvider.overrideWithValue(repository),
           voiceRecorderProvider.overrideWithValue(recorder),
+          voiceRecordingHistoryStoreProvider.overrideWithValue(
+            _InMemoryVoiceRecordingHistoryStore(),
+          ),
           voiceTranscriptionServiceProvider.overrideWithValue(
             const _FakeVoiceTranscriptionService(
               transcript: 'Rough voice transcript.',
@@ -728,6 +741,9 @@ void main() {
           journalRepositoryProvider.overrideWithValue(
             InMemoryJournalRepository(seedEntries: const []),
           ),
+          voiceRecordingHistoryStoreProvider.overrideWithValue(
+            _InMemoryVoiceRecordingHistoryStore(),
+          ),
           voiceRecorderProvider.overrideWithValue(
             _FakeVoiceRecorder(hasPermissionValue: false),
           ),
@@ -749,6 +765,67 @@ void main() {
       ),
       findsOneWidget,
     );
+  });
+
+  testWidgets('surfaces no-speech failures and sorts failed recordings first', (
+    tester,
+  ) async {
+    final olderTranscribedAttempt = VoiceRecordingAttempt(
+      id: 'voice-old',
+      recording: VoiceRecording(
+        uri: 'memory://old-recording.m4a',
+        startedAt: DateTime.utc(2026, 6, 1, 11),
+        stoppedAt: DateTime.utc(2026, 6, 1, 11, 1),
+      ),
+      status: VoiceRecordingAttemptStatus.transcribed,
+      createdAt: DateTime.utc(2026, 6, 1, 11, 1),
+      updatedAt: DateTime.utc(2026, 6, 1, 11, 5),
+      transcript: 'Earlier transcript.',
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          journalRepositoryProvider.overrideWithValue(
+            InMemoryJournalRepository(seedEntries: const []),
+          ),
+          voiceRecorderProvider.overrideWithValue(_FakeVoiceRecorder()),
+          voiceRecordingHistoryStoreProvider.overrideWithValue(
+            _InMemoryVoiceRecordingHistoryStore(
+              initialAttempts: [olderTranscribedAttempt],
+            ),
+          ),
+          voiceTranscriptionServiceProvider.overrideWithValue(
+            const _FakeVoiceTranscriptionService(
+              error: NoSpeechDetectedException(),
+            ),
+          ),
+        ],
+        child: const LumenApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Record voice entry'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Start recording'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Stop recording'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(
+        'No speech was detected in the recording. Try again closer to the microphone.',
+      ),
+      findsWidgets,
+    );
+    expect(find.text('Recent recordings'), findsOneWidget);
+    expect(find.text('Transcription failed'), findsOneWidget);
+    expect(find.text('Transcript ready'), findsOneWidget);
+
+    final failedPosition = tester.getTopLeft(find.text('Transcription failed'));
+    final readyPosition = tester.getTopLeft(find.text('Transcript ready'));
+    expect(failedPosition.dy, lessThan(readyPosition.dy));
   });
 }
 
@@ -915,12 +992,17 @@ class _FailingAiService implements JournalAiService {
 }
 
 class _FakeVoiceTranscriptionService implements VoiceTranscriptionService {
-  const _FakeVoiceTranscriptionService({required this.transcript});
+  const _FakeVoiceTranscriptionService({this.transcript = '', this.error});
 
   final String transcript;
+  final Object? error;
 
   @override
   Future<String> transcribe(VoiceRecording recording) async {
+    if (error != null) {
+      throw error!;
+    }
+
     return transcript;
   }
 }
@@ -1108,5 +1190,24 @@ class _FakeVoiceRecorder implements VoiceRecorder {
       startedAt: _startedAt ?? stoppedAt,
       stoppedAt: stoppedAt,
     );
+  }
+}
+
+class _InMemoryVoiceRecordingHistoryStore
+    implements VoiceRecordingHistoryStore {
+  _InMemoryVoiceRecordingHistoryStore({
+    List<VoiceRecordingAttempt> initialAttempts = const [],
+  }) : _attempts = [...initialAttempts];
+
+  List<VoiceRecordingAttempt> _attempts;
+
+  @override
+  Future<List<VoiceRecordingAttempt>> listAttempts() async {
+    return [..._attempts];
+  }
+
+  @override
+  Future<void> saveAttempts(List<VoiceRecordingAttempt> attempts) async {
+    _attempts = [...attempts];
   }
 }

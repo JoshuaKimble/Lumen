@@ -6,6 +6,7 @@ import { MockAiGatewayProvider } from '../src/ai/mockAiGatewayProvider.js';
 import { OpenAiGatewayProvider } from '../src/ai/openAiGatewayProvider.js';
 import {
   defaultOpenAiModels,
+  defaultOpenAiTranscriptionChunkDurationSeconds,
   defaultOpenAiTimeoutMs,
   parseOpenAiProviderConfig,
 } from '../src/ai/openAiProviderConfig.js';
@@ -28,6 +29,8 @@ test('creates OpenAI provider when configured', () => {
     themeModel: defaultOpenAiModels.themeDetection,
     transcriptionModel: defaultOpenAiModels.transcription,
     timeoutMs: defaultOpenAiTimeoutMs,
+    transcriptionChunkDurationSeconds:
+      defaultOpenAiTranscriptionChunkDurationSeconds,
   });
 });
 
@@ -43,6 +46,10 @@ test('parses OpenAI model overrides', () => {
   assert.equal(config.themeModel, 'custom-theme-model');
   assert.equal(config.transcriptionModel, 'custom-transcription-model');
   assert.equal(config.timeoutMs, defaultOpenAiTimeoutMs);
+  assert.equal(
+    config.transcriptionChunkDurationSeconds,
+    defaultOpenAiTranscriptionChunkDurationSeconds,
+  );
 });
 
 test('parses OpenAI timeout override', () => {
@@ -54,6 +61,15 @@ test('parses OpenAI timeout override', () => {
   assert.equal(config.timeoutMs, 90000);
 });
 
+test('parses OpenAI transcription chunk duration override', () => {
+  const config = parseOpenAiProviderConfig({
+    OPENAI_API_KEY: 'test-secret',
+    LUMEN_OPENAI_TRANSCRIPTION_CHUNK_SECONDS: '30',
+  });
+
+  assert.equal(config.transcriptionChunkDurationSeconds, 30);
+});
+
 test('rejects invalid OpenAI timeout override', () => {
   assert.throws(
     () =>
@@ -62,6 +78,15 @@ test('rejects invalid OpenAI timeout override', () => {
         LUMEN_OPENAI_TIMEOUT_MS: '0',
       }),
     /Expected LUMEN_OPENAI_TIMEOUT_MS to be a positive integer\./,
+  );
+
+  assert.throws(
+    () =>
+      parseOpenAiProviderConfig({
+        OPENAI_API_KEY: 'test-secret',
+        LUMEN_OPENAI_TRANSCRIPTION_CHUNK_SECONDS: '0',
+      }),
+    /Expected LUMEN_OPENAI_TRANSCRIPTION_CHUNK_SECONDS to be a positive integer\./,
   );
 });
 

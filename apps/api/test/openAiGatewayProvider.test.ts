@@ -10,6 +10,7 @@ const config = {
   themeModel: 'theme-model',
   transcriptionModel: 'transcribe-model',
   timeoutMs: 60_000,
+  transcriptionChunkDurationSeconds: 45,
 } as const;
 
 test('rewrites entries via OpenAI completions', async () => {
@@ -185,6 +186,54 @@ test('transcribes audio via OpenAI transcription endpoint', async () => {
   assert.equal(transport.lastFormData?.get('response_format'), 'json');
 });
 
+test('accepts empty transcription text from OpenAI', async () => {
+  const transport = new FakeTransport({
+    formResponse: {
+      status: 200,
+      data: {
+        text: '',
+      },
+    },
+  });
+  const provider = new OpenAiGatewayProvider(config, transport);
+
+  const result = await provider.transcribe({
+    audio: new Uint8Array([1, 2, 3]),
+    mimeType: 'audio/mp4',
+  });
+
+  assert.equal(result.transcript, '');
+});
+
+test('chunks wav transcription requests and stitches responses', async () => {
+  const transport = new FakeTransport({
+    formResponses: [
+      { status: 200, data: { text: 'First section of transcript.' } },
+      { status: 200, data: { text: 'Second section of transcript.' } },
+    ],
+  });
+  const provider = new OpenAiGatewayProvider({
+    ...config,
+    transcriptionChunkDurationSeconds: 1,
+  }, transport);
+
+  const result = await provider.transcribe({
+    audio: createWaveFile({ durationSeconds: 2 }),
+    mimeType: 'audio/wav',
+  });
+
+  assert.equal(
+    result.transcript,
+    'First section of transcript.\n\nSecond section of transcript.',
+  );
+  assert.equal(transport.formRequests.length, 2);
+  for (const request of transport.formRequests) {
+    assert.equal(request.path, '/audio/transcriptions');
+    assert.equal(request.body.get('model'), 'transcribe-model');
+    assert.equal(request.body.get('response_format'), 'json');
+  }
+});
+
 test('rejects malformed rewrite payloads', async () => {
   const transport = new FakeTransport({
     jsonResponse: {
@@ -295,9 +344,7 @@ test('rejects transcription payload without text', async () => {
   const transport = new FakeTransport({
     formResponse: {
       status: 200,
-      data: {
-        text: '',
-      },
+      data: {},
     },
   });
   const provider = new OpenAiGatewayProvider(config, transport);
@@ -337,6 +384,7 @@ class FakeTransport {
     private readonly responses: {
       jsonResponse?: { status: number; data: unknown };
       formResponse?: { status: number; data: unknown };
+      formResponses?: Array<{ status: number; data: unknown }>;
     },
   ) {}
 
@@ -344,6 +392,7 @@ class FakeTransport {
   lastJsonBody: unknown;
   lastFormPath: string | undefined;
   lastFormData: FormData | undefined;
+  formRequests: Array<{ path: string; body: FormData }> = [];
 
   async postJson(path: string, body: unknown) {
     this.lastJsonPath = path;
@@ -355,7 +404,48 @@ class FakeTransport {
   async postFormData(path: string, body: FormData) {
     this.lastFormPath = path;
     this.lastFormData = body;
+    this.formRequests.push({ path, body });
+
+    if (this.responses.formResponses != null) {
+      const nextResponse = this.responses.formResponses.shift();
+      if (nextResponse != null) {
+        return nextResponse;
+      }
+    }
 
     return this.responses.formResponse ?? { status: 200, data: {} };
   }
+}
+
+function createWaveFile({
+  durationSeconds,
+  sampleRate = 8_000,
+  bitsPerSample = 16,
+  channelCount = 1,
+}: {
+  durationSeconds: number;
+  sampleRate?: number;
+  bitsPerSample?: number;
+  channelCount?: number;
+}): Uint8Array {
+  const blockAlign = channelCount * (bitsPerSample / 8);
+  const byteRate = sampleRate * blockAlign;
+  const dataByteLength = durationSeconds * byteRate;
+  const buffer = Buffer.alloc(44 + dataByteLength);
+
+  buffer.write('RIFF', 0, 'ascii');
+  buffer.writeUInt32LE(36 + dataByteLength, 4);
+  buffer.write('WAVE', 8, 'ascii');
+  buffer.write('fmt ', 12, 'ascii');
+  buffer.writeUInt32LE(16, 16);
+  buffer.writeUInt16LE(1, 20);
+  buffer.writeUInt16LE(channelCount, 22);
+  buffer.writeUInt32LE(sampleRate, 24);
+  buffer.writeUInt32LE(byteRate, 28);
+  buffer.writeUInt16LE(blockAlign, 32);
+  buffer.writeUInt16LE(bitsPerSample, 34);
+  buffer.write('data', 36, 'ascii');
+  buffer.writeUInt32LE(dataByteLength, 40);
+
+  return new Uint8Array(buffer);
 }

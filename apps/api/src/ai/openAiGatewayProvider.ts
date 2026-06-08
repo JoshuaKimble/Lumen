@@ -20,6 +20,7 @@ import type {
   TranscriptionResult,
 } from './aiGatewayProvider.js';
 import type { OpenAiProviderConfig } from './openAiProviderConfig.js';
+import { splitWaveAudio } from './wavChunking.js';
 
 export interface OpenAiTransportResponse {
   readonly status: number;
@@ -51,26 +52,43 @@ export class OpenAiGatewayProvider implements AiGatewayProvider {
       themeModel: this.config.themeModel,
       transcriptionModel: this.config.transcriptionModel,
       timeoutMs: this.config.timeoutMs,
+      transcriptionChunkDurationSeconds:
+        this.config.transcriptionChunkDurationSeconds,
     };
   }
 
   async transcribe(request: TranscriptionRequest): Promise<TranscriptionResult> {
-    const body = new FormData();
-    body.append('model', this.config.transcriptionModel);
-    body.append(
-      'file',
-      new Blob([Buffer.from(request.audio)], { type: request.mimeType }),
-      extensionForMimeType(request.mimeType),
-    );
-    body.append('response_format', 'json');
+    const audioChunks = request.mimeType === 'audio/wav'
+      ? splitWaveAudio(
+          request.audio,
+          this.config.transcriptionChunkDurationSeconds,
+        )
+      : [request.audio];
+    const transcripts: string[] = [];
 
-    const response = await this.transport.postFormData(
-      '/audio/transcriptions',
-      body,
-    );
-    assertSuccessStatus(response.status);
+    for (const audioChunk of audioChunks) {
+      const body = new FormData();
+      body.append('model', this.config.transcriptionModel);
+      body.append(
+        'file',
+        new Blob([Buffer.from(audioChunk)], { type: request.mimeType }),
+        extensionForMimeType(request.mimeType),
+      );
+      body.append('response_format', 'json');
 
-    const transcript = extractTranscriptionText(response.data);
+      const response = await this.transport.postFormData(
+        '/audio/transcriptions',
+        body,
+      );
+      assertSuccessStatus(response.status);
+
+      transcripts.push(extractTranscriptionText(response.data));
+    }
+
+    const transcript = transcripts
+      .map((value) => value.trim())
+      .filter((value) => value.length > 0)
+      .join('\n\n');
 
     return { transcript };
   }
@@ -374,7 +392,7 @@ function extractTranscriptionText(value: unknown): string {
 
   const text = (value as Record<string, unknown>).text;
 
-  if (typeof text !== 'string' || text.trim().length === 0) {
+  if (typeof text !== 'string') {
     throw new AiProviderError(
       'malformed_response',
       'OpenAI transcription response did not include text.',

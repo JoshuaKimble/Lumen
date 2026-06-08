@@ -4,6 +4,7 @@ export interface OpenAiProviderConfig {
   readonly themeModel: string;
   readonly transcriptionModel: string;
   readonly timeoutMs: number;
+  readonly transcriptionChunkDurationSeconds: number;
 }
 
 export const defaultOpenAiModels = {
@@ -13,6 +14,7 @@ export const defaultOpenAiModels = {
 } as const;
 
 export const defaultOpenAiTimeoutMs = 60_000;
+export const defaultOpenAiTranscriptionChunkDurationSeconds = 45;
 
 export function parseOpenAiProviderConfig(
   env: NodeJS.ProcessEnv,
@@ -38,6 +40,11 @@ export function parseOpenAiProviderConfig(
       env,
       'LUMEN_OPENAI_TIMEOUT_MS',
       defaultOpenAiTimeoutMs,
+    ),
+    transcriptionChunkDurationSeconds: optionalPositiveInt(
+      env,
+      'LUMEN_OPENAI_TRANSCRIPTION_CHUNK_SECONDS',
+      defaultOpenAiTranscriptionChunkDurationSeconds,
     ),
   };
 }

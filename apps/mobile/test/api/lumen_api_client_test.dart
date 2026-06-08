@@ -8,9 +8,10 @@ import 'package:lumen/src/features/journal/data/api_journal_ai_service.dart';
 import 'package:lumen/src/features/journal/data/api_voice_transcription_service.dart';
 import 'package:lumen/src/features/journal/data/voice_recording_audio_reader.dart';
 import 'package:lumen/src/features/journal/domain/rewrite_personalization.dart';
-import 'package:lumen/src/features/profiles/domain/rewrite_tone_preference.dart';
 import 'package:lumen/src/features/journal/domain/voice_recording.dart';
 import 'package:lumen/src/features/journal/domain/voice_recording_audio.dart';
+import 'package:lumen/src/features/journal/domain/voice_transcription_exception.dart';
+import 'package:lumen/src/features/profiles/domain/rewrite_tone_preference.dart';
 
 void main() {
   test('calls typed rewrite endpoint', () async {
@@ -255,6 +256,29 @@ void main() {
     );
 
     expect(transcript, 'transcribed audio');
+  });
+
+  test('treats empty transcription text as no speech detected', () async {
+    final service = ApiVoiceTranscriptionService(
+      audioReader: const _FakeAudioReader(),
+      client: LumenApiClient(
+        baseUri: Uri.parse('http://localhost:3000'),
+        httpClient: MockClient((request) async {
+          return http.Response('{"transcript":""}', 200);
+        }),
+      ),
+    );
+
+    await expectLater(
+      service.transcribe(
+        VoiceRecording(
+          uri: 'memory://recording.m4a',
+          startedAt: DateTime.utc(2026, 5, 14, 12),
+          stoppedAt: DateTime.utc(2026, 5, 14, 12, 1),
+        ),
+      ),
+      throwsA(isA<NoSpeechDetectedException>()),
+    );
   });
 }
 
