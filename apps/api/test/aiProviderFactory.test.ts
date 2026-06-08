@@ -6,6 +6,7 @@ import { MockAiGatewayProvider } from '../src/ai/mockAiGatewayProvider.js';
 import { OpenAiGatewayProvider } from '../src/ai/openAiGatewayProvider.js';
 import {
   defaultOpenAiModels,
+  defaultOpenAiTimeoutMs,
   parseOpenAiProviderConfig,
 } from '../src/ai/openAiProviderConfig.js';
 
@@ -26,6 +27,7 @@ test('creates OpenAI provider when configured', () => {
     rewriteModel: defaultOpenAiModels.rewrite,
     themeModel: defaultOpenAiModels.themeDetection,
     transcriptionModel: defaultOpenAiModels.transcription,
+    timeoutMs: defaultOpenAiTimeoutMs,
   });
 });
 
@@ -40,6 +42,27 @@ test('parses OpenAI model overrides', () => {
   assert.equal(config.rewriteModel, 'custom-rewrite-model');
   assert.equal(config.themeModel, 'custom-theme-model');
   assert.equal(config.transcriptionModel, 'custom-transcription-model');
+  assert.equal(config.timeoutMs, defaultOpenAiTimeoutMs);
+});
+
+test('parses OpenAI timeout override', () => {
+  const config = parseOpenAiProviderConfig({
+    OPENAI_API_KEY: 'test-secret',
+    LUMEN_OPENAI_TIMEOUT_MS: '90000',
+  });
+
+  assert.equal(config.timeoutMs, 90000);
+});
+
+test('rejects invalid OpenAI timeout override', () => {
+  assert.throws(
+    () =>
+      parseOpenAiProviderConfig({
+        OPENAI_API_KEY: 'test-secret',
+        LUMEN_OPENAI_TIMEOUT_MS: '0',
+      }),
+    /Expected LUMEN_OPENAI_TIMEOUT_MS to be a positive integer\./,
+  );
 });
 
 test('requires OpenAI API key without leaking secret values', () => {

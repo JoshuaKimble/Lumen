@@ -3,6 +3,7 @@ export interface OpenAiProviderConfig {
   readonly rewriteModel: string;
   readonly themeModel: string;
   readonly transcriptionModel: string;
+  readonly timeoutMs: number;
 }
 
 export const defaultOpenAiModels = {
@@ -10,6 +11,8 @@ export const defaultOpenAiModels = {
   themeDetection: 'gpt-5-mini',
   transcription: 'gpt-4o-mini-transcribe',
 } as const;
+
+export const defaultOpenAiTimeoutMs = 60_000;
 
 export function parseOpenAiProviderConfig(
   env: NodeJS.ProcessEnv,
@@ -31,6 +34,11 @@ export function parseOpenAiProviderConfig(
       'LUMEN_OPENAI_TRANSCRIPTION_MODEL',
       defaultOpenAiModels.transcription,
     ),
+    timeoutMs: optionalPositiveInt(
+      env,
+      'LUMEN_OPENAI_TIMEOUT_MS',
+      defaultOpenAiTimeoutMs,
+    ),
   };
 }
 
@@ -50,4 +58,23 @@ function optionalValue(
   fallback: string,
 ): string {
   return env[key]?.trim() || fallback;
+}
+
+function optionalPositiveInt(
+  env: NodeJS.ProcessEnv,
+  key: string,
+  fallback: number,
+): number {
+  const raw = env[key]?.trim();
+
+  if (!raw) {
+    return fallback;
+  }
+
+  const parsed = Number.parseInt(raw, 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    throw new Error(`Expected ${key} to be a positive integer.`);
+  }
+
+  return parsed;
 }

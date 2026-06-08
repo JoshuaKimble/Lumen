@@ -9,6 +9,7 @@ const config = {
   rewriteModel: 'rewrite-model',
   themeModel: 'theme-model',
   transcriptionModel: 'transcribe-model',
+  timeoutMs: 60_000,
 } as const;
 
 test('rewrites entries via OpenAI completions', async () => {

@@ -41,7 +41,8 @@ export class OpenAiGatewayProvider implements AiGatewayProvider {
     private readonly config: OpenAiProviderConfig,
     transport?: OpenAiTransport,
   ) {
-    this.transport = transport ?? new FetchOpenAiTransport(config.apiKey);
+    this.transport =
+      transport ?? new FetchOpenAiTransport(config.apiKey, config.timeoutMs);
   }
 
   get modelConfig(): Omit<OpenAiProviderConfig, 'apiKey'> {
@@ -49,6 +50,7 @@ export class OpenAiGatewayProvider implements AiGatewayProvider {
       rewriteModel: this.config.rewriteModel,
       themeModel: this.config.themeModel,
       transcriptionModel: this.config.transcriptionModel,
+      timeoutMs: this.config.timeoutMs,
     };
   }
 
@@ -191,7 +193,10 @@ export class OpenAiGatewayProvider implements AiGatewayProvider {
 }
 
 class FetchOpenAiTransport implements OpenAiTransport {
-  constructor(private readonly apiKey: string) {}
+  constructor(
+    private readonly apiKey: string,
+    private readonly timeoutMs: number,
+  ) {}
 
   async postJson(path: string, body: unknown): Promise<OpenAiTransportResponse> {
     let response: Response;
@@ -203,7 +208,7 @@ class FetchOpenAiTransport implements OpenAiTransport {
           'content-type': 'application/json',
         },
         body: JSON.stringify(body),
-        signal: AbortSignal.timeout(requestTimeoutMs),
+        signal: AbortSignal.timeout(this.timeoutMs),
       });
     } catch (error) {
       throw mapTransportError(error);
@@ -227,7 +232,7 @@ class FetchOpenAiTransport implements OpenAiTransport {
           authorization: `Bearer ${this.apiKey}`,
         },
         body,
-        signal: AbortSignal.timeout(requestTimeoutMs),
+        signal: AbortSignal.timeout(this.timeoutMs),
       });
     } catch (error) {
       throw mapTransportError(error);
@@ -446,8 +451,6 @@ function extensionForMimeType(mimeType: string): string {
     }[mimeType] ?? 'audio.bin'
   );
 }
-
-const requestTimeoutMs = 20_000;
 
 function mapTransportError(error: unknown): AiProviderError {
   if (error instanceof DOMException && error.name === 'TimeoutError') {
