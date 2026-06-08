@@ -47,12 +47,35 @@ test('rewrites entries via OpenAI completions', async () => {
   assert.equal((transport.lastJsonBody as { model: string }).model, 'rewrite-model');
   const body = transport.lastJsonBody as {
     messages: Array<{ role: string; content: string }>;
+    response_format: {
+      json_schema: {
+        schema: {
+          required: string[];
+          properties: Record<string, { type: string | string[] }>;
+        };
+      };
+    };
   };
   assert.match(body.messages[0]!.content, /steady, encouraging language/);
   assert.match(
     body.messages[0]!.content,
     /restructure and smooth the writing more noticeably/,
   );
+  assert.deepEqual(body.response_format.json_schema.schema.required, [
+    'rewrittenText',
+    'title',
+    'summary',
+  ]);
+  const titleProperty = body.response_format.json_schema.schema.properties.title;
+  const summaryProperty =
+    body.response_format.json_schema.schema.properties.summary;
+  assert.ok(titleProperty);
+  assert.ok(summaryProperty);
+  assert.deepEqual(titleProperty.type, [
+    'string',
+    'null',
+  ]);
+  assert.deepEqual(summaryProperty.type, ['string', 'null']);
 });
 
 test('detects themes via OpenAI completions', async () => {
@@ -83,6 +106,59 @@ test('detects themes via OpenAI completions', async () => {
   });
   assert.equal(transport.lastJsonPath, '/chat/completions');
   assert.equal((transport.lastJsonBody as { model: string }).model, 'theme-model');
+  const body = transport.lastJsonBody as {
+    response_format: {
+      json_schema: {
+        schema: {
+          properties: {
+            themes: {
+              items: {
+                required: string[];
+                properties: Record<string, { type: string | string[] }>;
+              };
+            };
+          };
+        };
+      };
+    };
+  };
+  assert.deepEqual(
+    body.response_format.json_schema.schema.properties.themes.items.required,
+    ['id', 'name', 'displayName', 'weight'],
+  );
+  const weightProperty =
+    body.response_format.json_schema.schema.properties.themes.items.properties
+      .weight;
+  assert.ok(weightProperty);
+  assert.deepEqual(weightProperty.type, ['number', 'null']);
+});
+
+test('accepts null optional rewrite and theme fields from OpenAI', async () => {
+  const transport = new FakeTransport({
+    jsonResponse: {
+      status: 200,
+      data: {
+        choices: [
+          {
+            message: {
+              content: JSON.stringify({
+                rewrittenText: 'Clear rewrite',
+                title: null,
+                summary: null,
+              }),
+            },
+          },
+        ],
+      },
+    },
+  });
+  const provider = new OpenAiGatewayProvider(config, transport);
+
+  const result = await provider.rewrite({ originalText: 'raw note' });
+
+  assert.equal(result.rewrittenText, 'Clear rewrite');
+  assert.equal(result.title, undefined);
+  assert.equal(result.summary, undefined);
 });
 
 test('transcribes audio via OpenAI transcription endpoint', async () => {

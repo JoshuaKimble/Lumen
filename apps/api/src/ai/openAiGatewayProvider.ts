@@ -91,10 +91,10 @@ export class OpenAiGatewayProvider implements AiGatewayProvider {
             additionalProperties: false,
             properties: {
               rewrittenText: { type: 'string' },
-              title: { type: 'string' },
-              summary: { type: 'string' },
+              title: { type: ['string', 'null'] },
+              summary: { type: ['string', 'null'] },
             },
-            required: ['rewrittenText'],
+            required: ['rewrittenText', 'title', 'summary'],
           },
         },
       },
@@ -140,9 +140,9 @@ export class OpenAiGatewayProvider implements AiGatewayProvider {
                     id: { type: 'string' },
                     name: { type: 'string' },
                     displayName: { type: 'string' },
-                    weight: { type: 'number' },
+                    weight: { type: ['number', 'null'] },
                   },
-                  required: ['id', 'name', 'displayName'],
+                  required: ['id', 'name', 'displayName', 'weight'],
                 },
               },
             },
@@ -401,7 +401,7 @@ function optionalString(
 ): string | undefined {
   const value = record[key];
 
-  if (value === undefined) {
+  if (value === undefined || value === null) {
     return undefined;
   }
 
@@ -421,7 +421,7 @@ function optionalNumber(
 ): number | undefined {
   const value = record[key];
 
-  if (value === undefined) {
+  if (value === undefined || value === null) {
     return undefined;
   }
 
