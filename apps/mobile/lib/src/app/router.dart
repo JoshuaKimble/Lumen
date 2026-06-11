@@ -13,6 +13,7 @@ import '../features/auth/presentation/verify_pending_screen.dart';
 import '../features/journal/presentation/journal_entry_detail_screen.dart';
 import '../features/journal/presentation/journal_entry_editor_screen.dart';
 import '../features/journal/presentation/journal_home_screen.dart';
+import '../features/journal/presentation/journal_study_guide_screen.dart';
 import '../features/journal/presentation/theme_cloud_screen.dart';
 import '../features/journal/presentation/theme_detail_screen.dart';
 import '../features/journal/presentation/voice_recording_screen.dart';
@@ -29,6 +30,8 @@ const journalEntryCreateRouteName = 'journal-entry-create';
 const journalEntryCreateRoutePath = '/entries/new';
 const journalEntryDetailRouteName = 'journal-entry-detail';
 const journalEntryDetailRoutePath = '/entries/:entryId';
+const journalStudyGuideRouteName = 'journal-study-guide';
+const journalStudyGuideRoutePath = '/entries/:entryId/study-guide';
 const journalEntryEditRouteName = 'journal-entry-edit';
 const journalEntryEditRoutePath = '/entries/:entryId/edit';
 const themeCloudRouteName = 'theme-cloud';
@@ -242,6 +245,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               final entryId = state.pathParameters['entryId']!;
 
               return JournalEntryDetailScreen(entryId: entryId);
+            },
+          ),
+          GoRoute(
+            name: journalStudyGuideRouteName,
+            path: journalStudyGuideRoutePath,
+            builder: (context, state) {
+              final entryId = state.pathParameters['entryId']!;
+
+              return JournalStudyGuideScreen(entryId: entryId);
             },
           ),
           GoRoute(
