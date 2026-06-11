@@ -65,6 +65,51 @@ values
     'Reflection prompt template for stress and regulation.',
     '{"kind":"reflection_prompt_template"}'::jsonb,
     true
+  ),
+  (
+    'catalog:prompt:work-boundary-review',
+    'prompt_template',
+    'reflection_prompt',
+    'lumen_curated',
+    'general',
+    'Review the boundary you need',
+    'Prompt template for clarifying one concrete work boundary and how to communicate it.',
+    null,
+    null,
+    'What is one boundary that would reduce your work stress this week, and how can you communicate it clearly?',
+    'Reflection prompt template for work pressure, deadlines, and boundaries.',
+    '{"kind":"reflection_prompt_template"}'::jsonb,
+    true
+  ),
+  (
+    'catalog:exercise:gratitude-three-specifics',
+    'resource',
+    'exercise',
+    'lumen_curated',
+    'general',
+    'Three specifics gratitude exercise',
+    'List three specific things from today and why each one mattered to you.',
+    null,
+    null,
+    null,
+    'Guided gratitude exercise focused on concrete detail instead of vague positivity.',
+    '{"kind":"exercise"}'::jsonb,
+    true
+  ),
+  (
+    'catalog:prompt:reflection-next-honest-step',
+    'prompt_template',
+    'reflection_prompt',
+    'lumen_curated',
+    'general',
+    'Name the next honest step',
+    'Fallback reflection prompt when no stronger theme match exists.',
+    null,
+    null,
+    'What is the next honest step you can take, and what would make it easier to follow through today?',
+    'General reflection prompt template for honest next steps and self-awareness.',
+    '{"kind":"reflection_prompt_template"}'::jsonb,
+    true
   )
 on conflict (catalog_key) do update
 set
@@ -91,8 +136,14 @@ values
   ('catalog:scripture:psalm-46-10', 'peace', 0.72),
   ('catalog:article:work-boundaries', 'work', 0.94),
   ('catalog:article:work-boundaries', 'boundaries', 0.9),
+  ('catalog:article:work-boundaries', 'stress', 0.71),
   ('catalog:prompt:stress-breathing-checkin', 'stress', 0.96),
-  ('catalog:prompt:stress-breathing-checkin', 'fatigue', 0.68)
+  ('catalog:prompt:stress-breathing-checkin', 'fatigue', 0.68),
+  ('catalog:prompt:work-boundary-review', 'work', 0.92),
+  ('catalog:prompt:work-boundary-review', 'stress', 0.83),
+  ('catalog:exercise:gratitude-three-specifics', 'gratitude', 0.9),
+  ('catalog:exercise:gratitude-three-specifics', 'reflection', 0.62),
+  ('catalog:prompt:reflection-next-honest-step', 'reflection', 0.95)
 on conflict (catalog_key, theme_id) do update
 set
   weight = excluded.weight;

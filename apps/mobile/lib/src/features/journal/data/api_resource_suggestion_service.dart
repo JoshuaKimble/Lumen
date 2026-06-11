@@ -38,6 +38,7 @@ class ApiResourceSuggestionService implements ResourceSuggestionService {
             confidence: suggestion.confidence,
             description: suggestion.description,
             url: suggestion.url == null ? null : Uri.parse(suggestion.url!),
+            scriptureReference: suggestion.scriptureReference,
             entryId: suggestion.entryId,
             themeId: suggestion.themeId,
           ),

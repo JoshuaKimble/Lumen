@@ -45,12 +45,19 @@ import {
 } from './accountDeletion/accountDeletionStore.js';
 import { SupabaseAccountDeletionStore } from './accountDeletion/supabaseAccountDeletionStore.js';
 import { parseSupabaseServerConfig } from './supabase/supabaseConfig.js';
+import { CatalogResourceSuggestionOrchestrator } from './resourceSuggestions/catalogResourceSuggestionOrchestrator.js';
+import type { ResourceSuggestionOrchestrator } from './resourceSuggestions/catalogResourceSuggestionOrchestrator.js';
+import { InMemoryCuratedResourceCatalogStore } from './resourceSuggestions/inMemoryCuratedResourceCatalogStore.js';
+import { SupabaseCuratedResourceCatalogStore } from './resourceSuggestions/supabaseCuratedResourceCatalogStore.js';
+import type { CuratedResourceCatalogStore } from './resourceSuggestions/curatedResourceCatalogStore.js';
 
 export interface AppDependencies {
   readonly aiProvider?: AiGatewayProvider;
   readonly authVerifier?: AuthVerifier;
   readonly resourceFeedbackStore?: ResourceFeedbackStore;
   readonly accountDeletionStore?: AccountDeletionStore;
+  readonly curatedResourceCatalogStore?: CuratedResourceCatalogStore;
+  readonly resourceSuggestionOrchestrator?: ResourceSuggestionOrchestrator;
 }
 
 const acceptedAudioMimeTypes = new Set([
@@ -81,6 +88,18 @@ export function createApiServer(dependencies: AppDependencies = {}): Server {
       ? new SupabaseAccountDeletionStore({config: supabaseConfig})
       : undefined);
 
+  const curatedResourceCatalogStore =
+    dependencies.curatedResourceCatalogStore ??
+    (supabaseConfig.enabled
+      ? new SupabaseCuratedResourceCatalogStore({config: supabaseConfig})
+      : new InMemoryCuratedResourceCatalogStore());
+  const resourceSuggestionOrchestrator =
+    dependencies.resourceSuggestionOrchestrator ??
+    new CatalogResourceSuggestionOrchestrator({
+      themeDetector: aiProvider,
+      catalogStore: curatedResourceCatalogStore,
+    });
+
   return createServer(async (request, response) => {
     applyCorsHeaders(request, response);
 
@@ -89,6 +108,7 @@ export function createApiServer(dependencies: AppDependencies = {}): Server {
         request,
         response,
         aiProvider,
+        resourceSuggestionOrchestrator,
         authVerifier,
         resourceFeedbackStore,
         accountDeletionStore,
@@ -170,6 +190,7 @@ async function routeRequest(
   request: IncomingMessage,
   response: Parameters<typeof sendJson>[0],
   aiProvider: AiGatewayProvider,
+  resourceSuggestionOrchestrator: ResourceSuggestionOrchestrator,
   authVerifier?: AuthVerifier,
   resourceFeedbackStore?: ResourceFeedbackStore,
   accountDeletionStore?: AccountDeletionStore,
@@ -230,7 +251,7 @@ async function routeRequest(
       themeIds: requireOptionalStringArray(body, 'themeIds'),
     };
     const result = validateResourceSuggestionResult(
-      await aiProvider.suggestResources(requestBody),
+      await resourceSuggestionOrchestrator.suggest(requestBody),
     );
 
     sendJson(response, 200, result);

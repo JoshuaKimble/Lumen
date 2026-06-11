@@ -205,35 +205,28 @@ test('resource suggestion endpoint returns deterministic mock response', async (
   assert.deepEqual(body, {
     suggestions: [
       {
-        id: 'work-prompt-review-boundaries',
+        id: 'catalog:prompt:work-boundary-review',
         type: 'reflection_prompt',
-        title: 'What boundary would reduce your stress this week?',
+        title: 'Review the boundary you need',
         description:
-          'Name one boundary you can hold this week and one way to communicate it clearly.',
-        sourceType: 'ai_mapped',
-        matchReason: 'Detected work-related pressure and deadline language.',
-        confidence: 0.91,
+          'What is one boundary that would reduce your work stress this week, and how can you communicate it clearly?',
+        sourceType: 'curated',
+        matchReason:
+          'Matched curated reflection prompt content for work (92% theme affinity). It also overlaps with the language in this entry.',
+        confidence: 0.9,
         themeId: 'work',
       },
       {
-        id: 'stress-prompt-body-signal',
-        type: 'reflection_prompt',
-        title: 'Where did stress show up in your body today?',
-        description:
-          'Describe what you felt physically and what was happening right before it.',
-        sourceType: 'ai_mapped',
-        matchReason: 'Detected stress, tension, or anxiety keywords.',
-        confidence: 0.88,
-        themeId: 'stress',
-      },
-      {
-        id: 'work-article-deep-work',
+        id: 'catalog:article:work-boundaries',
         type: 'talk_or_article',
-        title: 'Deep Work notes for focused planning',
-        url: 'https://www.calnewport.com/books/deep-work/',
+        title: 'Hold one boundary this week',
+        description:
+          'A curated long-form reflection on protecting rest and attention during demanding work periods.',
+        url: 'https://example.com/resources/work-boundaries',
         sourceType: 'curated',
-        matchReason: 'Matches work focus and priority planning themes.',
-        confidence: 0.74,
+        matchReason:
+          'Matched curated talk or article content for work (94% theme affinity). It also overlaps with the language in this entry.',
+        confidence: 0.82,
         themeId: 'work',
       },
     ],
@@ -631,19 +624,10 @@ test('maps provider malformed response to safe 502 response', async () => {
   );
 });
 
-test('resource suggestion endpoint rejects malformed provider responses', async () => {
+test('resource suggestion endpoint rejects malformed orchestrator responses', async () => {
   const malformedServer = createApiServer({
-    aiProvider: {
-      async rewrite() {
-        return { rewrittenText: 'ok' };
-      },
-      async detectThemes() {
-        return { themes: [] };
-      },
-      async transcribe() {
-        return { transcript: 'ok' };
-      },
-      async suggestResources() {
+    resourceSuggestionOrchestrator: {
+      async suggest() {
         return {
           suggestions: [
             {

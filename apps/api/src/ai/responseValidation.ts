@@ -105,6 +105,7 @@ function validateSuggestion(suggestion: ResourceSuggestion): ResourceSuggestion 
     title: suggestion.title,
     description: optionalString(suggestion.description),
     url: optionalString(suggestion.url),
+    scriptureReference: optionalString(suggestion.scriptureReference),
     sourceType: suggestion.sourceType,
     matchReason: suggestion.matchReason,
     confidence: suggestion.confidence,

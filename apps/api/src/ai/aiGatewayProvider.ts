@@ -70,6 +70,7 @@ export interface ResourceSuggestion {
   readonly title: string;
   readonly description?: string;
   readonly url?: string;
+  readonly scriptureReference?: string;
   readonly sourceType: 'curated' | 'ai_mapped' | 'user_created';
   readonly matchReason: string;
   readonly confidence: number;

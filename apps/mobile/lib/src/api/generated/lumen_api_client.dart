@@ -312,6 +312,7 @@ class ApiRelatedResourceSuggestion {
     required this.confidence,
     this.description,
     this.url,
+    this.scriptureReference,
     this.entryId,
     this.themeId,
   });
@@ -326,6 +327,7 @@ class ApiRelatedResourceSuggestion {
       confidence: _requiredNumber(json, 'confidence'),
       description: _optionalString(json, 'description'),
       url: _optionalString(json, 'url'),
+      scriptureReference: _optionalString(json, 'scriptureReference'),
       entryId: _optionalString(json, 'entryId'),
       themeId: _optionalString(json, 'themeId'),
     );
@@ -339,6 +341,7 @@ class ApiRelatedResourceSuggestion {
   final double confidence;
   final String? description;
   final String? url;
+  final String? scriptureReference;
   final String? entryId;
   final String? themeId;
 }

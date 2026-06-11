@@ -44,7 +44,7 @@ void main() {
               expect(request.url.path, '/v1/resources/suggest');
 
               return http.Response(
-                '{"suggestions":[{"id":"faith-scripture-psalm-46-10","type":"scripture","title":"Psalm 46:10","description":"Be still.","sourceType":"curated","matchReason":"faith match","confidence":0.82,"themeId":"faith"}]}',
+                '{"suggestions":[{"id":"faith-scripture-psalm-46-10","type":"scripture","title":"Psalm 46:10","description":"Be still.","scriptureReference":"Psalm 46:10","sourceType":"curated","matchReason":"faith match","confidence":0.82,"themeId":"faith"}]}',
                 200,
               );
             }),
@@ -59,6 +59,7 @@ void main() {
         expect(suggestions, hasLength(1));
         expect(suggestions.single.url?.host, 'www.bible.com');
         expect(suggestions.single.url?.path, '/search/bible');
+        expect(suggestions.single.scriptureReference, 'Psalm 46:10');
       },
     );
 

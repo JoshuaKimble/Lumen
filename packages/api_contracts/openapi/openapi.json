@@ -494,6 +494,9 @@
             "type": "string",
             "format": "uri"
           },
+          "scriptureReference": {
+            "type": "string"
+          },
           "sourceType": {
             "type": "string",
             "enum": ["curated", "ai_mapped", "user_created"]
