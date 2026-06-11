@@ -492,10 +492,10 @@ Depends on:
 - Issue 19.
 - Issue 20.
 
-## Issue 22: Backlog: define related resources and reflection prompts
+## Issue 22: Backlog: define Study Guides and reflection prompts
 
 Goal:
-Turn the nice-to-have related resource/reflection prompt concept into a clear
+Turn the Study Guide / reflection prompt concept into a clear
 future feature plan.
 
 Scope:
@@ -507,10 +507,9 @@ Scope:
 
 Acceptance criteria:
 
-- Product and technical docs describe related resources clearly.
+- Product and technical docs describe Study Guides clearly.
 - Follow-up implementation issues are created if the feature moves into scope.
 
 Depends on:
 
 - Issue 17.
-

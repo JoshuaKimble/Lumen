@@ -145,12 +145,12 @@ representations of the same journal entry.
 ### 3. Core Journal UX
 
 - Build entry list with date, title or summary, preview text, and themes.
-- Build entry detail with original text, rewritten text, themes, resources,
-  created date/time, and optional summary/title.
+- Build entry detail with original text, summary, themes, a Study Guide CTA,
+  created date/time, and optional title.
+- Build a dedicated entry-based Study Guide page with manual completion state.
 - Build text entry creation.
 - Support edit and delete.
-- Make original and rewritten versions visually distinct.
-- Make rewrite copy clear: AI output is a suggestion, not a replacement.
+- Make original-entry preservation clear and trustworthy.
 
 ### 4. Backend AI Gateway
 
@@ -159,7 +159,7 @@ representations of the same journal entry.
   - audio transcription
   - entry rewriting
   - theme detection
-  - future resource suggestions
+  - future Study Guide generation
 - Keep provider API keys and prompt templates on the backend.
 - Validate requests and responses.
 - Provide local mock mode so Flutter UI work can continue without live AI calls.
@@ -176,15 +176,17 @@ representations of the same journal entry.
 ### 6. AI Workflow Integration
 
 - Flutter sends transcript or typed original text to the backend gateway.
-- Backend returns rewritten text and themes.
-- Flutter saves original text, rewritten text, and themes together on the entry.
-- Add regenerate flow for rewritten text after the first MVP loop works.
+- Backend returns summary metadata, themes, and future Study Guide payloads.
+- Flutter saves original text, summary metadata, and themes on the entry.
+- Flutter renders the Study Guide as a separate generated artifact rather than
+  a flat resource list.
 - Keep AI behavior aligned with product requirements:
   - preserve meaning and perspective
   - avoid diagnosis
   - avoid unsupported conclusions
   - avoid clinical, preachy, generic, or overly polished language
   - avoid turning every entry into advice
+  - avoid replacing the source material with long in-app summaries
 
 ### 7. Voice-First Capture
 
@@ -203,8 +205,8 @@ representations of the same journal entry.
 - Make theme prominence reflect frequency or significance.
 - Let users tap a theme to view related entries.
 - Add theme detail with related entries and room for future AI insights.
-- Defer related resources until the core theme loop works, unless needed for an
-  early product demo.
+- Defer theme-based Study Guides to V2 while entry-based Study Guides harden in
+  V1.
 
 ### 9. Privacy And Trust
 
@@ -261,25 +263,23 @@ analytics in the MVP.
 - Keep `.githooks/commit-msg` active for Conventional Commits.
 - Add CI later to run Flutter checks, API checks, and contract checks together.
 
-## Related Resources and Reflection Prompts (Planned)
+## Study Guides and Reflection Prompts (Planned)
 
 ### Objective
 
-Implement a trusted, explainable suggestion system for related resources and
-reflection prompts that supports theme exploration without noisy
-recommendations.
+Implement a trusted, explainable Study Guide system that turns a reflection
+into a concise gospel-focused study path with a required reflection prompt.
 
 ### Data Model Additions
 
-Extend `RelatedResource` with:
+Add dedicated Study Guide types that can:
 
-- `sourceType` (`curated`, `ai_mapped`, future `user_created`)
-- `matchReason`
-- `confidence` (0 to 1)
-- `dismissedAt` (optional)
-- `savedAt` (optional)
+- attach one frozen guide artifact to an entry
+- represent ordered study resources plus a required reflection prompt
+- carry provider-aware destination metadata
+- keep manual completion state separate from the guide artifact
 
-Resource `type` should support:
+Study Guide resource `type` should support:
 
 - `reflection_prompt`
 - `scripture`
@@ -292,31 +292,31 @@ Resource `type` should support:
 ### Backend Responsibilities
 
 - Maintain curated catalog(s) by resource type and tradition/provider.
-- Map entry/theme context to candidate resources.
-- Return ranked suggestions with provenance metadata.
+- Map entry context to provider-compatible guide resources.
+- Return ranked Study Guide payloads with provenance metadata.
 - Filter low-confidence results.
-- Keep suggestion logic and prompts server-side.
+- Keep guide generation logic and prompts server-side.
 
 ### Flutter Responsibilities
 
-- Display entry-level and theme-level suggestion groups.
-- Render resource cards by resource type.
-- Support hide, save, and not-helpful actions.
-- Persist local interaction state until cloud sync is introduced.
+- Display the Study Guide CTA on entry detail.
+- Render the dedicated Study Guide page.
+- Support manual completion state that changes style only.
+- Persist local completion state until cloud sync is introduced.
 
 ### Ranking and Safety Rules
 
-- Rank by theme match, semantic relevance, and user feedback signals.
-- Require minimum confidence thresholds before showing suggestions.
-- Limit suggestion count per entry/theme to avoid overload.
+- Rank by provider compatibility, theme match, and semantic relevance.
+- Require minimum confidence thresholds before showing guide resources.
+- Limit guide size so low-confidence filler does not appear.
 - Avoid diagnostic, prescriptive, or high-pressure guidance.
 
 ### Delivery Sequence
 
 1. Define OpenAPI contracts and shared types.
-2. Ship mock suggestion endpoint with deterministic provenance payloads.
+2. Ship mock Study Guide endpoint with deterministic payloads.
 3. Add Flutter data plumbing and UI rendering.
-4. Add user feedback actions and local persistence.
+4. Add manual completion persistence.
 5. Integrate curated catalogs and provider-specific mapping.
 6. Add evaluation metrics and tuning loops.
 

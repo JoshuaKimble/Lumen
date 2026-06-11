@@ -4,7 +4,7 @@
 
 Build a voice-first journaling app that helps users quickly capture raw
 thoughts, then uses AI to summarize those thoughts, surface recurring themes,
-and connect them to helpful related resources.
+and turn them into helpful gospel-focused study guides.
 
 The app should preserve the user's original words while also adding lightweight
 AI metadata that makes entries easier to revisit and reflect on later.
@@ -25,7 +25,9 @@ Users should be able to:
 4. Generate an AI summary and optional title for easier recall.
 5. Detect high-level themes from the entry.
 6. Browse recurring themes over time.
-7. Tap a theme to see related journal entries and helpful linked resources.
+7. Open a study guide generated from a journal entry.
+8. Later, tap a theme to see related journal entries and future theme-level
+   study guidance.
 
 ---
 
@@ -41,7 +43,9 @@ The ideal flow is:
 4. App saves the original entry.
 5. AI produces a lightweight summary.
 6. App tags the entry with themes.
-7. User can later review entries by date, theme, or related reflections.
+7. App generates a study guide from the reflection.
+8. User can later review entries by date, theme, or continue study from the
+   generated guide.
 
 The app should help users journal even when their thoughts are messy,
 fragmented, emotional, or stream-of-consciousness.
@@ -60,7 +64,7 @@ Users should be able to:
 - Stop recording when finished.
 - Review the transcribed text.
 - Save the entry.
-- Generate summary, themes, and related resources from the transcript.
+- Generate summary, themes, and a study guide from the transcript.
 
 The app should make voice capture feel like the default path, not a secondary
 feature.
@@ -74,7 +78,7 @@ Users should be able to:
 - Start a text journal entry.
 - Write freely.
 - Save the original text.
-- Generate summary, themes, and related resources.
+- Generate summary, themes, and a study guide.
 - Edit before or after saving if needed.
 
 ---
@@ -160,18 +164,22 @@ The theme detail view should include:
 
 - Journal entries associated with that theme.
 - Related AI-generated insights or summaries.
-- Links or resources connected to that theme.
+- Future theme-level study guidance.
 
 The purpose is to let users explore recurring patterns in their life, not just
 see a static tag list.
 
 ---
 
-## Related Resources Requirements
+## Study Guide Requirements
 
-Each entry or theme may include associated links or resources.
+The study guide is the primary generated outcome of a journal entry.
 
-Resources could include:
+The journal entry is the input. The study guide is the path forward.
+
+In V1, study guides are entry-based only. Theme-based guides are deferred.
+
+Study guide content may include:
 
 - Articles
 - Videos
@@ -181,21 +189,22 @@ Resources could include:
 - Exercises
 - Other user-created entries
 
-The app should associate resources with the relevant theme or entry.
+The guide should organize these resources into a concise, trustworthy study
+experience rather than exposing them as a flat list.
 
-The resources should feel helpful and reflective, not like random
-recommendations.
+The guide should feel helpful and reflective, not like random
+recommendations or homework.
 
 ---
 
-## Related Resources and Reflection Prompt Policy (Planned)
+## Study Guide and Reflection Prompt Policy (Planned)
 
-This section defines the intended product behavior for related resources and
+This section defines the intended product behavior for Study Guides and
 reflection prompts so implementation can be scoped safely.
 
 ### Resource Types
 
-The app should support these resource types:
+The app should support these study-guide resource types:
 
 - `reflection_prompt`: short journaling prompts that help the user reflect
   further.
@@ -212,30 +221,31 @@ The app should support these resource types:
 Initial strategy should be mixed:
 
 1. Curated catalog for trusted baseline quality.
-2. AI-generated suggestions that map entry/theme context to curated items.
+2. AI-generated guide construction that maps entry context to curated items.
 3. User-created links or notes as an optional later enhancement.
 
 The product should avoid fully open-ended recommendations in MVP stages.
 
 ### Helpfulness Policy
 
-The system should prioritize relevance, emotional safety, and reflection value:
+The system should prioritize relevance, emotional safety, and study value:
 
-- Recommendations must connect to the current entry text or detected themes.
-- Recommendations should stay high-level and avoid overconfident life advice.
-- If confidence is low, show fewer suggestions rather than noisy suggestions.
-- Suggestions should never be presented as diagnosis, treatment, or authority.
-- The app should be explicit that suggestions are optional and user-controlled.
+- Study guide resources must connect to the current entry text or detected
+  themes.
+- The guide should stay high-level and avoid overconfident life advice.
+- If confidence is low, show fewer resources rather than noisy suggestions.
+- Resources should never be presented as diagnosis, treatment, or authority.
+- The app should be explicit that the guide is supportive and user-controlled.
 
 ### Association Rules
 
 Association should happen at two levels:
 
-1. Entry-level suggestions: generated from the entry text and detected themes.
-2. Theme-level suggestions: generated from recurring themes and reused across
-   entries in that theme.
+1. Entry-level guides: generated from the entry text and detected themes.
+2. Theme-level guides: generated from recurring themes and reused across
+   entries in that theme in a later version.
 
-Each suggestion should include provenance metadata:
+Each generated resource should include provenance metadata:
 
 - source type (`curated`, `ai_mapped`, future `user_created`)
 - match reason (theme match, keyword match, intent match)
@@ -250,6 +260,8 @@ Reflection prompts should be:
 - non-judgmental
 - focused on clarifying user thoughts, not directing outcomes
 
+In V1, every study guide should include one required reflection prompt.
+
 Prompt generation should favor prompt templates + theme adaptation over fully
 free-form generation in early versions.
 
@@ -257,7 +269,9 @@ free-form generation in early versions.
 
 Users should be able to:
 
-- hide a suggestion
+- open study resources in their preferred study app
+- manually mark resources complete
+- revisit a guide later without losing completion state
 - save a suggestion
 - mark suggestions as not helpful
 - select preferred resource traditions/providers in settings (planned)
@@ -350,7 +364,7 @@ distinction between:
 2. Personal journaling / emotional processing.
 
 The current product direction is to treat automatic summary, themes, and
-resource suggestions as the default journaling assistance. Users may still dump
+Study Guide generation as the default journaling assistance. Users may still dump
 raw thoughts about subjects like theology, scripture study, philosophy,
 creative ideas, or personal frameworks, but the app should not assume that a
 full rewrite is the right default response. In these cases, lighter AI support

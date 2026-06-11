@@ -5,7 +5,7 @@ Repository: `JoshuaKimble/Lumen`
 
 ## 1) Snapshot Summary
 
-Lumen is a Flutter-first, voice-enabled AI journaling application in a monorepo. It currently supports local-first journaling with AI-assisted rewrite, theme detection, and related resource suggestions. The architecture is transitioning to Supabase for user-owned cloud persistence, authentication, and security boundaries.
+Lumen is a Flutter-first, voice-enabled AI journaling application in a monorepo. It currently supports local-first journaling with AI-assisted summary metadata, theme detection, and an entry-based Study Guide flow. The architecture is transitioning to Supabase for user-owned cloud persistence, authentication, and security boundaries.
 
 The current backend API remains an AI gateway and should continue to own provider secrets and prompt orchestration. OpenAI access should not move to the Flutter client.
 
