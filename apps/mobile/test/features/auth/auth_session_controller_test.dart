@@ -3,8 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lumen/src/app/supabase_config.dart';
 import 'package:lumen/src/features/auth/data/auth_service_provider.dart';
 import 'package:lumen/src/features/auth/data/auth_session_controller.dart';
+import 'package:lumen/src/features/auth/data/user_capabilities_service_provider.dart';
 import 'package:lumen/src/features/auth/domain/auth_service.dart';
 import 'package:lumen/src/features/auth/domain/auth_session.dart';
+import 'package:lumen/src/features/auth/domain/user_capabilities.dart';
+import 'package:lumen/src/features/auth/domain/user_capabilities_service.dart';
 import 'package:lumen/src/features/profiles/data/current_user_profile_controller.dart';
 import 'package:lumen/src/features/profiles/data/profile_service_provider.dart';
 import 'package:lumen/src/features/profiles/domain/profile_service.dart';
@@ -55,6 +58,9 @@ void main() {
           authServiceProvider.overrideWithValue(
             _FakeAuthService(loginResult: expected),
           ),
+          userCapabilitiesServiceProvider.overrideWithValue(
+            const _FakeUserCapabilitiesService(),
+          ),
           profileServiceProvider.overrideWithValue(
             _FakeProfileService(profile: _sampleProfile()),
           ),
@@ -92,6 +98,9 @@ void main() {
           ),
           authServiceProvider.overrideWithValue(
             _FakeAuthService(loginResult: session),
+          ),
+          userCapabilitiesServiceProvider.overrideWithValue(
+            const _FakeUserCapabilitiesService(),
           ),
           profileServiceProvider.overrideWithValue(
             _FakeProfileService(
@@ -194,5 +203,14 @@ class _FakeProfileService implements ProfileService {
   Future<UserProfile> saveProfile(UserProfile nextProfile) async {
     profile = nextProfile;
     return profile;
+  }
+}
+
+class _FakeUserCapabilitiesService implements UserCapabilitiesService {
+  const _FakeUserCapabilitiesService();
+
+  @override
+  Future<UserCapabilities> getForSession(AuthSession session) async {
+    return UserCapabilities.none;
   }
 }

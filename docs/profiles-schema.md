@@ -12,6 +12,11 @@ Profiles and Onboarding.
 - scripture app preference routing
 - theme preference hydration across signed-in sessions
 
+Authorization is intentionally stored elsewhere. Server-managed capabilities
+such as admin access live in
+[user-capabilities-schema.md](/Users/joshuakimble/Documents/workspace/apps/Lumen/docs/user-capabilities-schema.md)
+so they are not editable through the profile ownership model.
+
 The row is keyed 1:1 to `auth.users` through `profiles.id`.
 
 ## Columns

@@ -6,8 +6,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lumen/src/app/lumen_app.dart';
 import 'package:lumen/src/app/supabase_config.dart';
 import 'package:lumen/src/features/auth/data/auth_service_provider.dart';
+import 'package:lumen/src/features/auth/data/user_capabilities_service_provider.dart';
 import 'package:lumen/src/features/auth/domain/auth_service.dart';
 import 'package:lumen/src/features/auth/domain/auth_session.dart';
+import 'package:lumen/src/features/auth/domain/user_capabilities.dart';
+import 'package:lumen/src/features/auth/domain/user_capabilities_service.dart';
 import 'package:lumen/src/features/journal/data/journal_ai_service_provider.dart';
 import 'package:lumen/src/features/journal/data/in_memory_journal_repository.dart';
 import 'package:lumen/src/features/journal/data/journal_repository_provider.dart';
@@ -559,6 +562,9 @@ void main() {
         email: 'joshuakimble@gmail.com',
         emailVerified: true,
       ),
+      capabilitiesService: _FakeUserCapabilitiesService(
+        capabilities: const UserCapabilities(isAdmin: true),
+      ),
     );
 
     await tester.tap(find.text('A difficult but honest morning'));
@@ -573,43 +579,22 @@ void main() {
     );
     final aiService = _ControlledAiService();
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          supabaseClientConfigProvider.overrideWithValue(
-            const SupabaseClientConfig(
-              enabled: true,
-              url: 'https://example.supabase.co',
-              publishableKey: 'sb_publishable_example',
-            ),
-          ),
-          authServiceProvider.overrideWithValue(
-            _FakeAuthService(
-              currentSession: const AuthSession(
-                userId: 'user-1',
-                email: 'joshuakimble@gmail.com',
-                emailVerified: true,
-              ),
-            ),
-          ),
-          profileServiceProvider.overrideWithValue(
-            _FakeProfileService(
-              profile: _sampleProfile(onboardingCompleted: true),
-            ),
-          ),
-          journalRepositoryProvider.overrideWithValue(repository),
-          journalAiServiceProvider.overrideWithValue(aiService),
-          themePreferenceRepositoryProvider.overrideWithValue(
-            _FakeThemePreferenceRepository(),
-          ),
-          scriptureAppPreferenceRepositoryProvider.overrideWithValue(
-            _FakeScriptureAppPreferenceRepository(),
-          ),
-        ],
-        child: const LumenApp(),
+    await _pumpAuthenticatedApp(
+      tester,
+      profileService: _FakeProfileService(
+        profile: _sampleProfile(onboardingCompleted: true),
       ),
+      repository: repository,
+      session: const AuthSession(
+        userId: 'user-1',
+        email: 'joshuakimble@gmail.com',
+        emailVerified: true,
+      ),
+      capabilitiesService: _FakeUserCapabilitiesService(
+        capabilities: const UserCapabilities(isAdmin: true),
+      ),
+      journalAiService: aiService,
     );
-    await tester.pumpAndSettle();
 
     await tester.tap(find.text('A raw work note'));
     await tester.pumpAndSettle();
@@ -647,43 +632,22 @@ void main() {
       seedEntries: [_unprocessedEntry],
     );
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          supabaseClientConfigProvider.overrideWithValue(
-            const SupabaseClientConfig(
-              enabled: true,
-              url: 'https://example.supabase.co',
-              publishableKey: 'sb_publishable_example',
-            ),
-          ),
-          authServiceProvider.overrideWithValue(
-            _FakeAuthService(
-              currentSession: const AuthSession(
-                userId: 'user-1',
-                email: 'joshuakimble@gmail.com',
-                emailVerified: true,
-              ),
-            ),
-          ),
-          profileServiceProvider.overrideWithValue(
-            _FakeProfileService(
-              profile: _sampleProfile(onboardingCompleted: true),
-            ),
-          ),
-          journalRepositoryProvider.overrideWithValue(repository),
-          journalAiServiceProvider.overrideWithValue(const _FailingAiService()),
-          themePreferenceRepositoryProvider.overrideWithValue(
-            _FakeThemePreferenceRepository(),
-          ),
-          scriptureAppPreferenceRepositoryProvider.overrideWithValue(
-            _FakeScriptureAppPreferenceRepository(),
-          ),
-        ],
-        child: const LumenApp(),
+    await _pumpAuthenticatedApp(
+      tester,
+      profileService: _FakeProfileService(
+        profile: _sampleProfile(onboardingCompleted: true),
       ),
+      repository: repository,
+      session: const AuthSession(
+        userId: 'user-1',
+        email: 'joshuakimble@gmail.com',
+        emailVerified: true,
+      ),
+      capabilitiesService: _FakeUserCapabilitiesService(
+        capabilities: const UserCapabilities(isAdmin: true),
+      ),
+      journalAiService: const _FailingAiService(),
     );
-    await tester.pumpAndSettle();
 
     await tester.tap(find.text('A raw work note'));
     await tester.pumpAndSettle();
@@ -1178,11 +1142,24 @@ class _FakeProfileService implements ProfileService {
   }
 }
 
+class _FakeUserCapabilitiesService implements UserCapabilitiesService {
+  const _FakeUserCapabilitiesService({required this.capabilities});
+
+  final UserCapabilities capabilities;
+
+  @override
+  Future<UserCapabilities> getForSession(AuthSession session) async {
+    return capabilities;
+  }
+}
+
 Future<void> _pumpAuthenticatedApp(
   WidgetTester tester, {
   required _FakeProfileService profileService,
   InMemoryJournalRepository? repository,
   AuthSession? session,
+  UserCapabilitiesService? capabilitiesService,
+  JournalAiService? journalAiService,
   ThemePreferenceRepository? themeRepository,
   ScriptureAppPreferenceRepository? scriptureRepository,
 }) async {
@@ -1208,9 +1185,15 @@ Future<void> _pumpAuthenticatedApp(
           ),
         ),
         profileServiceProvider.overrideWithValue(profileService),
+        userCapabilitiesServiceProvider.overrideWithValue(
+          capabilitiesService ??
+              _FakeUserCapabilitiesService(capabilities: UserCapabilities.none),
+        ),
         journalRepositoryProvider.overrideWithValue(
           repository ?? InMemoryJournalRepository(),
         ),
+        if (journalAiService != null)
+          journalAiServiceProvider.overrideWithValue(journalAiService),
         themePreferenceRepositoryProvider.overrideWithValue(
           themeRepository ?? _FakeThemePreferenceRepository(),
         ),

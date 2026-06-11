@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/supabase_config.dart';
 import '../domain/auth_session.dart';
+import 'current_user_capabilities_controller.dart';
 import 'auth_service_provider.dart';
 import '../../profiles/data/current_user_profile_controller.dart';
 
@@ -54,6 +55,7 @@ class AuthSessionController extends AsyncNotifier<AuthSession?> {
     final authService = ref.read(authServiceProvider);
     await authService.logout();
     ref.read(currentUserProfileControllerProvider.notifier).clear();
+    ref.read(currentUserCapabilitiesControllerProvider.notifier).clear();
     state = const AsyncData(null);
   }
 
@@ -92,19 +94,25 @@ class AuthSessionController extends AsyncNotifier<AuthSession?> {
     final profileController = ref.read(
       currentUserProfileControllerProvider.notifier,
     );
+    final capabilitiesController = ref.read(
+      currentUserCapabilitiesControllerProvider.notifier,
+    );
 
     if (session == null) {
       profileController.clear();
+      capabilitiesController.clear();
       return;
     }
 
     if (!ref.read(supabaseClientConfigProvider).enabled) {
       profileController.clear();
+      capabilitiesController.clear();
       return;
     }
 
     if (!swallowFailure) {
       await profileController.hydrateForSession(session);
+      await capabilitiesController.hydrateForSession(session);
       return;
     }
 
@@ -112,6 +120,12 @@ class AuthSessionController extends AsyncNotifier<AuthSession?> {
       await profileController.hydrateForSession(session);
     } catch (_) {
       // Preserve the auth session on restore even if profile hydration fails.
+    }
+
+    try {
+      await capabilitiesController.hydrateForSession(session);
+    } catch (_) {
+      // Preserve the auth session on restore even if capability hydration fails.
     }
   }
 }
