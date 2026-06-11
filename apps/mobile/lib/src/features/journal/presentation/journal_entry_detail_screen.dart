@@ -6,12 +6,8 @@ import '../../../app/router.dart';
 import '../../auth/data/admin_access_provider.dart';
 import '../data/journal_ai_service_provider.dart';
 import '../data/journal_repository_provider.dart';
-import '../data/resource_suggestion_service_provider.dart';
-import '../../settings/data/scripture_app_preference_provider.dart';
-import '../../settings/domain/scripture_app_preference.dart';
 import '../domain/journal_entry.dart';
 import '../domain/related_resource.dart';
-import '../domain/resource_suggestion_service.dart';
 import 'journal_entries_provider.dart';
 import 'journal_entry_provider.dart';
 import 'journal_formatters.dart';
@@ -182,6 +178,12 @@ class _JournalEntryDetailState extends ConsumerState<_JournalEntryDetail> {
           Text(summary, style: textTheme.bodyLarge),
         ],
         const SizedBox(height: 20),
+        _StudyGuidePreviewCard(
+          entryId: entry.id,
+          resources: entry.resources,
+          suggestions: suggestions,
+        ),
+        const SizedBox(height: 20),
         JournalThemeChips(themes: entry.themes),
         const SizedBox(height: 24),
         const _TrustNotice(),
@@ -191,12 +193,6 @@ class _JournalEntryDetailState extends ConsumerState<_JournalEntryDetail> {
           subtitle: 'Preserved exactly as you saved it.',
           text: entry.originalText,
           icon: Icons.mic_none_outlined,
-        ),
-        const SizedBox(height: 16),
-        _ResourcesSection(
-          resources: entry.resources,
-          suggestions: suggestions,
-          entryId: entry.id,
         ),
       ],
     );
@@ -305,10 +301,7 @@ class _EntryTextSection extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            Text(
-              text,
-              style: Theme.of(context).textTheme.bodyLarge,
-            ),
+            Text(text, style: Theme.of(context).textTheme.bodyLarge),
           ],
         ),
       ),
@@ -359,251 +352,133 @@ class _TrustNotice extends StatelessWidget {
   }
 }
 
-class _ResourcesSection extends StatelessWidget {
-  const _ResourcesSection({
+class _StudyGuidePreviewCard extends StatelessWidget {
+  const _StudyGuidePreviewCard({
+    required this.entryId,
     required this.resources,
     required this.suggestions,
-    required this.entryId,
   });
 
+  final String entryId;
   final List<RelatedResource> resources;
   final AsyncValue<List<RelatedResource>> suggestions;
-  final String entryId;
 
   @override
   Widget build(BuildContext context) {
-    final combined = <RelatedResource>[
-      ...resources,
-      ...switch (suggestions) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final guidePreview = _EntryStudyGuidePreview.fromResources(
+      resources: resources,
+      suggestions: switch (suggestions) {
         AsyncData(value: final value) => value,
         _ => const <RelatedResource>[],
       },
-    ];
-
-    if (combined.isEmpty) {
-      return const _EmptyResourcesSection();
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Resources', style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 8),
-        if (suggestions.isLoading && resources.isEmpty)
-          const Padding(
-            padding: EdgeInsets.only(bottom: 8),
-            child: Text('Loading related resources...'),
-          ),
-        for (final resource in _dedupeById(combined))
-          _ResourceCard(resource: resource, entryId: entryId),
-      ],
     );
-  }
-
-  List<RelatedResource> _dedupeById(List<RelatedResource> value) {
-    final seen = <String>{};
-    final unique = <RelatedResource>[];
-
-    for (final resource in value) {
-      if (seen.add(resource.id)) {
-        unique.add(resource);
-      }
-    }
-
-    return unique;
-  }
-}
-
-class _EmptyResourcesSection extends StatelessWidget {
-  const _EmptyResourcesSection();
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        border: Border.all(color: colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(8),
+        color: colorScheme.primaryContainer,
+        borderRadius: BorderRadius.circular(16),
       ),
-      child: const Padding(
-        padding: EdgeInsets.all(16),
-        child: Text('No related resources yet.'),
-      ),
-    );
-  }
-}
-
-class _ResourceCard extends ConsumerWidget {
-  const _ResourceCard({required this.resource, required this.entryId});
-
-  final RelatedResource resource;
-  final String entryId;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final feedbackMap = ref.watch(resourceFeedbackControllerProvider);
-    final feedback = feedbackMap.asData?.value[resource.id];
-    final scripturePreference = ref.watch(
-      scriptureAppPreferenceControllerProvider,
-    );
-    final selectedPreference =
-        scripturePreference.asData?.value ?? ScriptureAppPreference.none;
-    final resolvedUrl = ref
-        .watch(scriptureResourceLinkResolverProvider)
-        .resolve(resource, preference: selectedPreference);
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Icon(
-                  _iconFor(resource.type),
-                  size: 18,
-                  color: colorScheme.primary,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    resource.title,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                ),
-                if (feedback == ResourceFeedbackAction.save)
-                  Icon(Icons.bookmark, size: 18, color: colorScheme.primary),
-              ],
-            ),
-            if (resource.description case final description?) ...[
-              const SizedBox(height: 6),
-              Text(description, style: Theme.of(context).textTheme.bodyMedium),
-            ],
-            const SizedBox(height: 6),
             Text(
-              '${resource.type} • ${resource.sourceType} • ${(resource.confidence * 100).round()}% match',
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              resource.matchReason,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: colorScheme.onSurfaceVariant,
+              'Study guide',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: colorScheme.onPrimaryContainer,
               ),
             ),
             const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 4,
-              children: [
-                if (resolvedUrl != null)
-                  OutlinedButton.icon(
-                    onPressed: () => _openResource(context, ref, resolvedUrl),
-                    icon: const Icon(Icons.open_in_new_outlined),
-                    label: const Text('Open'),
-                  ),
-                OutlinedButton.icon(
-                  onPressed: () => _submitFeedback(
-                    ref,
-                    resourceId: resource.id,
-                    action: ResourceFeedbackAction.save,
-                    entryId: entryId,
-                    themeId: resource.themeId,
-                  ),
-                  icon: const Icon(Icons.bookmark_border),
-                  label: const Text('Save'),
+            Text(
+              guidePreview.subtitle,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: colorScheme.onPrimaryContainer,
+              ),
+            ),
+            if (guidePreview.previewLine case final previewLine?) ...[
+              const SizedBox(height: 8),
+              Text(
+                previewLine,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onPrimaryContainer,
+                  fontWeight: FontWeight.w600,
                 ),
-                OutlinedButton.icon(
-                  onPressed: () => _submitFeedback(
-                    ref,
-                    resourceId: resource.id,
-                    action: ResourceFeedbackAction.dismiss,
-                    entryId: entryId,
-                    themeId: resource.themeId,
-                  ),
-                  icon: const Icon(Icons.visibility_off_outlined),
-                  label: const Text('Dismiss'),
-                ),
-                TextButton.icon(
-                  onPressed: () => _submitFeedback(
-                    ref,
-                    resourceId: resource.id,
-                    action: ResourceFeedbackAction.notHelpful,
-                    entryId: entryId,
-                    themeId: resource.themeId,
-                  ),
-                  icon: Icon(
-                    Icons.thumb_down_alt_outlined,
-                    color: Theme.of(context).colorScheme.error,
-                  ),
-                  label: Text(
-                    'Not helpful',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-                  ),
-                ),
-              ],
+              ),
+            ],
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: colorScheme.onPrimaryContainer,
+                foregroundColor: colorScheme.primaryContainer,
+              ),
+              onPressed: guidePreview.isAvailable
+                  ? () => context.goNamed(
+                      journalStudyGuideRouteName,
+                      pathParameters: {'entryId': entryId},
+                    )
+                  : null,
+              icon: const Icon(Icons.auto_stories_outlined),
+              label: const Text('Open study guide'),
             ),
           ],
         ),
       ),
     );
   }
+}
 
-  Future<void> _submitFeedback(
-    WidgetRef ref, {
-    required String resourceId,
-    required ResourceFeedbackAction action,
-    required String entryId,
-    String? themeId,
-  }) async {
-    await ref
-        .read(resourceFeedbackControllerProvider.notifier)
-        .saveFeedback(resourceId: resourceId, action: action);
-    await ref
-        .read(resourceSuggestionServiceProvider)
-        .submitFeedback(
-          resourceId: resourceId,
-          action: action,
-          entryId: entryId,
-          themeId: themeId,
-        );
-  }
+class _EntryStudyGuidePreview {
+  const _EntryStudyGuidePreview({
+    required this.isAvailable,
+    required this.subtitle,
+    this.previewLine,
+  });
 
-  Future<void> _openResource(
-    BuildContext context,
-    WidgetRef ref,
-    Uri url,
-  ) async {
-    final didOpen = await ref.read(resourceLinkOpenerProvider).open(url);
-    if (!context.mounted || didOpen) {
-      return;
+  final bool isAvailable;
+  final String subtitle;
+  final String? previewLine;
+
+  factory _EntryStudyGuidePreview.fromResources({
+    required List<RelatedResource> resources,
+    required List<RelatedResource> suggestions,
+  }) {
+    final combined = <RelatedResource>[...resources, ...suggestions];
+    final seen = <String>{};
+    final unique = combined.where((resource) => seen.add(resource.id)).toList();
+    final guideItems = unique
+        .where((resource) => resource.type != 'reflection_prompt')
+        .toList(growable: false);
+
+    if (guideItems.isEmpty) {
+      return const _EntryStudyGuidePreview(
+        isAvailable: false,
+        subtitle: 'A study guide is not available for this entry yet.',
+      );
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Unable to open this resource on this device.'),
-      ),
+    final strongest = guideItems.first;
+    final itemCount = guideItems.length;
+
+    return _EntryStudyGuidePreview(
+      isAvailable: true,
+      subtitle: 'A gospel study guide built from this reflection.',
+      previewLine: switch (itemCount) {
+        1 => 'Includes ${_resourcePreviewLabel(strongest)}.',
+        2 =>
+          'Includes ${_resourcePreviewLabel(strongest)} and one more resource.',
+        _ =>
+          'Includes ${_resourcePreviewLabel(strongest)} and ${itemCount - 1} more resources.',
+      },
     );
   }
 
-  IconData _iconFor(String type) {
-    return switch (type) {
-      'scripture' => Icons.menu_book_outlined,
-      'reflection_prompt' => Icons.quiz_outlined,
-      'talk_or_article' => Icons.article_outlined,
-      'video_or_audio' => Icons.play_circle_outline,
-      'quote' => Icons.format_quote_outlined,
-      'exercise' => Icons.self_improvement_outlined,
-      'internal_entry_link' => Icons.link_outlined,
-      _ => Icons.link_outlined,
+  static String _resourcePreviewLabel(RelatedResource resource) {
+    return switch (resource.type) {
+      'scripture' => resource.scriptureReference ?? resource.title,
+      'talk_or_article' => resource.title,
+      _ => resource.title,
     };
   }
 }
