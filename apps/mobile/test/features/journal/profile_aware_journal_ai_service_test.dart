@@ -64,6 +64,11 @@ class _RecordingJournalAiService implements JournalAiService {
   }
 
   @override
+  Future<EntrySummaryResult> summarizeEntry({required String originalText}) async {
+    return const EntrySummaryResult(summary: 'summary');
+  }
+
+  @override
   Future<RewriteResult> rewriteEntry({
     required String originalText,
     JournalRewriteSource source = JournalRewriteSource.unspecified,

@@ -6,7 +6,6 @@ import '../../../app/router.dart';
 import '../data/journal_ai_service_provider.dart';
 import '../data/journal_repository_provider.dart';
 import '../domain/entry_source.dart';
-import '../domain/journal_ai_service.dart';
 import '../domain/journal_entry.dart';
 import 'journal_entries_provider.dart';
 import 'journal_entry_provider.dart';
@@ -119,7 +118,7 @@ class _JournalEntryEditorScaffoldState
                   labelText: 'Original entry',
                   hintText: 'Write what you want to remember.',
                   helperText:
-                      'This is saved as your original entry. AI rewrites never replace it.',
+                      'This is saved as your original entry. AI can summarize it and identify themes without replacing your words.',
                 ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
@@ -179,18 +178,16 @@ class _JournalEntryEditorScaffoldState
 
     if (_shouldGenerateAfterSave(existingEntry, originalText)) {
       try {
-        final rewrite = await aiService.rewriteEntry(
+        final summary = await aiService.summarizeEntry(
           originalText: originalText,
-          source: existingEntry == null
-              ? JournalRewriteSource.typedCreate
-              : JournalRewriteSource.typedEditSave,
         );
         final themeDetection = await aiService.detectThemes(text: originalText);
-        entry = entry.applyAiResults(
-          rewrite: rewrite,
+        entry = entry.applyGeneratedInsights(
+          summaryResult: summary,
           themeDetection: themeDetection,
           updatedAt: now,
           preserveTitle: title.isNotEmpty,
+          preserveRewrite: false,
         );
       } catch (_) {
         entry = entry.withoutAiResults(updatedAt: now);

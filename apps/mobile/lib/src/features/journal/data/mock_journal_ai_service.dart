@@ -7,6 +7,18 @@ class MockJournalAiService implements JournalAiService {
   const MockJournalAiService();
 
   @override
+  Future<EntrySummaryResult> summarizeEntry({
+    required String originalText,
+  }) async {
+    final normalizedText = originalText.trim();
+
+    return EntrySummaryResult(
+      title: _titleFor(normalizedText),
+      summary: _summaryFor(normalizedText),
+    );
+  }
+
+  @override
   Future<RewriteResult> rewriteEntry({
     required String originalText,
     JournalRewriteSource source = JournalRewriteSource.unspecified,

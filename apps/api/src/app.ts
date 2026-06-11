@@ -14,11 +14,13 @@ import {
 } from './ai/aiGatewayProvider.js';
 import {
   buildRewritePrompt,
+  buildSummaryPrompt,
   buildThemeDetectionPrompt,
 } from './ai/journalAiPrompts.js';
 import {
   validateResourceSuggestionResult,
   validateRewriteResult,
+  validateSummaryResult,
   validateThemeDetectionResult,
   validateTranscriptionResult,
 } from './ai/responseValidation.js';
@@ -220,6 +222,19 @@ async function routeRequest(
     };
     buildRewritePrompt(requestBody);
     const result = validateRewriteResult(await aiProvider.rewrite(requestBody));
+
+    sendJson(response, 200, result);
+    return;
+  }
+
+  if (request.method === 'POST' && request.url === '/v1/entries/summarize') {
+    const body = requireObject(await readJsonBody(request));
+    rejectUnknownKeys(body, ['originalText']);
+    const requestBody = {
+      originalText: requireNonEmptyString(body, 'originalText'),
+    };
+    buildSummaryPrompt(requestBody);
+    const result = validateSummaryResult(await aiProvider.summarize(requestBody));
 
     sendJson(response, 200, result);
     return;

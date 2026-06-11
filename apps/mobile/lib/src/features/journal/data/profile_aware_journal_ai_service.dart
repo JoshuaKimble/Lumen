@@ -12,6 +12,13 @@ class ProfileAwareJournalAiService implements JournalAiService {
   final RewritePersonalization defaultPersonalization;
 
   @override
+  Future<EntrySummaryResult> summarizeEntry({
+    required String originalText,
+  }) {
+    return delegate.summarizeEntry(originalText: originalText);
+  }
+
+  @override
   Future<RewriteResult> rewriteEntry({
     required String originalText,
     JournalRewriteSource source = JournalRewriteSource.unspecified,

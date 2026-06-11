@@ -102,13 +102,14 @@ http://127.0.0.1:<LUMEN_WEB_PORT>
 0. If Supabase auth is enabled, confirm the app opens on login instead of the
    journal.
 2. Edit and save that entry.
-3. Use `Regenerate AI rewrite` on entry detail.
+3. Use `Regenerate AI` on entry detail.
 4. Create a voice entry and save transcript.
 
 Expected:
 
-- In mock API mode, rewrites include `[API mock: rewrite endpoint]`.
-- In OpenAI mode, rewrites and transcription come from OpenAI responses.
+- In either API mode, saves and regenerate should update the entry summary and
+  themes.
+- In OpenAI mode, transcription comes from OpenAI responses.
 
 ## 5. Mobile/Emulator Base URL Notes
 
@@ -127,7 +128,7 @@ flutter run --dart-define=LUMEN_USE_API_AI=true --dart-define=LUMEN_API_BASE_URL
 
 ## 6. Troubleshooting
 
-1. Rewrites still look like Flutter mock output:
+1. Summary, title, or themes still look like Flutter mock output:
 `[Flutter mock: ...]`
 This means API mode was not enabled in the Flutter build. Rebuild using `./scripts/dev_web_api.sh`.
 
@@ -142,7 +143,7 @@ Confirm `apps/api/.env` includes:
 `LUMEN_SUPABASE_PUBLISHABLE_KEY=...`
 Then rebuild with `./scripts/dev_web_api.sh`.
 
-4. `Regenerate AI rewrite` errors:
+4. `Regenerate AI` errors:
 Confirm API process is running and `LUMEN_API_BASE_URL` points to the active port.
 
 5. OpenAI mode fails immediately:

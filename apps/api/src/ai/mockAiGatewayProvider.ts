@@ -4,6 +4,8 @@ import type {
   ResourceSuggestionResult,
   RewriteRequest,
   RewriteResult,
+  SummaryRequest,
+  SummaryResult,
   ThemeDetectionRequest,
   ThemeDetectionResult,
   TranscriptionRequest,
@@ -26,6 +28,15 @@ export class MockAiGatewayProvider implements AiGatewayProvider {
 
     return {
       rewrittenText: `[API mock: rewrite endpoint] Mock rewrite: ${originalText}`,
+      title: titleFor(originalText),
+      summary: summaryFor(originalText),
+    };
+  }
+
+  async summarize(request: SummaryRequest): Promise<SummaryResult> {
+    const originalText = request.originalText.trim();
+
+    return {
       title: titleFor(originalText),
       summary: summaryFor(originalText),
     };

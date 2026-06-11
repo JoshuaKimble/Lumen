@@ -9,7 +9,6 @@ import '../data/journal_ai_service_provider.dart';
 import '../data/journal_repository_provider.dart';
 import '../data/voice_transcription_service_provider.dart';
 import '../domain/entry_source.dart';
-import '../domain/journal_ai_service.dart';
 import '../domain/journal_entry.dart';
 import '../data/voice_recorder_provider.dart';
 import '../domain/voice_recording.dart';
@@ -372,15 +371,13 @@ class _VoiceRecordingScreenState extends ConsumerState<VoiceRecordingScreen> {
     );
 
     try {
-      final rewrite = await aiService.rewriteEntry(
-        originalText: originalText,
-        source: JournalRewriteSource.voiceSave,
-      );
+      final summary = await aiService.summarizeEntry(originalText: originalText);
       final themeDetection = await aiService.detectThemes(text: originalText);
-      entry = entry.applyAiResults(
-        rewrite: rewrite,
+      entry = entry.applyGeneratedInsights(
+        summaryResult: summary,
         themeDetection: themeDetection,
         updatedAt: now,
+        preserveRewrite: false,
       );
     } catch (_) {
       entry = entry.withoutAiResults(updatedAt: now);

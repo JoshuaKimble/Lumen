@@ -3,11 +3,11 @@
 ## Product Vision
 
 Build a voice-first journaling app that helps users quickly capture raw
-thoughts, then uses AI to turn those thoughts into clearer, more coherent
-journal entries.
+thoughts, then uses AI to summarize those thoughts, surface recurring themes,
+and connect them to helpful related resources.
 
-The app should preserve the user's original words while also creating a refined
-version that is easier to read, revisit, and reflect on later.
+The app should preserve the user's original words while also adding lightweight
+AI metadata that makes entries easier to revisit and reflect on later.
 
 The core value is not just "journaling," but helping users discover patterns,
 themes, emotional threads, and meaningful connections across their entries over
@@ -22,8 +22,7 @@ Users should be able to:
 1. Open the app and quickly record a journal entry by voice.
 2. Optionally type instead of recording.
 3. Save the original raw entry.
-4. Generate an AI-rewritten version that keeps the user's intent but improves
-   clarity and organization.
+4. Generate an AI summary and optional title for easier recall.
 5. Detect high-level themes from the entry.
 6. Browse recurring themes over time.
 7. Tap a theme to see related journal entries and helpful linked resources.
@@ -40,7 +39,7 @@ The ideal flow is:
 2. User opens the app.
 3. User records or types the entry.
 4. App saves the original entry.
-5. AI produces a cleaned-up version.
+5. AI produces a lightweight summary.
 6. App tags the entry with themes.
 7. User can later review entries by date, theme, or related reflections.
 
@@ -61,7 +60,7 @@ Users should be able to:
 - Stop recording when finished.
 - Review the transcribed text.
 - Save the entry.
-- Generate a rewritten version from the transcript.
+- Generate summary, themes, and related resources from the transcript.
 
 The app should make voice capture feel like the default path, not a secondary
 feature.
@@ -75,14 +74,14 @@ Users should be able to:
 - Start a text journal entry.
 - Write freely.
 - Save the original text.
-- Generate the rewritten version.
+- Generate summary, themes, and related resources.
 - Edit before or after saving if needed.
 
 ---
 
-## Original and Rewritten Entry Requirements
+## Original Entry Requirements
 
-Each journal entry should preserve both versions:
+Each journal entry should preserve the original version:
 
 ### Original Entry
 
@@ -93,22 +92,19 @@ This should be saved as-is, aside from basic transcription cleanup if needed.
 The original matters because it preserves the user's authentic voice, emotion,
 and wording.
 
-### Rewritten Entry
+## Summary Requirements
 
-The rewritten entry should be AI-generated.
+The summary should be AI-generated metadata rather than a replacement for the
+entry itself.
 
 It should:
 
 - Keep the meaning of the original.
 - Preserve the user's perspective.
-- Improve clarity and structure.
+- Improve recall without rewriting the whole entry.
 - Avoid sounding overly polished, fake, clinical, or generic.
-- Feel like a thoughtful version of what the user was trying to say.
 - Avoid changing the substance of the user's thoughts.
 - Avoid adding conclusions the user did not express.
-
-The rewritten entry should be useful for later reflection, but the original
-should remain available.
 
 ---
 
@@ -353,13 +349,14 @@ distinction between:
 1. Thought exploration / idea development.
 2. Personal journaling / emotional processing.
 
-The current AI rewrite-first experience works well for stream-of-consciousness
-topical exploration. Users may dump raw thoughts about subjects like theology,
-scripture study, philosophy, creative ideas, or personal frameworks. In these
-cases, AI-generated rewrites can be highly valuable because they:
+The current product direction is to treat automatic summary, themes, and
+resource suggestions as the default journaling assistance. Users may still dump
+raw thoughts about subjects like theology, scripture study, philosophy,
+creative ideas, or personal frameworks, but the app should not assume that a
+full rewrite is the right default response. In these cases, lighter AI support
+is broadly valuable because it can:
 
-- Organize fragmented thoughts.
-- Improve readability and coherence.
+- Improve recall without replacing the original text.
 - Help users reflect on and internalize their own ideas.
 - Surface themes worth exploring further.
 
@@ -375,7 +372,7 @@ Examples of sensitive journaling contexts include:
 - Trauma or grief.
 - Highly vulnerable emotional processing.
 
-In these cases, an AI rewrite could potentially:
+In these cases, an automatic AI rewrite could potentially:
 
 - Feel emotionally distancing.
 - Over-formalize vulnerable thoughts.
@@ -383,19 +380,16 @@ In these cases, an AI rewrite could potentially:
 - Make the entry feel less personal or human.
 - Create discomfort around exposing sensitive information to AI processing.
 
-The current rewrite-first experience should not be assumed to be universally
-appropriate across both thought exploration and sensitive personal journaling.
-This is an open product concern, not a finalized solution.
+The current product decision is that rewrite-first should not be the default
+core journaling experience across both thought exploration and sensitive
+personal journaling.
 
 Open product questions:
 
 - When is rewriting genuinely valuable?
-- When should entries remain untouched?
-- Should rewriting be optional?
+- What should a future explicit editor flow look like for idea exploration and
+  note organization?
 - Should users choose between "journal mode" and "idea exploration mode"?
-- Should AI offer lighter-touch transformations, such as summaries,
-  organization, tagging, or theme extraction, instead of full rewrites for
-  sensitive entries?
 - How should user trust and emotional safety influence the UX?
 - How do we communicate privacy and AI-processing expectations clearly?
 

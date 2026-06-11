@@ -283,7 +283,7 @@ void main() {
     );
   });
 
-  testWidgets('opens entry detail and separates original from rewrite', (
+  testWidgets('opens entry detail and shows summary, themes, and resources', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -305,24 +305,14 @@ void main() {
     expect(find.text('Your entry stays yours'), findsOneWidget);
     expect(
       find.text(
-        'The original is preserved. AI rewrites are suggestions to help with clarity, not judgments, diagnoses, or replacements for your words.',
+        'The original is preserved. AI can summarize and tag patterns in your writing, but it does not replace your words.',
       ),
       findsOneWidget,
     );
     expect(find.text('Original entry'), findsOneWidget);
     expect(find.text('Preserved exactly as you saved it.'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('AI rewrite'), 120);
-    expect(find.text('AI rewrite'), findsOneWidget);
-    expect(
-      find.text('A clarity suggestion, not a replacement.'),
-      findsOneWidget,
-    );
     expect(
       find.text('I was irritated and rushed this morning.'),
-      findsOneWidget,
-    );
-    expect(
-      find.text('I noticed I was tense before breakfast.'),
       findsOneWidget,
     );
     await tester.scrollUntilVisible(
@@ -378,28 +368,15 @@ void main() {
     expect(entries, hasLength(1));
     expect(entries.single.title, 'Typed entry');
     expect(entries.single.originalText, originalText);
-    expect(
-      entries.single.rewrittenText,
-      '[Flutter mock: typed create] I am noticing this more clearly: These are my exact typed words.',
-    );
+    expect(entries.single.rewrittenText, isEmpty);
+    expect(entries.single.summary, 'These are my exact typed words.');
     expect(entries.single.themes.single.displayName, 'Reflection');
     expect(find.text('Typed entry'), findsOneWidget);
     expect(find.text(originalText), findsOneWidget);
-    await tester.scrollUntilVisible(
-      find.text(
-        '[Flutter mock: typed create] I am noticing this more clearly: These are my exact typed words.',
-      ),
-      120,
-    );
-    expect(
-      find.text(
-        '[Flutter mock: typed create] I am noticing this more clearly: These are my exact typed words.',
-      ),
-      findsOneWidget,
-    );
+    expect(find.text('These are my exact typed words.'), findsOneWidget);
   });
 
-  testWidgets('saves a new entry when initial rewrite generation fails', (
+  testWidgets('saves a new entry when initial AI insight generation fails', (
     tester,
   ) async {
     final repository = InMemoryJournalRepository(seedEntries: const []);
@@ -431,8 +408,9 @@ void main() {
     expect(entries.single.title, 'Fallback entry');
     expect(entries.single.originalText, 'Original still saves.');
     expect(entries.single.rewrittenText, isEmpty);
+    expect(entries.single.summary, isNull);
     expect(entries.single.themes, isEmpty);
-    expect(find.text('No rewrite yet.'), findsOneWidget);
+    expect(find.text('Original still saves.'), findsWidgets);
   });
 
   testWidgets('edits a typed journal entry', (tester) async {
@@ -462,15 +440,13 @@ void main() {
 
     expect(entry?.title, 'Updated title');
     expect(entry?.originalText, 'Updated original text.');
-    expect(
-      entry?.rewrittenText,
-      '[Flutter mock: typed edit save] I am noticing this more clearly: Updated original text.',
-    );
+    expect(entry?.rewrittenText, isEmpty);
+    expect(entry?.summary, 'Updated original text.');
     expect(find.text('Updated title'), findsOneWidget);
     expect(find.text('Updated original text.'), findsWidgets);
   });
 
-  testWidgets('regenerates rewrite and themes when edited text changes', (
+  testWidgets('regenerates summary and themes when edited text changes', (
     tester,
   ) async {
     final repository = InMemoryJournalRepository(seedEntries: [_sampleEntry]);
@@ -506,19 +482,10 @@ void main() {
     final entry = await repository.getEntry('entry-1');
 
     expect(entry?.originalText, 'Changed text.');
-    expect(
-      entry?.rewrittenText,
-      '[Test AI: typed edit save] Updated generated rewrite.',
-    );
+    expect(entry?.rewrittenText, isEmpty);
+    expect(entry?.summary, 'Updated generated summary');
     expect(entry?.themes.single.displayName, 'Stress');
-    await tester.scrollUntilVisible(
-      find.text('[Test AI: typed edit save] Updated generated rewrite.'),
-      120,
-    );
-    expect(
-      find.text('[Test AI: typed edit save] Updated generated rewrite.'),
-      findsOneWidget,
-    );
+    expect(find.text('Updated generated summary'), findsOneWidget);
     expect(find.text('Stress'), findsOneWidget);
   });
 
@@ -539,7 +506,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       find.text(
-        'This removes the original entry, AI rewrite, themes, and resources from this device. You own your entries and can delete them at any time.',
+        'This removes the original entry, AI summary, themes, and resources from this device. You own your entries and can delete them at any time.',
       ),
       findsOneWidget,
     );
@@ -573,7 +540,7 @@ void main() {
     expect(find.text('Regenerate AI'), findsOneWidget);
   });
 
-  testWidgets('generates mock rewrite and themes for an entry', (tester) async {
+  testWidgets('generates summary and themes for an entry', (tester) async {
     final repository = InMemoryJournalRepository(
       seedEntries: [_unprocessedEntry],
     );
@@ -601,31 +568,20 @@ void main() {
     await tester.tap(find.text('Regenerate AI'));
     await tester.pump();
 
-    expect(find.text('Refreshing AI'), findsOneWidget);
-
-    aiService.completeRewrite();
+    aiService.completeSummary();
     await tester.pumpAndSettle();
 
     final entry = await repository.getEntry('entry-2');
 
-    expect(
-      entry?.rewrittenText,
-      '[Test AI: regenerate] A clearer mock rewrite.',
-    );
+    expect(entry?.rewrittenText, isEmpty);
+    expect(entry?.summary, 'Generated summary');
     expect(entry?.themes.single.displayName, 'Work');
-    await tester.scrollUntilVisible(
-      find.text('[Test AI: regenerate] A clearer mock rewrite.'),
-      120,
-    );
-    expect(
-      find.text('[Test AI: regenerate] A clearer mock rewrite.'),
-      findsOneWidget,
-    );
+    expect(find.text('Generated summary'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('Work'), -120);
     expect(find.text('Work'), findsOneWidget);
   });
 
-  testWidgets('shows an error when mock rewrite generation fails', (
+  testWidgets('shows an error when AI insight generation fails', (
     tester,
   ) async {
     final repository = InMemoryJournalRepository(
@@ -754,24 +710,11 @@ void main() {
     expect(entries, hasLength(1));
     expect(entries.single.source, EntrySource.voice);
     expect(entries.single.originalText, 'Edited voice transcript.');
-    expect(
-      entries.single.rewrittenText,
-      '[Flutter mock: voice save] I am noticing this more clearly: Edited voice transcript.',
-    );
+    expect(entries.single.rewrittenText, isEmpty);
+    expect(entries.single.summary, 'Edited voice transcript.');
     expect(entries.single.themes.single.displayName, 'Reflection');
     expect(find.text('Edited voice transcript.'), findsWidgets);
-    await tester.scrollUntilVisible(
-      find.text(
-        '[Flutter mock: voice save] I am noticing this more clearly: Edited voice transcript.',
-      ),
-      120,
-    );
-    expect(
-      find.text(
-        '[Flutter mock: voice save] I am noticing this more clearly: Edited voice transcript.',
-      ),
-      findsOneWidget,
-    );
+    expect(find.text('Edited voice transcript.'), findsWidgets);
   });
 
   testWidgets('handles denied microphone permission', (tester) async {
@@ -944,14 +887,11 @@ JournalEntry _themeEntry({
 }
 
 class _ControlledAiService implements JournalAiService {
-  final _rewrite = Completer<RewriteResult>();
-  JournalRewriteSource _source = JournalRewriteSource.unspecified;
+  final _summary = Completer<EntrySummaryResult>();
 
-  void completeRewrite() {
-    _rewrite.complete(
-      RewriteResult(
-        rewrittenText:
-            '[Test AI: ${_source.testLabel}] A clearer mock rewrite.',
+  void completeSummary() {
+    _summary.complete(
+      const EntrySummaryResult(
         title: 'Generated title',
         summary: 'Generated summary',
       ),
@@ -966,13 +906,19 @@ class _ControlledAiService implements JournalAiService {
   }
 
   @override
+  Future<EntrySummaryResult> summarizeEntry({required String originalText}) async {
+    return _summary.future;
+  }
+
+  @override
   Future<RewriteResult> rewriteEntry({
     required String originalText,
     JournalRewriteSource source = JournalRewriteSource.unspecified,
     RewritePersonalization? personalization,
   }) async {
-    _source = source;
-    return _rewrite.future;
+    return const RewriteResult(
+      rewrittenText: '[Test AI: rewrite path is not used here]',
+    );
   }
 }
 
@@ -985,6 +931,14 @@ class _ImmediateAiService implements JournalAiService {
   @override
   Future<ThemeDetectionResult> detectThemes({required String text}) async {
     return ThemeDetectionResult(themes: [theme]);
+  }
+
+  @override
+  Future<EntrySummaryResult> summarizeEntry({required String originalText}) async {
+    return const EntrySummaryResult(
+      title: 'Updated generated title',
+      summary: 'Updated generated summary',
+    );
   }
 
   @override
@@ -1019,6 +973,11 @@ class _FailingAiService implements JournalAiService {
   @override
   Future<ThemeDetectionResult> detectThemes({required String text}) async {
     return const ThemeDetectionResult(themes: []);
+  }
+
+  @override
+  Future<EntrySummaryResult> summarizeEntry({required String originalText}) async {
+    throw StateError('AI unavailable');
   }
 
   @override

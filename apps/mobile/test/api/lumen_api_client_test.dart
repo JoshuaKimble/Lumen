@@ -14,6 +14,26 @@ import 'package:lumen/src/features/journal/domain/voice_transcription_exception.
 import 'package:lumen/src/features/profiles/domain/rewrite_tone_preference.dart';
 
 void main() {
+  test('calls typed summary endpoint', () async {
+    final client = LumenApiClient(
+      baseUri: Uri.parse('http://localhost:3000'),
+      httpClient: MockClient((request) async {
+        expect(request.method, 'POST');
+        expect(request.url.path, '/v1/entries/summarize');
+        expect(request.body, '{"originalText":"raw note"}');
+
+        return http.Response('{"title":"Generated","summary":"Short"}', 200);
+      }),
+    );
+
+    final response = await client.summarizeEntry(
+      const SummarizeEntryRequest(originalText: 'raw note'),
+    );
+
+    expect(response.title, 'Generated');
+    expect(response.summary, 'Short');
+  });
+
   test('calls typed rewrite endpoint', () async {
     final client = LumenApiClient(
       baseUri: Uri.parse('http://localhost:3000'),
@@ -180,6 +200,10 @@ void main() {
       client: LumenApiClient(
         baseUri: Uri.parse('http://localhost:3000'),
         httpClient: MockClient((request) async {
+          if (request.url.path.endsWith('/summarize')) {
+            return http.Response('{"title":"Generated","summary":"Short"}', 200);
+          }
+
           if (request.url.path.endsWith('/rewrite')) {
             return http.Response(
               '{"rewrittenText":"clear note","title":"Generated","summary":"Short"}',
@@ -195,6 +219,7 @@ void main() {
       ),
     );
 
+    final summary = await service.summarizeEntry(originalText: 'raw note');
     final rewrite = await service.rewriteEntry(
       originalText: 'raw note',
       personalization: const RewritePersonalization(
@@ -204,6 +229,7 @@ void main() {
     );
     final themes = await service.detectThemes(text: 'work note');
 
+    expect(summary.title, 'Generated');
     expect(rewrite.rewrittenText, 'clear note');
     expect(rewrite.title, 'Generated');
     expect(themes.themes.single.displayName, 'Work');

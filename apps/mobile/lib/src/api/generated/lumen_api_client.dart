@@ -25,6 +25,14 @@ class LumenApiClient {
     return RewriteEntryResponse.fromJson(response);
   }
 
+  Future<SummarizeEntryResponse> summarizeEntry(
+    SummarizeEntryRequest request,
+  ) async {
+    final response = await _postJson('/v1/entries/summarize', request.toJson());
+
+    return SummarizeEntryResponse.fromJson(response);
+  }
+
   Future<CreateTranscriptionResponse> createTranscription(
     CreateTranscriptionRequest request,
   ) async {
@@ -177,6 +185,30 @@ class RewriteEntryResponse {
   }
 
   final String rewrittenText;
+  final String? title;
+  final String? summary;
+}
+
+class SummarizeEntryRequest {
+  const SummarizeEntryRequest({required this.originalText});
+
+  final String originalText;
+
+  Map<String, Object?> toJson() {
+    return {'originalText': originalText};
+  }
+}
+
+class SummarizeEntryResponse {
+  const SummarizeEntryResponse({this.title, this.summary});
+
+  factory SummarizeEntryResponse.fromJson(Map<String, Object?> json) {
+    return SummarizeEntryResponse(
+      title: _optionalString(json, 'title'),
+      summary: _optionalString(json, 'summary'),
+    );
+  }
+
   final String? title;
   final String? summary;
 }

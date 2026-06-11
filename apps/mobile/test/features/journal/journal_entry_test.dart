@@ -31,7 +31,7 @@ void main() {
     expect(rewritten.lastRegeneratedAt, regeneratedAt);
   });
 
-  test('uses rewritten text for preview when available', () {
+  test('uses original text for preview even when a rewrite exists', () {
     final entry = JournalEntry(
       id: 'entry-1',
       createdAt: DateTime.utc(2026, 5, 7),
@@ -43,6 +43,6 @@ void main() {
       resources: const [],
     );
 
-    expect(entry.previewText, 'rewritten text');
+    expect(entry.previewText, 'original text');
   });
 }

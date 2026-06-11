@@ -1,6 +1,7 @@
 import type {
   RewriteRequest,
   RewriteTone,
+  SummaryRequest,
   ThemeDetectionRequest,
 } from './aiGatewayProvider.js';
 
@@ -38,6 +39,19 @@ export function buildThemeDetectionPrompt(
       'Return only themes that are supported by the journal text.',
     ].join(' '),
     userPrompt: request.text,
+  };
+}
+
+export function buildSummaryPrompt(request: SummaryRequest): PromptRequest {
+  return {
+    systemPrompt: [
+      'You are a reflective journal assistant.',
+      'Write a brief title and short summary for the journal entry.',
+      'Preserve the user meaning, emotional truth, and uncertainty without adding facts, advice, or judgment.',
+      'Prefer a clear, grounded summary over polished prose.',
+      'The title should be short and optional when the entry does not suggest one naturally.',
+    ].join(' '),
+    userPrompt: request.originalText,
   };
 }
 

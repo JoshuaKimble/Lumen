@@ -37,6 +37,15 @@ export interface RewriteResult {
   readonly summary?: string;
 }
 
+export interface SummaryRequest {
+  readonly originalText: string;
+}
+
+export interface SummaryResult {
+  readonly title?: string;
+  readonly summary?: string;
+}
+
 export interface ThemeDetectionRequest {
   readonly text: string;
 }
@@ -83,6 +92,7 @@ export interface ResourceSuggestionResult {
 
 export interface AiGatewayProvider {
   transcribe(request: TranscriptionRequest): Promise<TranscriptionResult>;
+  summarize(request: SummaryRequest): Promise<SummaryResult>;
   rewrite(request: RewriteRequest): Promise<RewriteResult>;
   detectThemes(
     request: ThemeDetectionRequest,

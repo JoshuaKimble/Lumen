@@ -35,13 +35,7 @@ class JournalEntry {
 
   String get displayTitle => title ?? 'Untitled entry';
 
-  String get previewText {
-    if (rewrittenText.isNotEmpty) {
-      return rewrittenText;
-    }
-
-    return originalText;
-  }
+  String get previewText => originalText;
 
   JournalEntry applyRewrite({
     required RewriteResult rewrite,
@@ -79,6 +73,28 @@ class JournalEntry {
       resources: resources,
       title: preserveTitle ? title : rewrite.title ?? title,
       summary: rewrite.summary ?? summary,
+      lastRegeneratedAt: updatedAt,
+    );
+  }
+
+  JournalEntry applyGeneratedInsights({
+    required EntrySummaryResult summaryResult,
+    required ThemeDetectionResult themeDetection,
+    required DateTime updatedAt,
+    bool preserveTitle = false,
+    bool preserveRewrite = true,
+  }) {
+    return JournalEntry(
+      id: id,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+      source: source,
+      originalText: originalText,
+      rewrittenText: preserveRewrite ? rewrittenText : '',
+      themes: themeDetection.themes,
+      resources: resources,
+      title: preserveTitle ? title : summaryResult.title ?? title,
+      summary: summaryResult.summary ?? summary,
       lastRegeneratedAt: updatedAt,
     );
   }

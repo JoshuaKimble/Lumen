@@ -3,6 +3,7 @@ import type {
   ResourceSuggestion,
   ResourceSuggestionResult,
   RewriteResult,
+  SummaryResult,
   ThemeDetectionResult,
   TranscriptionResult,
 } from './aiGatewayProvider.js';
@@ -26,6 +27,13 @@ export function validateRewriteResult(result: RewriteResult): RewriteResult {
 
   return {
     rewrittenText: result.rewrittenText,
+    title: optionalString(result.title),
+    summary: optionalString(result.summary),
+  };
+}
+
+export function validateSummaryResult(result: SummaryResult): SummaryResult {
+  return {
     title: optionalString(result.title),
     summary: optionalString(result.summary),
   };

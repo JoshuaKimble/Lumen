@@ -10,6 +10,10 @@ enum JournalRewriteSource {
 }
 
 abstract interface class JournalAiService {
+  Future<EntrySummaryResult> summarizeEntry({
+    required String originalText,
+  });
+
   Future<RewriteResult> rewriteEntry({
     required String originalText,
     JournalRewriteSource source = JournalRewriteSource.unspecified,

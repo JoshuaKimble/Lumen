@@ -10,7 +10,6 @@ import '../data/resource_suggestion_service_provider.dart';
 import '../../settings/data/scripture_app_preference_provider.dart';
 import '../../settings/domain/scripture_app_preference.dart';
 import '../domain/journal_entry.dart';
-import '../domain/journal_ai_service.dart';
 import '../domain/related_resource.dart';
 import '../domain/resource_suggestion_service.dart';
 import 'journal_entries_provider.dart';
@@ -79,7 +78,7 @@ class JournalEntryDetailScreen extends ConsumerWidget {
       builder: (context) => AlertDialog(
         title: const Text('Delete entry?'),
         content: const Text(
-          'This removes the original entry, AI rewrite, themes, and resources from this device. You own your entries and can delete them at any time.',
+          'This removes the original entry, AI summary, themes, and resources from this device. You own your entries and can delete them at any time.',
         ),
         actions: [
           TextButton(
@@ -194,15 +193,6 @@ class _JournalEntryDetailState extends ConsumerState<_JournalEntryDetail> {
           icon: Icons.mic_none_outlined,
         ),
         const SizedBox(height: 16),
-        _EntryTextSection(
-          title: 'AI rewrite',
-          subtitle: 'A clarity suggestion, not a replacement.',
-          text: entry.rewrittenText,
-          icon: Icons.auto_awesome_outlined,
-          emptyText: 'No rewrite yet.',
-          emphasized: true,
-        ),
-        const SizedBox(height: 16),
         _ResourcesSection(
           resources: entry.resources,
           suggestions: suggestions,
@@ -222,15 +212,14 @@ class _JournalEntryDetailState extends ConsumerState<_JournalEntryDetail> {
       final aiService = ref.read(journalAiServiceProvider);
       final repository = ref.read(journalRepositoryProvider);
       final entry = widget.entry;
-      final rewrite = await aiService.rewriteEntry(
+      final summary = await aiService.summarizeEntry(
         originalText: entry.originalText,
-        source: JournalRewriteSource.regenerate,
       );
       final themeDetection = await aiService.detectThemes(
         text: entry.originalText,
       );
-      final updatedEntry = entry.applyAiResults(
-        rewrite: rewrite,
+      final updatedEntry = entry.applyGeneratedInsights(
+        summaryResult: summary,
         themeDetection: themeDetection,
         updatedAt: DateTime.now().toUtc(),
       );
@@ -272,16 +261,12 @@ class _EntryTextSection extends StatelessWidget {
     required this.subtitle,
     required this.text,
     required this.icon,
-    this.emptyText,
-    this.emphasized = false,
   });
 
   final String title;
   final String subtitle;
   final String text;
   final IconData icon;
-  final String? emptyText;
-  final bool emphasized;
 
   @override
   Widget build(BuildContext context) {
@@ -292,9 +277,6 @@ class _EntryTextSection extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: backgroundColor,
-        border: emphasized
-            ? Border.all(color: colorScheme.outlineVariant)
-            : null,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Padding(
@@ -324,7 +306,7 @@ class _EntryTextSection extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              text.isEmpty ? emptyText ?? '' : text,
+              text,
               style: Theme.of(context).textTheme.bodyLarge,
             ),
           ],
@@ -362,7 +344,7 @@ class _TrustNotice extends StatelessWidget {
                   Text('Your entry stays yours', style: textTheme.titleMedium),
                   const SizedBox(height: 6),
                   Text(
-                    'The original is preserved. AI rewrites are suggestions to help with clarity, not judgments, diagnoses, or replacements for your words.',
+                    'The original is preserved. AI can summarize and tag patterns in your writing, but it does not replace your words.',
                     style: textTheme.bodyMedium?.copyWith(
                       color: colorScheme.onSurfaceVariant,
                     ),

@@ -3,6 +3,17 @@ import 'package:lumen/src/features/journal/data/mock_journal_ai_service.dart';
 import 'package:lumen/src/features/journal/domain/journal_ai_service.dart';
 
 void main() {
+  test('generates deterministic summary output', () async {
+    const service = MockJournalAiService();
+
+    final summary = await service.summarizeEntry(
+      originalText: ' Work felt rushed today. ',
+    );
+
+    expect(summary.title, 'Work felt rushed today');
+    expect(summary.summary, 'Work felt rushed today.');
+  });
+
   test('generates deterministic rewrite output', () async {
     const service = MockJournalAiService();
 

@@ -8,6 +8,7 @@ const contract = JSON.parse(fs.readFileSync(contractPath, 'utf8'));
 const requiredPaths = [
   ['get', '/health'],
   ['post', '/v1/entries/rewrite'],
+  ['post', '/v1/entries/summarize'],
   ['post', '/v1/entries/themes/detect'],
   ['post', '/v1/transcriptions'],
   ['post', '/v1/resources/suggest'],
@@ -19,6 +20,8 @@ const requiredSchemas = [
   'HealthResponse',
   'RewriteEntryRequest',
   'RewriteEntryResponse',
+  'SummarizeEntryRequest',
+  'SummarizeEntryResponse',
   'DetectThemesRequest',
   'DetectThemesResponse',
   'TranscriptionRequest',

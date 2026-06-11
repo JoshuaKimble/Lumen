@@ -11,6 +11,7 @@ const outputPath = path.join(
 const contract = JSON.parse(fs.readFileSync(contractPath, 'utf8'));
 
 assertOperation('/v1/entries/rewrite', 'post', 'rewriteEntry');
+assertOperation('/v1/entries/summarize', 'post', 'summarizeEntry');
 assertOperation('/v1/entries/themes/detect', 'post', 'detectEntryThemes');
 assertOperation('/v1/transcriptions', 'post', 'createTranscription');
 assertOperation('/v1/resources/suggest', 'post', 'suggestResources');
@@ -42,6 +43,14 @@ class LumenApiClient {
     final response = await _postJson('/v1/entries/rewrite', request.toJson());
 
     return RewriteEntryResponse.fromJson(response);
+  }
+
+  Future<SummarizeEntryResponse> summarizeEntry(
+    SummarizeEntryRequest request,
+  ) async {
+    final response = await _postJson('/v1/entries/summarize', request.toJson());
+
+    return SummarizeEntryResponse.fromJson(response);
   }
 
   Future<CreateTranscriptionResponse> createTranscription(
@@ -196,6 +205,30 @@ class RewriteEntryResponse {
   }
 
   final String rewrittenText;
+  final String? title;
+  final String? summary;
+}
+
+class SummarizeEntryRequest {
+  const SummarizeEntryRequest({required this.originalText});
+
+  final String originalText;
+
+  Map<String, Object?> toJson() {
+    return {'originalText': originalText};
+  }
+}
+
+class SummarizeEntryResponse {
+  const SummarizeEntryResponse({this.title, this.summary});
+
+  factory SummarizeEntryResponse.fromJson(Map<String, Object?> json) {
+    return SummarizeEntryResponse(
+      title: _optionalString(json, 'title'),
+      summary: _optionalString(json, 'summary'),
+    );
+  }
+
   final String? title;
   final String? summary;
 }

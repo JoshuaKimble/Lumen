@@ -62,6 +62,38 @@
         }
       }
     },
+    "/v1/entries/summarize": {
+      "post": {
+        "operationId": "summarizeEntry",
+        "summary": "Generate a journal title and summary",
+        "description": "Returns lightweight AI-generated title and summary metadata without rewriting the full journal text.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SummarizeEntryRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Generated title and summary.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SummarizeEntryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          }
+        }
+      }
+    },
     "/v1/entries/themes/detect": {
       "post": {
         "operationId": "detectEntryThemes",
@@ -339,6 +371,29 @@
             "type": "string",
             "minLength": 1
           },
+          "title": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          }
+        }
+      },
+      "SummarizeEntryRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["originalText"],
+        "properties": {
+          "originalText": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "SummarizeEntryResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
           "title": {
             "type": "string"
           },

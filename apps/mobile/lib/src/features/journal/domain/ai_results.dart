@@ -19,6 +19,14 @@ class RewriteResult {
 }
 
 @immutable
+class EntrySummaryResult {
+  const EntrySummaryResult({this.title, this.summary});
+
+  final String? title;
+  final String? summary;
+}
+
+@immutable
 class ThemeDetectionResult {
   const ThemeDetectionResult({required this.themes});
 

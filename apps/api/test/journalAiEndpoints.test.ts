@@ -10,6 +10,9 @@ let failingBaseUrl = '';
 const server = createApiServer();
 const failingServer = createApiServer({
   aiProvider: {
+    async summarize() {
+      throw new Error('summary failure');
+    },
     async rewrite() {
       throw new Error('rewrite failure');
     },
@@ -81,6 +84,19 @@ after(async () => {
   });
 });
 
+test('summary endpoint returns OpenAPI response shape', async () => {
+  const response = await postJson('/v1/entries/summarize', {
+    originalText: 'I had a rushed work meeting.',
+  });
+  const body = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(body, {
+    title: 'I had a rushed work meeting',
+    summary: 'I had a rushed work meeting.',
+  });
+});
+
 test('rewrite endpoint returns OpenAPI response shape', async () => {
   const response = await postJson('/v1/entries/rewrite', {
     originalText: 'I had a rushed work meeting.',
@@ -104,6 +120,9 @@ test('rewrite endpoint defaults personalization when omitted', async () => {
   let capturedRequest: unknown;
   const server = createApiServer({
     aiProvider: {
+      async summarize() {
+        return { title: 'summary title', summary: 'summary text' };
+      },
       async rewrite(request) {
         capturedRequest = request;
         return { rewrittenText: 'ok' };
@@ -705,6 +724,9 @@ async function assertProviderError(
 ): Promise<void> {
   const errorServer = createApiServer({
     aiProvider: {
+      async summarize() {
+        throw providerError;
+      },
       async rewrite() {
         throw providerError;
       },

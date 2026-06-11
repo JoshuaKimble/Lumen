@@ -1,5 +1,6 @@
 import {
   buildRewritePrompt,
+  buildSummaryPrompt,
   buildThemeDetectionPrompt,
 } from './journalAiPrompts.js';
 import { Buffer } from 'node:buffer';
@@ -14,6 +15,8 @@ import type {
   ResourceSuggestionResult,
   RewriteRequest,
   RewriteResult,
+  SummaryRequest,
+  SummaryResult,
   ThemeDetectionRequest,
   ThemeDetectionResult,
   TranscriptionRequest,
@@ -126,6 +129,41 @@ export class OpenAiGatewayProvider implements AiGatewayProvider {
 
     return {
       rewrittenText,
+      title: optionalString(parsed, 'title'),
+      summary: optionalString(parsed, 'summary'),
+    };
+  }
+
+  async summarize(request: SummaryRequest): Promise<SummaryResult> {
+    const prompt = buildSummaryPrompt(request);
+    const response = await this.transport.postJson('/chat/completions', {
+      model: this.config.rewriteModel,
+      messages: [
+        { role: 'system', content: prompt.systemPrompt },
+        { role: 'user', content: prompt.userPrompt },
+      ],
+      response_format: {
+        type: 'json_schema',
+        json_schema: {
+          name: 'journal_summary',
+          strict: true,
+          schema: {
+            type: 'object',
+            additionalProperties: false,
+            properties: {
+              title: { type: ['string', 'null'] },
+              summary: { type: ['string', 'null'] },
+            },
+            required: ['title', 'summary'],
+          },
+        },
+      },
+    });
+    assertSuccessStatus(response.status);
+
+    const parsed = parseJsonObjectFromCompletionContent(response.data);
+
+    return {
       title: optionalString(parsed, 'title'),
       summary: optionalString(parsed, 'summary'),
     };
