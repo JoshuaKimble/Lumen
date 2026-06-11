@@ -506,13 +506,12 @@ class _ResourceCard extends ConsumerWidget {
               spacing: 8,
               runSpacing: 4,
               children: [
-                OutlinedButton.icon(
-                  onPressed: resolvedUrl == null
-                      ? null
-                      : () => _openResource(context, ref, resolvedUrl),
-                  icon: const Icon(Icons.open_in_new_outlined),
-                  label: const Text('Open'),
-                ),
+                if (resolvedUrl != null)
+                  OutlinedButton.icon(
+                    onPressed: () => _openResource(context, ref, resolvedUrl),
+                    icon: const Icon(Icons.open_in_new_outlined),
+                    label: const Text('Open'),
+                  ),
                 OutlinedButton.icon(
                   onPressed: () => _submitFeedback(
                     ref,

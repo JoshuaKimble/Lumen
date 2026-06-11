@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 abstract class ResourceLinkOpener {
@@ -9,10 +10,10 @@ class UrlLauncherResourceLinkOpener implements ResourceLinkOpener {
 
   @override
   Future<bool> open(Uri url) async {
-    if (!await canLaunchUrl(url)) {
-      return false;
-    }
-
-    return launchUrl(url, mode: LaunchMode.externalApplication);
+    return launchUrl(
+      url,
+      mode: LaunchMode.platformDefault,
+      webOnlyWindowName: kIsWeb ? '_blank' : null,
+    );
   }
 }

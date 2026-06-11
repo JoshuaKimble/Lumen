@@ -69,6 +69,7 @@ void main() {
       find.text('What boundary would reduce your stress this week?'),
       findsOneWidget,
     );
+    expect(find.text('Open'), findsNothing);
 
     await tester.tap(find.text('Dismiss').first);
     await tester.pumpAndSettle();
