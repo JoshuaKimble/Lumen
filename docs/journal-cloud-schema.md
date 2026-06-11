@@ -12,11 +12,71 @@ The schema introduces four user-owned tables:
 - `public.related_resources`
 - `public.resource_feedback`
 
+It also now defines two server-owned catalog tables that future resource
+generation can retrieve from:
+
+- `public.curated_resource_catalog`
+- `public.curated_resource_theme_mappings`
+
 They mirror the current Flutter journal domain closely enough for the existing
 local models to hydrate into cloud-backed repositories later, while adding the
 sync metadata needed for M6-M7 follow-up work.
 
 ## Table Overview
+
+### Server-Owned Catalog Foundation
+
+These catalog tables are not user-owned journaling records. They exist so the
+API can rank against a durable curated source of truth rather than treating
+`related_resources` as both the catalog and the output store.
+
+### `curated_resource_catalog`
+
+Stores reusable curated resource records and prompt-template-backed resource
+records keyed by `catalog_key`.
+
+Key columns:
+
+- `catalog_key`
+- `record_kind` (`resource`, `prompt_template`)
+- `resource_type`
+- `provider_key`
+- `tradition_key`
+- `title`
+- `description`
+- `canonical_url`
+- `scripture_reference`
+- `prompt_template`
+- `content_text`
+- `metadata`
+- `is_active`
+
+Design notes:
+
+- `record_kind` keeps fixed resources and prompt-template-backed reflection
+  prompts in one durable catalog foundation instead of splitting them too early.
+- `metadata` allows structured provider or routing detail without exploding the
+  first schema iteration.
+- This table is server-owned and intentionally not exposed to authenticated
+  clients.
+
+### `curated_resource_theme_mappings`
+
+Stores reusable semantic associations between catalog records and journal theme
+ids using primary key `(catalog_key, theme_id)`.
+
+Key columns:
+
+- `catalog_key`
+- `theme_id`
+- `weight`
+
+Design notes:
+
+- Theme mappings give future retrieval a stable boundary before more advanced
+  semantic ranking is introduced.
+- `weight` is intentionally simple for the foundation: it encodes relative
+  affinity, not a final user-facing confidence score.
 
 ### `journal_entries`
 
@@ -86,6 +146,8 @@ Design notes:
 - `scripture_reference` is included even though the current OpenAPI suggestion
   contract does not yet expose it, because the Flutter domain model already
   uses it for scripture-link routing.
+- This table remains the user-visible output store for generated suggestions,
+  not the server-owned catalog source of truth.
 
 ### `resource_feedback`
 
@@ -139,6 +201,26 @@ This keeps the journal schema safe in `public` even when tables are reachable
 through Supabase APIs, and it matches the local-first sync model already used
 in Flutter repositories.
 
+The curated catalog tables also live in `public`, but they are server-owned:
+
+- `anon` and `authenticated` are explicitly revoked
+- RLS is enabled with no user-facing policies
+- future server-side suggestion orchestration reads them through privileged
+  backend access rather than direct Flutter client access
+
+## Seed And Ownership Strategy
+
+- `supabase/seed.sql` provides a deterministic local-only baseline catalog seed
+  for development and QA.
+- Migration files define schema only; curated content rows are seeded
+  idempotently outside migrations.
+- Initial catalog ownership is editorial and code-managed: updates happen
+  through reviewed seed SQL or later ingestion tooling, not ad hoc client
+  writes.
+- The seed is intentionally small and representative. It exists to unblock
+  retrieval and ranking development, not to represent a production-sized
+  library.
+
 ## App Model Alignment
 
 The schema maps directly to the current Flutter journal domain:
@@ -150,3 +232,7 @@ The schema maps directly to the current Flutter journal domain:
 
 This keeps the upcoming repository split focused on transport and sync concerns
 rather than forcing a domain rewrite first.
+
+For the catalog foundation decision, see:
+
+- [0011-curated-resource-catalog-foundation.md](/Users/joshuakimble/Documents/workspace/apps/Lumen/docs/decisions/0011-curated-resource-catalog-foundation.md)
