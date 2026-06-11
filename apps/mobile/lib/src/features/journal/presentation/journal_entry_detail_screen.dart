@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router.dart';
+import '../../auth/data/admin_access_provider.dart';
 import '../data/journal_ai_service_provider.dart';
 import '../data/journal_repository_provider.dart';
 import '../data/resource_suggestion_service_provider.dart';
@@ -129,6 +130,7 @@ class _JournalEntryDetailState extends ConsumerState<_JournalEntryDetail> {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final entry = widget.entry;
+    final isAiAdmin = ref.watch(isCurrentUserAdminProvider);
     final suggestions = ref.watch(
       resourceSuggestionsProvider(
         ResourceSuggestionQuery(
@@ -151,6 +153,31 @@ class _JournalEntryDetailState extends ConsumerState<_JournalEntryDetail> {
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
+        if (isAiAdmin) ...[
+          const SizedBox(height: 16),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: OutlinedButton.icon(
+              onPressed: _isGenerating ? null : _regenerateAi,
+              icon: _isGenerating
+                  ? const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.auto_awesome_outlined),
+              label: Text(_isGenerating ? 'Refreshing AI' : 'Regenerate AI'),
+            ),
+          ),
+          if (_generationError case final message?) ...[
+            const SizedBox(height: 8),
+            Text(
+              message,
+              style: textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.error,
+              ),
+            ),
+          ],
+        ],
         if (entry.summary case final summary?) ...[
           const SizedBox(height: 16),
           Text(summary, style: textTheme.bodyLarge),
@@ -175,31 +202,6 @@ class _JournalEntryDetailState extends ConsumerState<_JournalEntryDetail> {
           emptyText: 'No rewrite yet.',
           emphasized: true,
         ),
-        const SizedBox(height: 12),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: OutlinedButton.icon(
-            onPressed: _isGenerating ? null : _generateRewrite,
-            icon: _isGenerating
-                ? const SizedBox.square(
-                    dimension: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.auto_awesome_outlined),
-            label: Text(
-              _isGenerating ? 'Generating rewrite' : 'Regenerate AI rewrite',
-            ),
-          ),
-        ),
-        if (_generationError case final message?) ...[
-          const SizedBox(height: 8),
-          Text(
-            message,
-            style: textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context).colorScheme.error,
-            ),
-          ),
-        ],
         const SizedBox(height: 16),
         _ResourcesSection(
           resources: entry.resources,
@@ -210,7 +212,7 @@ class _JournalEntryDetailState extends ConsumerState<_JournalEntryDetail> {
     );
   }
 
-  Future<void> _generateRewrite() async {
+  Future<void> _regenerateAi() async {
     setState(() {
       _isGenerating = true;
       _generationError = null;
@@ -232,14 +234,26 @@ class _JournalEntryDetailState extends ConsumerState<_JournalEntryDetail> {
         themeDetection: themeDetection,
         updatedAt: DateTime.now().toUtc(),
       );
+      final oldResourceQuery = ResourceSuggestionQuery(
+        text: entry.originalText,
+        themeIds: entry.themes.map((theme) => theme.id).toList(growable: false),
+      );
+      final newResourceQuery = ResourceSuggestionQuery(
+        text: updatedEntry.originalText,
+        themeIds: updatedEntry.themes
+            .map((theme) => theme.id)
+            .toList(growable: false),
+      );
 
       await repository.saveEntry(updatedEntry);
       ref.invalidate(journalEntriesProvider);
       ref.invalidate(journalEntryProvider(entry.id));
+      ref.invalidate(resourceSuggestionsProvider(oldResourceQuery));
+      ref.invalidate(resourceSuggestionsProvider(newResourceQuery));
     } catch (_) {
       if (mounted) {
         setState(() {
-          _generationError = 'Unable to generate a rewrite right now.';
+          _generationError = 'Unable to refresh AI for this entry right now.';
         });
       }
     } finally {

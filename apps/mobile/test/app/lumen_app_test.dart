@@ -327,7 +327,7 @@ void main() {
       120,
     );
     expect(find.text('Morning reflection prompt'), findsOneWidget);
-    expect(find.text('Regenerate AI rewrite'), findsOneWidget);
+    expect(find.text('Regenerate AI'), findsNothing);
   });
 
   testWidgets('renders a calm empty state', (tester) async {
@@ -547,6 +547,26 @@ void main() {
     expect(find.text('No journal entries yet'), findsOneWidget);
   });
 
+  testWidgets('shows regenerate ai only for admin accounts', (tester) async {
+    await _pumpAuthenticatedApp(
+      tester,
+      profileService: _FakeProfileService(
+        profile: _sampleProfile(onboardingCompleted: true),
+      ),
+      repository: InMemoryJournalRepository(seedEntries: [_sampleEntry]),
+      session: const AuthSession(
+        userId: 'user-1',
+        email: 'joshuakimble@gmail.com',
+        emailVerified: true,
+      ),
+    );
+
+    await tester.tap(find.text('A difficult but honest morning'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Regenerate AI'), findsOneWidget);
+  });
+
   testWidgets('generates mock rewrite and themes for an entry', (tester) async {
     final repository = InMemoryJournalRepository(
       seedEntries: [_unprocessedEntry],
@@ -556,8 +576,35 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          supabaseClientConfigProvider.overrideWithValue(
+            const SupabaseClientConfig(
+              enabled: true,
+              url: 'https://example.supabase.co',
+              publishableKey: 'sb_publishable_example',
+            ),
+          ),
+          authServiceProvider.overrideWithValue(
+            _FakeAuthService(
+              currentSession: const AuthSession(
+                userId: 'user-1',
+                email: 'joshuakimble@gmail.com',
+                emailVerified: true,
+              ),
+            ),
+          ),
+          profileServiceProvider.overrideWithValue(
+            _FakeProfileService(
+              profile: _sampleProfile(onboardingCompleted: true),
+            ),
+          ),
           journalRepositoryProvider.overrideWithValue(repository),
           journalAiServiceProvider.overrideWithValue(aiService),
+          themePreferenceRepositoryProvider.overrideWithValue(
+            _FakeThemePreferenceRepository(),
+          ),
+          scriptureAppPreferenceRepositoryProvider.overrideWithValue(
+            _FakeScriptureAppPreferenceRepository(),
+          ),
         ],
         child: const LumenApp(),
       ),
@@ -566,11 +613,10 @@ void main() {
 
     await tester.tap(find.text('A raw work note'));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('Regenerate AI rewrite'), 120);
-    await tester.tap(find.text('Regenerate AI rewrite'));
+    await tester.tap(find.text('Regenerate AI'));
     await tester.pump();
 
-    expect(find.text('Generating rewrite'), findsOneWidget);
+    expect(find.text('Refreshing AI'), findsOneWidget);
 
     aiService.completeRewrite();
     await tester.pumpAndSettle();
@@ -582,6 +628,10 @@ void main() {
       '[Test AI: regenerate] A clearer mock rewrite.',
     );
     expect(entry?.themes.single.displayName, 'Work');
+    await tester.scrollUntilVisible(
+      find.text('[Test AI: regenerate] A clearer mock rewrite.'),
+      120,
+    );
     expect(
       find.text('[Test AI: regenerate] A clearer mock rewrite.'),
       findsOneWidget,
@@ -600,8 +650,35 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          supabaseClientConfigProvider.overrideWithValue(
+            const SupabaseClientConfig(
+              enabled: true,
+              url: 'https://example.supabase.co',
+              publishableKey: 'sb_publishable_example',
+            ),
+          ),
+          authServiceProvider.overrideWithValue(
+            _FakeAuthService(
+              currentSession: const AuthSession(
+                userId: 'user-1',
+                email: 'joshuakimble@gmail.com',
+                emailVerified: true,
+              ),
+            ),
+          ),
+          profileServiceProvider.overrideWithValue(
+            _FakeProfileService(
+              profile: _sampleProfile(onboardingCompleted: true),
+            ),
+          ),
           journalRepositoryProvider.overrideWithValue(repository),
           journalAiServiceProvider.overrideWithValue(const _FailingAiService()),
+          themePreferenceRepositoryProvider.overrideWithValue(
+            _FakeThemePreferenceRepository(),
+          ),
+          scriptureAppPreferenceRepositoryProvider.overrideWithValue(
+            _FakeScriptureAppPreferenceRepository(),
+          ),
         ],
         child: const LumenApp(),
       ),
@@ -610,15 +687,14 @@ void main() {
 
     await tester.tap(find.text('A raw work note'));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('Regenerate AI rewrite'), 120);
-    await tester.tap(find.text('Regenerate AI rewrite'));
+    await tester.tap(find.text('Regenerate AI'));
     await tester.pumpAndSettle();
 
     final entry = await repository.getEntry('entry-2');
 
     expect(entry?.rewrittenText, isEmpty);
     expect(
-      find.text('Unable to generate a rewrite right now.'),
+      find.text('Unable to refresh AI for this entry right now.'),
       findsOneWidget,
     );
   });
@@ -1105,6 +1181,8 @@ class _FakeProfileService implements ProfileService {
 Future<void> _pumpAuthenticatedApp(
   WidgetTester tester, {
   required _FakeProfileService profileService,
+  InMemoryJournalRepository? repository,
+  AuthSession? session,
   ThemePreferenceRepository? themeRepository,
   ScriptureAppPreferenceRepository? scriptureRepository,
 }) async {
@@ -1120,16 +1198,18 @@ Future<void> _pumpAuthenticatedApp(
         ),
         authServiceProvider.overrideWithValue(
           _FakeAuthService(
-            currentSession: const AuthSession(
-              userId: 'user-1',
-              email: 'user@example.com',
-              emailVerified: true,
-            ),
+            currentSession:
+                session ??
+                const AuthSession(
+                  userId: 'user-1',
+                  email: 'user@example.com',
+                  emailVerified: true,
+                ),
           ),
         ),
         profileServiceProvider.overrideWithValue(profileService),
         journalRepositoryProvider.overrideWithValue(
-          InMemoryJournalRepository(),
+          repository ?? InMemoryJournalRepository(),
         ),
         themePreferenceRepositoryProvider.overrideWithValue(
           themeRepository ?? _FakeThemePreferenceRepository(),
