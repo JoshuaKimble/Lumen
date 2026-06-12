@@ -4,6 +4,7 @@ import 'ai_results.dart';
 import 'entry_source.dart';
 import 'journal_theme.dart';
 import 'related_resource.dart';
+import 'study_guide.dart';
 
 @immutable
 class JournalEntry {
@@ -16,6 +17,7 @@ class JournalEntry {
     required this.rewrittenText,
     required this.themes,
     required this.resources,
+    this.studyGuide,
     this.title,
     this.summary,
     this.lastRegeneratedAt,
@@ -29,6 +31,7 @@ class JournalEntry {
   final String rewrittenText;
   final List<JournalTheme> themes;
   final List<RelatedResource> resources;
+  final StudyGuide? studyGuide;
   final String? title;
   final String? summary;
   final DateTime? lastRegeneratedAt;
@@ -50,6 +53,7 @@ class JournalEntry {
       rewrittenText: rewrite.rewrittenText,
       themes: themes,
       resources: resources,
+      studyGuide: studyGuide,
       title: rewrite.title ?? title,
       summary: rewrite.summary ?? summary,
       lastRegeneratedAt: updatedAt,
@@ -71,6 +75,7 @@ class JournalEntry {
       rewrittenText: rewrite.rewrittenText,
       themes: themeDetection.themes,
       resources: resources,
+      studyGuide: studyGuide,
       title: preserveTitle ? title : rewrite.title ?? title,
       summary: rewrite.summary ?? summary,
       lastRegeneratedAt: updatedAt,
@@ -93,6 +98,7 @@ class JournalEntry {
       rewrittenText: preserveRewrite ? rewrittenText : '',
       themes: themeDetection.themes,
       resources: resources,
+      studyGuide: studyGuide,
       title: preserveTitle ? title : summaryResult.title ?? title,
       summary: summaryResult.summary ?? summary,
       lastRegeneratedAt: updatedAt,
@@ -109,8 +115,29 @@ class JournalEntry {
       rewrittenText: '',
       themes: const [],
       resources: resources,
+      studyGuide: studyGuide,
       title: title,
       summary: null,
+    );
+  }
+
+  JournalEntry replaceStudyGuide({
+    required StudyGuide? studyGuide,
+    required DateTime updatedAt,
+  }) {
+    return JournalEntry(
+      id: id,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+      source: source,
+      originalText: originalText,
+      rewrittenText: rewrittenText,
+      themes: themes,
+      resources: resources,
+      studyGuide: studyGuide,
+      title: title,
+      summary: summary,
+      lastRegeneratedAt: lastRegeneratedAt,
     );
   }
 }

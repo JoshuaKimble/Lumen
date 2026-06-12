@@ -96,6 +96,7 @@ class JournalEntryConflictResolver {
         left.title != right.title ||
         left.summary != right.summary ||
         left.lastRegeneratedAt != right.lastRegeneratedAt ||
+        left.studyGuide != right.studyGuide ||
         !_sameThemes(left.themes, right.themes) ||
         !_sameResources(left.resources, right.resources);
   }
@@ -113,6 +114,7 @@ class JournalEntryConflictResolver {
       rewrittenText: '',
       themes: const [],
       resources: const [],
+      studyGuide: entry.studyGuide,
       title: null,
       summary: null,
       lastRegeneratedAt: null,
