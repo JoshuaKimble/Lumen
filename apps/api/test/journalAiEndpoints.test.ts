@@ -215,6 +215,9 @@ test('study guide endpoint returns Gospel Library guide payload', async () => {
   assert.ok(Array.isArray(body.items));
   assert.ok(body.items.length >= 1);
   assert.equal(body.items[0].destination.providerKey, 'gospel_library');
+  assert.match(body.items[0].destination.url, /[?&]id=p\d+/u);
+  assert.match(body.items[0].destination.url, /#p\d+$/u);
+  assert.equal(body.items[0].destination.precision, 'verseRange');
   assert.equal(typeof body.reflectionPrompt.text, 'string');
 });
 

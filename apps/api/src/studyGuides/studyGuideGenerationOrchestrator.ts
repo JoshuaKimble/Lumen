@@ -410,8 +410,8 @@ function toItem(
       providerKey,
       contentType: 'scripture',
       reference: record.scriptureReference ?? record.title,
-      url: record.canonicalUrl,
-      precision: 'chapter',
+      url: buildScriptureUrl(record),
+      precision: scripturePrecision(record),
     },
     focusText:
       metadataString(record, 'focus_text') ??
@@ -454,6 +454,34 @@ function resourceTypeBonus(record: CuratedResourceCatalogRecord): number {
     : resourceKind(record) === 'conference_talk'
       ? 0.08
       : 0.03;
+}
+
+function buildScriptureUrl(
+  record: CuratedResourceCatalogRecord,
+): string | undefined {
+  const canonicalUrl = record.canonicalUrl;
+  if (canonicalUrl == null) {
+    return undefined;
+  }
+
+  const verseStart = metadataNumber(record, 'verse_start');
+  if (verseStart == null) {
+    return canonicalUrl;
+  }
+
+  const url = new URL(canonicalUrl);
+  const verseAnchor = `p${verseStart}`;
+  url.searchParams.set('id', verseAnchor);
+  url.hash = verseAnchor;
+  return url.toString();
+}
+
+function scripturePrecision(
+  record: CuratedResourceCatalogRecord,
+): StudyGuideDestinationPrecision {
+  return metadataNumber(record, 'verse_start') == null
+    ? 'chapter'
+    : 'verseRange';
 }
 
 function buildOverview(
@@ -518,6 +546,14 @@ function metadataString(
   return typeof value === 'string' && value.trim().length > 0
     ? value
     : undefined;
+}
+
+function metadataNumber(
+  record: CuratedResourceCatalogRecord,
+  key: string,
+): number | undefined {
+  const value = record.metadata[key];
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
 }
 
 function clampConfidence(value: number): number {

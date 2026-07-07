@@ -33,7 +33,7 @@ values
     'Psalm 46:10',
     null,
     'Psalm 46:10 Be still, and know that I am God.',
-    '{"kind":"scripture","canonical_book":"Psalms","focus_text":"Be still before the Lord and trust him.","book":"Psalms","chapter":46,"verse_start":10,"precision_target":"chapter","provider_reference":"Psalm 46:10"}'::jsonb,
+    '{"kind":"scripture","canonical_book":"Psalms","focus_text":"Be still before the Lord and trust him.","book":"Psalms","chapter":46,"verse_start":10,"precision_target":"verse_range","provider_reference":"Psalm 46:10"}'::jsonb,
     true
   ),
   (
@@ -48,7 +48,7 @@ values
     'Alma 37:6',
     null,
     'Alma 37:6 By small and simple things are great things brought to pass.',
-    '{"kind":"scripture","canonical_book":"Alma","focus_text":"Notice how small and faithful actions can change the course of a day.","book":"Alma","chapter":37,"verse_start":6,"precision_target":"chapter","provider_reference":"Alma 37:6"}'::jsonb,
+    '{"kind":"scripture","canonical_book":"Alma","focus_text":"Notice how small and faithful actions can change the course of a day.","book":"Alma","chapter":37,"verse_start":6,"precision_target":"verse_range","provider_reference":"Alma 37:6"}'::jsonb,
     true
   ),
   (
@@ -63,7 +63,7 @@ values
     '3 Nephi 1:6-12',
     null,
     '3 Nephi 1:6-12 faith under pressure, patience, and deliverance.',
-    '{"kind":"scripture","canonical_book":"3 Nephi","focus_text":"Read verses 6-12 for a reminder that faith can steady you while you wait.","book":"3 Nephi","chapter":1,"verse_start":6,"verse_end":12,"precision_target":"chapter","provider_reference":"3 Nephi 1:6-12"}'::jsonb,
+    '{"kind":"scripture","canonical_book":"3 Nephi","focus_text":"Read verses 6-12 for a reminder that faith can steady you while you wait.","book":"3 Nephi","chapter":1,"verse_start":6,"verse_end":12,"precision_target":"verse_range","provider_reference":"3 Nephi 1:6-12"}'::jsonb,
     true
   ),
   (

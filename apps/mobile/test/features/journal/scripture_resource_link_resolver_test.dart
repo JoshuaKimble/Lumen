@@ -89,22 +89,27 @@ void main() {
       expect(link?.precision, StudyGuideDestinationPrecision.chapter);
     });
 
-    test('degrades verse-range scripture destinations to chapter precision', () {
-      final link = resolver.resolve(
-        StudyGuideDestination(
-          providerKey: 'gospel_library',
-          contentType: 'scripture',
-          reference: '3 Nephi 1:6-12',
-          url: Uri.parse(
-            'https://www.churchofjesuschrist.org/study/scriptures/bofm/3-ne/1?lang=eng',
+    test(
+      'preserves verse-range scripture destinations when anchor metadata exists',
+      () {
+        final link = resolver.resolve(
+          StudyGuideDestination(
+            providerKey: 'gospel_library',
+            contentType: 'scripture',
+            reference: '3 Nephi 1:6-12',
+            url: Uri.parse(
+              'https://www.churchofjesuschrist.org/study/scriptures/bofm/3-ne/1?lang=eng&id=p6#p6',
+            ),
+            precision: StudyGuideDestinationPrecision.verseRange,
           ),
-          precision: StudyGuideDestinationPrecision.verseRange,
-        ),
-      );
+        );
 
-      expect(link, isNotNull);
-      expect(link?.precision, StudyGuideDestinationPrecision.chapter);
-    });
+        expect(link, isNotNull);
+        expect(link?.precision, StudyGuideDestinationPrecision.verseRange);
+        expect(link?.uri.queryParameters['id'], 'p6');
+        expect(link?.uri.fragment, 'p6');
+      },
+    );
 
     test('resolves conference talks to document precision', () {
       final link = resolver.resolve(

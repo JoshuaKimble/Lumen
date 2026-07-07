@@ -226,9 +226,9 @@ final Map<String, _GuideCandidate> _guideCandidates = {
     contextLine: 'A quiet anchor when you need steadiness.',
     reference: 'Psalm 46:10',
     url: Uri.parse(
-      'https://www.churchofjesuschrist.org/study/scriptures/ot/ps/46?lang=eng',
+      'https://www.churchofjesuschrist.org/study/scriptures/ot/ps/46?lang=eng&id=p10#p10',
     ),
-    precision: StudyGuideDestinationPrecision.chapter,
+    precision: StudyGuideDestinationPrecision.verseRange,
     focusText: 'Focus on the chapter’s reminder to be still and trust God.',
   ),
   'stress': _GuideCandidate(
@@ -238,9 +238,9 @@ final Map<String, _GuideCandidate> _guideCandidates = {
     contextLine: 'A reminder that small, faithful acts matter.',
     reference: 'Alma 37:6',
     url: Uri.parse(
-      'https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/37?lang=eng',
+      'https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/37?lang=eng&id=p6#p6',
     ),
-    precision: StudyGuideDestinationPrecision.chapter,
+    precision: StudyGuideDestinationPrecision.verseRange,
     focusText:
         'Notice how small and simple things can become spiritually meaningful.',
   ),
@@ -266,9 +266,9 @@ final Map<String, _GuideCandidate> _guideCandidates = {
         'A chapter that reminds you to hold to faith when the path is uncertain.',
     reference: '3 Nephi 1:6-12',
     url: Uri.parse(
-      'https://www.churchofjesuschrist.org/study/scriptures/bofm/3-ne/1?lang=eng',
+      'https://www.churchofjesuschrist.org/study/scriptures/bofm/3-ne/1?lang=eng&id=p6#p6',
     ),
-    precision: StudyGuideDestinationPrecision.chapter,
+    precision: StudyGuideDestinationPrecision.verseRange,
     focusText:
         'Read verses 6-12 for the way faith holds steady under pressure.',
   ),
@@ -281,9 +281,9 @@ final _fallbackCandidate = _GuideCandidate(
   contextLine: 'A quiet anchor when you need steadiness.',
   reference: 'Psalm 46:10',
   url: Uri.parse(
-    'https://www.churchofjesuschrist.org/study/scriptures/ot/ps/46?lang=eng',
+    'https://www.churchofjesuschrist.org/study/scriptures/ot/ps/46?lang=eng&id=p10#p10',
   ),
-  precision: StudyGuideDestinationPrecision.chapter,
+  precision: StudyGuideDestinationPrecision.verseRange,
   focusText: 'Focus on the chapter’s reminder to be still and trust God.',
 );
 

@@ -217,7 +217,7 @@ void main() {
 
           if (request.url.path.endsWith('/study-guides/generate')) {
             return http.Response(
-              '{"guideId":"guide-1","entryId":"entry-1","providerKey":"gospel_library","generatedAt":"2026-06-11T12:00:00.000Z","overview":"overview","previewText":"Psalm 46:10","items":[{"id":"item-1","kind":"scripture","title":"Psalm 46:10","contextLine":"A quiet anchor.","position":0,"destination":{"providerKey":"gospel_library","contentType":"scripture","reference":"Psalm 46:10","precision":"chapter","url":"https://www.churchofjesuschrist.org/study/scriptures/ot/ps/46?lang=eng"},"focusText":"Focus on verse 10."}],"reflectionPrompt":{"text":"Reflect on this"}}',
+              '{"guideId":"guide-1","entryId":"entry-1","providerKey":"gospel_library","generatedAt":"2026-06-11T12:00:00.000Z","overview":"overview","previewText":"Psalm 46:10","items":[{"id":"item-1","kind":"scripture","title":"Psalm 46:10","contextLine":"A quiet anchor.","position":0,"destination":{"providerKey":"gospel_library","contentType":"scripture","reference":"Psalm 46:10","precision":"verseRange","url":"https://www.churchofjesuschrist.org/study/scriptures/ot/ps/46?lang=eng&id=p10#p10"},"focusText":"Focus on verse 10."}],"reflectionPrompt":{"text":"Reflect on this"}}',
               200,
             );
           }

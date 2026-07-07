@@ -84,13 +84,10 @@ class GospelLibraryStudyGuideLinkAdapter
 
     return ResolvedStudyGuideLink(
       uri: url,
-      precision: switch (destination.precision) {
-        StudyGuideDestinationPrecision.verseRange =>
-          StudyGuideDestinationPrecision.chapter,
-        StudyGuideDestinationPrecision.chapter =>
-          StudyGuideDestinationPrecision.chapter,
-        _ => StudyGuideDestinationPrecision.chapter,
-      },
+      precision:
+          destination.precision == StudyGuideDestinationPrecision.document
+          ? StudyGuideDestinationPrecision.chapter
+          : destination.precision,
       providerKey: destination.providerKey,
       contentType: destination.contentType,
     );
