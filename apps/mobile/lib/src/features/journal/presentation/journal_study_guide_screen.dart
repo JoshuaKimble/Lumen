@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../data/study_guide_link_resolver.dart';
 import '../domain/journal_entry.dart';
 import '../domain/study_guide.dart';
 import '../data/resource_suggestion_service_provider.dart';
@@ -135,7 +136,9 @@ class _StudyGuideItemCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
-    final resolvedUrl = item.destination.url;
+    final resolvedLink = ref
+        .watch(studyGuideLinkResolverProvider)
+        .resolve(item.destination);
 
     return AnimatedOpacity(
       duration: const Duration(milliseconds: 180),
@@ -229,11 +232,12 @@ class _StudyGuideItemCard extends ConsumerWidget {
                 ),
               ],
               const SizedBox(height: 12),
-              if (resolvedUrl != null)
+              if (resolvedLink != null)
                 FilledButton.icon(
-                  onPressed: () => _openResource(context, ref, resolvedUrl),
+                  onPressed: () =>
+                      _openResource(context, ref, resolvedLink.uri),
                   icon: const Icon(Icons.open_in_new_outlined),
-                  label: Text(_openLabel(item.destination.providerKey)),
+                  label: Text(_openLabel(resolvedLink.providerKey)),
                 ),
             ],
           ),

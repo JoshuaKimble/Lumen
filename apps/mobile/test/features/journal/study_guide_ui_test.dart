@@ -126,18 +126,40 @@ void main() {
       );
     },
   );
+
+  testWidgets(
+    'study guide hides open CTA when the destination cannot be resolved',
+    (tester) async {
+      await _pumpStudyGuideApp(
+        tester,
+        entry: _sampleEntryWithUnresolvableGuide,
+      );
+
+      await tester.tap(find.text('Faith in a difficult week'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Open study guide'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Mystery resource'), findsOneWidget);
+      expect(find.text('Open resource'), findsNothing);
+      expect(find.text('Open in Gospel Library'), findsNothing);
+    },
+  );
 }
 
 Future<void> _pumpStudyGuideApp(
   WidgetTester tester, {
   ResourceLinkOpener? opener,
+  JournalEntry? entry,
 }) async {
   tester.view.physicalSize = const Size(1200, 2200);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
 
-  final repository = InMemoryJournalRepository(seedEntries: [_sampleEntry]);
+  final repository = InMemoryJournalRepository(
+    seedEntries: [entry ?? _sampleEntry],
+  );
 
   await tester.pumpWidget(
     ProviderScope(
@@ -171,6 +193,49 @@ final _sampleEntry = JournalEntry(
   ],
   resources: const [],
   studyGuide: _studyGuide(),
+  title: 'Faith in a difficult week',
+  summary: 'A reflection on faith, stress, and turning back to scripture.',
+);
+
+final _sampleEntryWithUnresolvableGuide = JournalEntry(
+  id: 'entry-study-guide-unresolvable',
+  createdAt: DateTime.utc(2026, 6, 11, 14),
+  updatedAt: DateTime.utc(2026, 6, 11, 14),
+  source: EntrySource.text,
+  originalText:
+      'I have felt stretched this week and want to turn more to scripture and faith.',
+  rewrittenText: '',
+  themes: const [
+    JournalTheme(id: 'faith', name: 'faith', displayName: 'Faith'),
+  ],
+  resources: const [],
+  studyGuide: StudyGuide(
+    id: 'study-guide-entry-unresolvable',
+    entryId: 'entry-study-guide-unresolvable',
+    providerKey: 'gospel_library',
+    generatedAt: DateTime.utc(2026, 6, 11, 14, 30),
+    overview: 'A gospel study guide built from this reflection.',
+    previewText: 'Mystery resource',
+    items: const [
+      StudyGuideItem(
+        id: 'mystery-item',
+        kind: 'study_resource',
+        title: 'Mystery resource',
+        contextLine: 'This should stay visible without an open action.',
+        position: 0,
+        destination: StudyGuideDestination(
+          providerKey: 'gospel_library',
+          contentType: 'unsupported',
+          reference: 'mystery-resource',
+          precision: StudyGuideDestinationPrecision.webFallback,
+        ),
+      ),
+    ],
+    reflectionPrompt: const StudyGuidePrompt(
+      text:
+          'As you study these resources, what feels most worth carrying into the rest of your day?',
+    ),
+  ),
   title: 'Faith in a difficult week',
   summary: 'A reflection on faith, stress, and turning back to scripture.',
 );
