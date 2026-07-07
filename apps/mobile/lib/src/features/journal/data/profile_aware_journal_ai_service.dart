@@ -1,6 +1,8 @@
 import '../domain/ai_results.dart';
 import '../domain/journal_ai_service.dart';
+import '../domain/journal_theme.dart';
 import '../domain/rewrite_personalization.dart';
+import '../domain/study_guide.dart';
 
 class ProfileAwareJournalAiService implements JournalAiService {
   const ProfileAwareJournalAiService({
@@ -12,9 +14,7 @@ class ProfileAwareJournalAiService implements JournalAiService {
   final RewritePersonalization defaultPersonalization;
 
   @override
-  Future<EntrySummaryResult> summarizeEntry({
-    required String originalText,
-  }) {
+  Future<EntrySummaryResult> summarizeEntry({required String originalText}) {
     return delegate.summarizeEntry(originalText: originalText);
   }
 
@@ -34,5 +34,20 @@ class ProfileAwareJournalAiService implements JournalAiService {
   @override
   Future<ThemeDetectionResult> detectThemes({required String text}) {
     return delegate.detectThemes(text: text);
+  }
+
+  @override
+  Future<StudyGuide> generateStudyGuide({
+    required String entryId,
+    required String originalText,
+    required List<JournalTheme> themes,
+    required String providerKey,
+  }) {
+    return delegate.generateStudyGuide(
+      entryId: entryId,
+      originalText: originalText,
+      themes: themes,
+      providerKey: providerKey,
+    );
   }
 }

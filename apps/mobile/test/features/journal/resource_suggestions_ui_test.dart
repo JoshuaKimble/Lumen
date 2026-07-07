@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lumen/src/app/lumen_app.dart';
+import 'package:lumen/src/app/router.dart';
 import 'package:lumen/src/features/journal/data/in_memory_journal_repository.dart';
 import 'package:lumen/src/features/journal/data/journal_repository_provider.dart';
 import 'package:lumen/src/features/journal/data/resource_feedback_repository.dart';
-import 'package:lumen/src/features/journal/data/resource_link_opener.dart';
 import 'package:lumen/src/features/journal/data/resource_suggestion_service_provider.dart';
 import 'package:lumen/src/features/journal/domain/entry_source.dart';
 import 'package:lumen/src/features/journal/domain/journal_entry.dart';
@@ -18,7 +18,9 @@ import 'package:lumen/src/features/settings/domain/scripture_app_preference.dart
 import 'package:lumen/src/features/settings/domain/scripture_app_preference_repository.dart';
 
 void main() {
-  testWidgets('renders suggestions and dismiss hides them', (tester) async {
+  testWidgets('renders theme suggestions and dismiss hides them', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(1200, 2200);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -41,13 +43,15 @@ void main() {
         ),
       ],
     );
+    final suggestionService = _FakeSuggestionService();
 
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          appInitialLocationProvider.overrideWithValue('/themes/work'),
           journalRepositoryProvider.overrideWithValue(repository),
           resourceSuggestionServiceProvider.overrideWithValue(
-            const _FakeSuggestionService(),
+            suggestionService,
           ),
           resourceFeedbackRepositoryProvider.overrideWithValue(
             _InMemoryFeedbackRepository(),
@@ -58,18 +62,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Work entry'));
-    await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-      find.text('What boundary would reduce your stress this week?'),
-      120,
-    );
-
+    expect(find.text('Related resources'), findsOneWidget);
     expect(
       find.text('What boundary would reduce your stress this week?'),
       findsOneWidget,
     );
-    expect(find.text('Open'), findsNothing);
+    expect(suggestionService.lastThemeIds, ['work']);
 
     await tester.tap(find.text('Dismiss').first);
     await tester.pumpAndSettle();
@@ -80,7 +78,7 @@ void main() {
     );
   });
 
-  testWidgets('opens scripture links using selected scripture preference', (
+  testWidgets('requests suggestions with selected scripture preference', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(1200, 2200);
@@ -88,7 +86,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    final opener = _FakeResourceLinkOpener();
+    final suggestionService = _PreferenceAwareSuggestionService();
     final scripturePreferenceRepository =
         _InMemoryScriptureAppPreferenceRepository(
           initial: ScriptureAppPreference.gospelLibrary,
@@ -114,9 +112,10 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          appInitialLocationProvider.overrideWithValue('/themes/faith'),
           journalRepositoryProvider.overrideWithValue(repository),
           resourceSuggestionServiceProvider.overrideWithValue(
-            const _ScriptureSuggestionService(),
+            suggestionService,
           ),
           resourceFeedbackRepositoryProvider.overrideWithValue(
             _InMemoryFeedbackRepository(),
@@ -124,27 +123,22 @@ void main() {
           scriptureAppPreferenceRepositoryProvider.overrideWithValue(
             scripturePreferenceRepository,
           ),
-          resourceLinkOpenerProvider.overrideWithValue(opener),
         ],
         child: const LumenApp(),
       ),
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Faith entry'));
-    await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('Psalm 46:10'), 120);
-    await tester.scrollUntilVisible(find.text('Open').first, 120);
-    await tester.tap(find.text('Open').first);
-    await tester.pumpAndSettle();
-
-    expect(opener.openedUrls, hasLength(1));
-    expect(opener.openedUrls.single.host, 'www.churchofjesuschrist.org');
+    expect(find.text('Psalm 46:10'), findsOneWidget);
+    expect(
+      suggestionService.lastPreference,
+      ScriptureAppPreference.gospelLibrary,
+    );
   });
 }
 
 class _FakeSuggestionService implements ResourceSuggestionService {
-  const _FakeSuggestionService();
+  List<String> lastThemeIds = const [];
 
   @override
   Future<List<RelatedResource>> suggest({
@@ -152,6 +146,7 @@ class _FakeSuggestionService implements ResourceSuggestionService {
     List<String> themeIds = const [],
     ScriptureAppPreference preference = ScriptureAppPreference.none,
   }) async {
+    lastThemeIds = List<String>.from(themeIds);
     return const [
       RelatedResource(
         id: 'work-prompt-review-boundaries',
@@ -173,8 +168,8 @@ class _FakeSuggestionService implements ResourceSuggestionService {
   }) async {}
 }
 
-class _ScriptureSuggestionService implements ResourceSuggestionService {
-  const _ScriptureSuggestionService();
+class _PreferenceAwareSuggestionService implements ResourceSuggestionService {
+  ScriptureAppPreference lastPreference = ScriptureAppPreference.none;
 
   @override
   Future<List<RelatedResource>> suggest({
@@ -182,6 +177,7 @@ class _ScriptureSuggestionService implements ResourceSuggestionService {
     List<String> themeIds = const [],
     ScriptureAppPreference preference = ScriptureAppPreference.none,
   }) async {
+    lastPreference = preference;
     return const [
       RelatedResource(
         id: 'faith-scripture-psalm-46-10',
@@ -191,6 +187,7 @@ class _ScriptureSuggestionService implements ResourceSuggestionService {
         sourceType: 'curated',
         matchReason: 'faith match',
         confidence: 0.82,
+        description: 'A quiet anchor when you need steadiness.',
       ),
     ];
   }
@@ -236,15 +233,5 @@ class _InMemoryScriptureAppPreferenceRepository
   @override
   Future<void> save(ScriptureAppPreference preference) async {
     _value = preference;
-  }
-}
-
-class _FakeResourceLinkOpener implements ResourceLinkOpener {
-  final List<Uri> openedUrls = [];
-
-  @override
-  Future<bool> open(Uri url) async {
-    openedUrls.add(url);
-    return true;
   }
 }

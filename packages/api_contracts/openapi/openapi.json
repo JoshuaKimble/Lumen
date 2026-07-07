@@ -126,6 +126,38 @@
         }
       }
     },
+    "/v1/study-guides/generate": {
+      "post": {
+        "operationId": "generateStudyGuide",
+        "summary": "Generate a gospel study guide",
+        "description": "Returns a provider-constrained Study Guide artifact built from a journal entry and detected themes.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateStudyGuideRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Generated study guide.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenerateStudyGuideResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          }
+        }
+      }
+    },
     "/v1/transcriptions": {
       "post": {
         "operationId": "createTranscription",
@@ -423,6 +455,160 @@
             "items": {
               "$ref": "#/components/schemas/JournalTheme"
             }
+          }
+        }
+      },
+      "GenerateStudyGuideRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["entryId", "originalText", "providerKey"],
+        "properties": {
+          "entryId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "originalText": {
+            "type": "string",
+            "minLength": 1
+          },
+          "providerKey": {
+            "type": "string",
+            "minLength": 1
+          },
+          "themeIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      },
+      "GenerateStudyGuideResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "guideId",
+          "entryId",
+          "providerKey",
+          "generatedAt",
+          "overview",
+          "previewText",
+          "items",
+          "reflectionPrompt"
+        ],
+        "properties": {
+          "guideId": {
+            "type": "string"
+          },
+          "entryId": {
+            "type": "string"
+          },
+          "providerKey": {
+            "type": "string"
+          },
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "overview": {
+            "type": "string"
+          },
+          "previewText": {
+            "type": "string"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StudyGuideItem"
+            }
+          },
+          "reflectionPrompt": {
+            "$ref": "#/components/schemas/StudyGuidePrompt"
+          }
+        }
+      },
+      "StudyGuideItem": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "kind",
+          "title",
+          "contextLine",
+          "position",
+          "destination"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "contextLine": {
+            "type": "string"
+          },
+          "position": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "destination": {
+            "$ref": "#/components/schemas/StudyGuideDestination"
+          },
+          "focusText": {
+            "type": "string"
+          },
+          "quote": {
+            "type": "string"
+          },
+          "author": {
+            "type": "string"
+          },
+          "publishedContext": {
+            "type": "string"
+          }
+        }
+      },
+      "StudyGuideDestination": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "providerKey",
+          "contentType",
+          "reference",
+          "precision"
+        ],
+        "properties": {
+          "providerKey": {
+            "type": "string"
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "reference": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "precision": {
+            "type": "string",
+            "enum": ["verseRange", "chapter", "document", "webFallback"]
+          }
+        }
+      },
+      "StudyGuidePrompt": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["text"],
+        "properties": {
+          "text": {
+            "type": "string"
           }
         }
       },

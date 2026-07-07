@@ -1,14 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../settings/data/scripture_app_preference_provider.dart';
-import '../../settings/domain/scripture_app_preference.dart';
-import '../data/resource_suggestion_service_provider.dart';
 import '../domain/journal_entry.dart';
-import '../domain/related_resource.dart';
+import '../domain/study_guide.dart';
+import '../data/resource_suggestion_service_provider.dart';
 import 'journal_entry_provider.dart';
-import 'journal_formatters.dart';
-import 'resource_suggestions_provider.dart';
 import 'study_guide_progress_provider.dart';
 
 class JournalStudyGuideScreen extends ConsumerWidget {
@@ -49,15 +45,7 @@ class _StudyGuideBody extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final query = ResourceSuggestionQuery(
-      text: entry.originalText,
-      themeIds: entry.themes.map((theme) => theme.id).toList(growable: false),
-    );
-    final suggestions = ref.watch(resourceSuggestionsProvider(query));
-    final guide = _EntryStudyGuide.fromEntry(entry, switch (suggestions) {
-      AsyncData(value: final value) => value,
-      _ => null,
-    });
+    final guide = entry.studyGuide;
     final progress = ref.watch(studyGuideProgressProvider(entry.id));
 
     return ListView(
@@ -66,31 +54,29 @@ class _StudyGuideBody extends ConsumerWidget {
         Text('Study guide', style: Theme.of(context).textTheme.headlineSmall),
         const SizedBox(height: 8),
         Text(
-          'Built from your reflection on ${formatJournalDateTime(entry.createdAt)}.',
+          guide == null
+              ? 'A gospel study guide will appear here after the entry is processed.'
+              : guide.overview,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
-        const SizedBox(height: 16),
-        _GuideOverviewCard(
-          summary:
-              entry.summary ??
-              'These resources connect to the themes in your reflection and offer a few places to continue your gospel study.',
-          progressLabel: _progressLabel(
-            completedCount: _completedCount(
-              guide.items,
-              progress.asData?.value ?? const <String, bool>{},
+        const SizedBox(height: 12),
+        if (guide != null && guide.items.isNotEmpty)
+          Text(
+            _progressLabel(
+              completedCount: guide.items
+                  .where((item) => progress.asData?.value[item.id] == true)
+                  .length,
+              totalCount: guide.items.length,
             ),
-            totalCount: guide.items.length,
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              color: Theme.of(context).colorScheme.primary,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-        ),
-        const SizedBox(height: 20),
-        if (suggestions.isLoading && guide.items.isEmpty)
-          const Padding(
-            padding: EdgeInsets.only(bottom: 16),
-            child: Center(child: CircularProgressIndicator()),
-          )
-        else if (guide.items.isEmpty)
+        const SizedBox(height: 16),
+        if (guide == null || guide.items.isEmpty)
           const _EmptyStudyGuideCard()
         else
           ...guide.items.map(
@@ -104,73 +90,10 @@ class _StudyGuideBody extends ConsumerWidget {
             ),
           ),
         const SizedBox(height: 8),
-        _ReflectionPromptCard(prompt: guide.reflectionPrompt),
-      ],
-    );
-  }
-
-  int _completedCount(List<_GuideItem> items, Map<String, bool> progress) {
-    return items.where((item) => progress[item.id] == true).length;
-  }
-
-  String _progressLabel({
-    required int completedCount,
-    required int totalCount,
-  }) {
-    if (totalCount == 0) {
-      return 'Study guide ready';
-    }
-
-    return '$completedCount of $totalCount completed';
-  }
-}
-
-class _GuideOverviewCard extends StatelessWidget {
-  const _GuideOverviewCard({
-    required this.summary,
-    required this.progressLabel,
-  });
-
-  final String summary;
-  final String progressLabel;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest,
-        border: Border.all(color: colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'A few places to begin',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              summary,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              progressLabel,
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: colorScheme.primary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
+        _ReflectionPromptCard(
+          prompt: guide?.reflectionPrompt.text ?? _defaultPrompt(entry),
         ),
-      ),
+      ],
     );
   }
 }
@@ -206,20 +129,13 @@ class _StudyGuideItemCard extends ConsumerWidget {
   });
 
   final String guideId;
-  final _GuideItem item;
+  final StudyGuideItem item;
   final bool isCompleted;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
-    final scripturePreference = ref.watch(
-      scriptureAppPreferenceControllerProvider,
-    );
-    final selectedPreference =
-        scripturePreference.asData?.value ?? ScriptureAppPreference.none;
-    final resolvedUrl = ref
-        .watch(scriptureResourceLinkResolverProvider)
-        .resolve(item.resource, preference: selectedPreference);
+    final resolvedUrl = item.destination.url;
 
     return AnimatedOpacity(
       duration: const Duration(milliseconds: 180),
@@ -256,7 +172,7 @@ class _StudyGuideItemCard extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          item.label,
+                          _kindLabel(item.kind),
                           style: Theme.of(context).textTheme.labelMedium
                               ?.copyWith(
                                 color: colorScheme.primary,
@@ -278,10 +194,10 @@ class _StudyGuideItemCard extends ConsumerWidget {
                   ),
                 ],
               ),
-              if (item.secondaryLine case final secondaryLine?) ...[
+              if (item.publishedContext case final publishedContext?) ...[
                 const SizedBox(height: 8),
                 Text(
-                  secondaryLine,
+                  publishedContext,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: colorScheme.onSurfaceVariant,
                     fontWeight: FontWeight.w600,
@@ -293,7 +209,7 @@ class _StudyGuideItemCard extends ConsumerWidget {
                 item.contextLine,
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
-              if (item.focusLine case final focusLine?) ...[
+              if (item.focusText case final focusLine?) ...[
                 const SizedBox(height: 8),
                 Text(
                   focusLine,
@@ -317,7 +233,7 @@ class _StudyGuideItemCard extends ConsumerWidget {
                 FilledButton.icon(
                   onPressed: () => _openResource(context, ref, resolvedUrl),
                   icon: const Icon(Icons.open_in_new_outlined),
-                  label: Text(_openLabel(selectedPreference)),
+                  label: Text(_openLabel(item.destination.providerKey)),
                 ),
             ],
           ),
@@ -326,13 +242,13 @@ class _StudyGuideItemCard extends ConsumerWidget {
     );
   }
 
-  String _openLabel(ScriptureAppPreference preference) {
-    return switch (preference) {
-      ScriptureAppPreference.gospelLibrary => 'Open in Gospel Library',
-      ScriptureAppPreference.youVersion => 'Open in YouVersion',
-      ScriptureAppPreference.bibleGateway => 'Open in Bible Gateway',
-      ScriptureAppPreference.catholic => 'Open in Catholic study',
-      ScriptureAppPreference.none => 'Open resource',
+  String _openLabel(String providerKey) {
+    return switch (providerKey) {
+      'gospel_library' => 'Open in Gospel Library',
+      'you_version' => 'Open in YouVersion',
+      'bible_gateway' => 'Open in Bible Gateway',
+      'catholic' => 'Open in Catholic study',
+      _ => 'Open resource',
     };
   }
 
@@ -404,104 +320,30 @@ class _ReflectionPromptCard extends StatelessWidget {
   }
 }
 
-class _EntryStudyGuide {
-  const _EntryStudyGuide({required this.items, required this.reflectionPrompt});
-
-  final List<_GuideItem> items;
-  final String reflectionPrompt;
-
-  factory _EntryStudyGuide.fromEntry(
-    JournalEntry entry,
-    List<RelatedResource>? suggestions,
-  ) {
-    final combined = <RelatedResource>[...entry.resources, ...?suggestions];
-    final seen = <String>{};
-    final unique = combined.where((resource) => seen.add(resource.id)).toList();
-    final promptResource = unique.cast<RelatedResource?>().firstWhere(
-      (resource) => resource?.type == 'reflection_prompt',
-      orElse: () => null,
-    );
-
-    final guideItems = unique
-        .where((resource) => resource.type != 'reflection_prompt')
-        .map(_GuideItem.fromResource)
-        .whereType<_GuideItem>()
-        .toList(growable: false);
-
-    return _EntryStudyGuide(
-      items: guideItems,
-      reflectionPrompt:
-          promptResource?.description ??
-          promptResource?.title ??
-          _defaultPrompt(entry),
-    );
-  }
-
-  static String _defaultPrompt(JournalEntry entry) {
-    if (entry.themes.isNotEmpty) {
-      final themeNames = entry.themes
-          .take(2)
-          .map((theme) => theme.displayName.toLowerCase())
-          .join(' and ');
-      return 'As you study, what do you notice about $themeNames in your life right now?';
-    }
-
-    return 'As you study these resources, what feels most worth carrying into the rest of your day?';
-  }
+String _kindLabel(String kind) {
+  return switch (kind) {
+    'scripture' => 'Scripture',
+    'conference_talk' => 'Conference talk',
+    _ => 'Study resource',
+  };
 }
 
-class _GuideItem {
-  const _GuideItem({
-    required this.id,
-    required this.label,
-    required this.title,
-    required this.contextLine,
-    required this.resource,
-    this.secondaryLine,
-    this.focusLine,
-    this.quote,
-  });
-
-  final String id;
-  final String label;
-  final String title;
-  final String contextLine;
-  final String? secondaryLine;
-  final String? focusLine;
-  final String? quote;
-  final RelatedResource resource;
-
-  static _GuideItem? fromResource(RelatedResource resource) {
-    final normalizedType = resource.type.toLowerCase();
-
-    return switch (normalizedType) {
-      'scripture' => _GuideItem(
-        id: resource.id,
-        label: 'Scripture',
-        title: resource.title,
-        contextLine: resource.matchReason,
-        focusLine: resource.scriptureReference == null
-            ? null
-            : 'Focus on ${resource.scriptureReference}.',
-        quote: resource.description,
-        resource: resource,
-      ),
-      'talk_or_article' => _GuideItem(
-        id: resource.id,
-        label: 'Conference talk',
-        title: resource.title,
-        contextLine: resource.matchReason,
-        secondaryLine: resource.description,
-        resource: resource,
-      ),
-      _ => _GuideItem(
-        id: resource.id,
-        label: 'Study resource',
-        title: resource.title,
-        contextLine: resource.matchReason,
-        secondaryLine: resource.description,
-        resource: resource,
-      ),
-    };
+String _defaultPrompt(JournalEntry entry) {
+  if (entry.themes.isNotEmpty) {
+    final themeNames = entry.themes
+        .take(2)
+        .map((theme) => theme.displayName.toLowerCase())
+        .join(' and ');
+    return 'As you study, what do you notice about $themeNames in your life right now?';
   }
+
+  return 'As you study these resources, what feels most worth carrying into the rest of your day?';
+}
+
+String _progressLabel({required int completedCount, required int totalCount}) {
+  if (totalCount == 0) {
+    return 'Study guide ready';
+  }
+
+  return '$completedCount of $totalCount completed';
 }

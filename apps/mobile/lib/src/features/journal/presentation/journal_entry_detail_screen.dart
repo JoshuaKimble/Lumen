@@ -7,12 +7,13 @@ import '../../auth/data/admin_access_provider.dart';
 import '../data/journal_ai_service_provider.dart';
 import '../data/journal_repository_provider.dart';
 import '../domain/journal_entry.dart';
-import '../domain/related_resource.dart';
+import '../domain/study_guide.dart';
+import '../../settings/data/scripture_app_preference_provider.dart';
+import '../../settings/domain/scripture_app_preference.dart';
 import 'journal_entries_provider.dart';
 import 'journal_entry_provider.dart';
 import 'journal_formatters.dart';
 import 'journal_theme_chips.dart';
-import 'resource_suggestions_provider.dart';
 
 class JournalEntryDetailScreen extends ConsumerWidget {
   const JournalEntryDetailScreen({required this.entryId, super.key});
@@ -126,16 +127,6 @@ class _JournalEntryDetailState extends ConsumerState<_JournalEntryDetail> {
     final textTheme = Theme.of(context).textTheme;
     final entry = widget.entry;
     final isAiAdmin = ref.watch(isCurrentUserAdminProvider);
-    final suggestions = ref.watch(
-      resourceSuggestionsProvider(
-        ResourceSuggestionQuery(
-          text: entry.originalText,
-          themeIds: entry.themes
-              .map((theme) => theme.id)
-              .toList(growable: false),
-        ),
-      ),
-    );
 
     return ListView(
       padding: const EdgeInsets.all(20),
@@ -178,11 +169,7 @@ class _JournalEntryDetailState extends ConsumerState<_JournalEntryDetail> {
           Text(summary, style: textTheme.bodyLarge),
         ],
         const SizedBox(height: 20),
-        _StudyGuidePreviewCard(
-          entryId: entry.id,
-          resources: entry.resources,
-          suggestions: suggestions,
-        ),
+        _StudyGuidePreviewCard(entryId: entry.id, studyGuide: entry.studyGuide),
         const SizedBox(height: 20),
         JournalThemeChips(themes: entry.themes),
         const SizedBox(height: 24),
@@ -214,27 +201,28 @@ class _JournalEntryDetailState extends ConsumerState<_JournalEntryDetail> {
       final themeDetection = await aiService.detectThemes(
         text: entry.originalText,
       );
-      final updatedEntry = entry.applyGeneratedInsights(
+      var updatedEntry = entry.applyGeneratedInsights(
         summaryResult: summary,
         themeDetection: themeDetection,
         updatedAt: DateTime.now().toUtc(),
       );
-      final oldResourceQuery = ResourceSuggestionQuery(
-        text: entry.originalText,
-        themeIds: entry.themes.map((theme) => theme.id).toList(growable: false),
+      final preference =
+          ref.read(scriptureAppPreferenceControllerProvider).asData?.value ??
+          ScriptureAppPreference.none;
+      final studyGuide = await aiService.generateStudyGuide(
+        entryId: entry.id,
+        originalText: updatedEntry.originalText,
+        themes: updatedEntry.themes,
+        providerKey: preference.guideProviderKey,
       );
-      final newResourceQuery = ResourceSuggestionQuery(
-        text: updatedEntry.originalText,
-        themeIds: updatedEntry.themes
-            .map((theme) => theme.id)
-            .toList(growable: false),
+      updatedEntry = updatedEntry.replaceStudyGuide(
+        studyGuide: studyGuide,
+        updatedAt: DateTime.now().toUtc(),
       );
 
       await repository.saveEntry(updatedEntry);
       ref.invalidate(journalEntriesProvider);
       ref.invalidate(journalEntryProvider(entry.id));
-      ref.invalidate(resourceSuggestionsProvider(oldResourceQuery));
-      ref.invalidate(resourceSuggestionsProvider(newResourceQuery));
     } catch (_) {
       if (mounted) {
         setState(() {
@@ -355,24 +343,16 @@ class _TrustNotice extends StatelessWidget {
 class _StudyGuidePreviewCard extends StatelessWidget {
   const _StudyGuidePreviewCard({
     required this.entryId,
-    required this.resources,
-    required this.suggestions,
+    required this.studyGuide,
   });
 
   final String entryId;
-  final List<RelatedResource> resources;
-  final AsyncValue<List<RelatedResource>> suggestions;
+  final StudyGuide? studyGuide;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final guidePreview = _EntryStudyGuidePreview.fromResources(
-      resources: resources,
-      suggestions: switch (suggestions) {
-        AsyncData(value: final value) => value,
-        _ => const <RelatedResource>[],
-      },
-    );
+    final isAvailable = studyGuide != null;
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -392,12 +372,14 @@ class _StudyGuidePreviewCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              guidePreview.subtitle,
+              isAvailable
+                  ? studyGuide!.overview
+                  : 'A study guide is not available for this entry yet.',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: colorScheme.onPrimaryContainer,
               ),
             ),
-            if (guidePreview.previewLine case final previewLine?) ...[
+            if (studyGuide?.previewText case final previewLine?) ...[
               const SizedBox(height: 8),
               Text(
                 previewLine,
@@ -413,7 +395,7 @@ class _StudyGuidePreviewCard extends StatelessWidget {
                 backgroundColor: colorScheme.onPrimaryContainer,
                 foregroundColor: colorScheme.primaryContainer,
               ),
-              onPressed: guidePreview.isAvailable
+              onPressed: isAvailable
                   ? () => context.goNamed(
                       journalStudyGuideRouteName,
                       pathParameters: {'entryId': entryId},
@@ -426,60 +408,6 @@ class _StudyGuidePreviewCard extends StatelessWidget {
         ),
       ),
     );
-  }
-}
-
-class _EntryStudyGuidePreview {
-  const _EntryStudyGuidePreview({
-    required this.isAvailable,
-    required this.subtitle,
-    this.previewLine,
-  });
-
-  final bool isAvailable;
-  final String subtitle;
-  final String? previewLine;
-
-  factory _EntryStudyGuidePreview.fromResources({
-    required List<RelatedResource> resources,
-    required List<RelatedResource> suggestions,
-  }) {
-    final combined = <RelatedResource>[...resources, ...suggestions];
-    final seen = <String>{};
-    final unique = combined.where((resource) => seen.add(resource.id)).toList();
-    final guideItems = unique
-        .where((resource) => resource.type != 'reflection_prompt')
-        .toList(growable: false);
-
-    if (guideItems.isEmpty) {
-      return const _EntryStudyGuidePreview(
-        isAvailable: false,
-        subtitle: 'A study guide is not available for this entry yet.',
-      );
-    }
-
-    final strongest = guideItems.first;
-    final itemCount = guideItems.length;
-
-    return _EntryStudyGuidePreview(
-      isAvailable: true,
-      subtitle: 'A gospel study guide built from this reflection.',
-      previewLine: switch (itemCount) {
-        1 => 'Includes ${_resourcePreviewLabel(strongest)}.',
-        2 =>
-          'Includes ${_resourcePreviewLabel(strongest)} and one more resource.',
-        _ =>
-          'Includes ${_resourcePreviewLabel(strongest)} and ${itemCount - 1} more resources.',
-      },
-    );
-  }
-
-  static String _resourcePreviewLabel(RelatedResource resource) {
-    return switch (resource.type) {
-      'scripture' => resource.scriptureReference ?? resource.title,
-      'talk_or_article' => resource.title,
-      _ => resource.title,
-    };
   }
 }
 

@@ -89,6 +89,7 @@ Key columns:
 - `original_text`: original journal content
 - `rewritten_text`: latest AI rewrite snapshot
 - `title`, `summary`, `last_regenerated_at`
+- `study_guide`
 - `client_updated_at`, `version`, `sync_state`
 - `created_at`, `updated_at`
 
@@ -98,6 +99,8 @@ Design notes:
   ids as client-generated strings.
 - `client_updated_at` is separate from `updated_at` so future merge logic can
   compare the user's local write time against the persisted server row.
+- `study_guide` stores the frozen generated guide artifact alongside the entry
+  so local and cloud sync preserve the same study path.
 - `sync_state` is stored now because later local/cloud composition work needs a
   stable place to persist conflict or retry metadata.
 
@@ -226,6 +229,7 @@ The curated catalog tables also live in `public`, but they are server-owned:
 The schema maps directly to the current Flutter journal domain:
 
 - [journal_entry.dart](/Users/joshuakimble/Documents/workspace/apps/Lumen/apps/mobile/lib/src/features/journal/domain/journal_entry.dart)
+- [study_guide.dart](/Users/joshuakimble/Documents/workspace/apps/Lumen/apps/mobile/lib/src/features/journal/domain/study_guide.dart)
 - [journal_theme.dart](/Users/joshuakimble/Documents/workspace/apps/Lumen/apps/mobile/lib/src/features/journal/domain/journal_theme.dart)
 - [related_resource.dart](/Users/joshuakimble/Documents/workspace/apps/Lumen/apps/mobile/lib/src/features/journal/domain/related_resource.dart)
 - [resource_suggestion_service.dart](/Users/joshuakimble/Documents/workspace/apps/Lumen/apps/mobile/lib/src/features/journal/domain/resource_suggestion_service.dart)

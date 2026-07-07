@@ -115,7 +115,7 @@ class JournalEntry {
       rewrittenText: '',
       themes: const [],
       resources: resources,
-      studyGuide: studyGuide,
+      studyGuide: null,
       title: title,
       summary: null,
     );

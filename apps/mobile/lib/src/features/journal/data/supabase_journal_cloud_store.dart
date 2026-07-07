@@ -6,6 +6,7 @@ import '../domain/journal_cloud_store.dart';
 import '../domain/journal_entry.dart';
 import '../domain/journal_theme.dart';
 import '../domain/related_resource.dart';
+import '../domain/study_guide.dart';
 import 'supabase_journal_cloud_adapter.dart';
 
 typedef CurrentJournalCloudUserId = String? Function();
@@ -93,6 +94,9 @@ class SupabaseJournalCloudStore implements JournalCloudStore {
         'source': entry.source.name,
         'original_text': entry.originalText,
         'rewritten_text': entry.rewrittenText,
+        'study_guide': entry.studyGuide == null
+            ? null
+            : _studyGuideToRow(entry.studyGuide!),
         'last_regenerated_at': entry.lastRegeneratedAt
             ?.toUtc()
             .toIso8601String(),
@@ -188,6 +192,7 @@ class SupabaseJournalCloudStore implements JournalCloudStore {
     final themeRows = (row['journal_themes'] as List<Object?>? ?? const [])
         .whereType<Map<String, dynamic>>()
         .toList(growable: false);
+    final studyGuideRow = row['study_guide'] as Map<String, dynamic>?;
     final resourceRows =
         (row['related_resources'] as List<Object?>? ?? const [])
             .whereType<Map<String, dynamic>>()
@@ -201,6 +206,9 @@ class SupabaseJournalCloudStore implements JournalCloudStore {
       rewrittenText: row['rewritten_text'] as String? ?? '',
       themes: themeRows.map(_themeFromRow).toList(growable: false),
       resources: resourceRows.map(_resourceFromRow).toList(growable: false),
+      studyGuide: studyGuideRow == null
+          ? null
+          : _studyGuideFromRow(studyGuideRow),
       title: row['title'] as String?,
       summary: row['summary'] as String?,
       lastRegeneratedAt: row['last_regenerated_at'] == null
@@ -233,6 +241,100 @@ class SupabaseJournalCloudStore implements JournalCloudStore {
       confidence: (row['confidence'] as num?)?.toDouble() ?? 0.75,
       description: row['description'] as String?,
       scriptureReference: row['scripture_reference'] as String?,
+    );
+  }
+
+  Map<String, Object?> _studyGuideToRow(StudyGuide studyGuide) {
+    return {
+      'id': studyGuide.id,
+      'entryId': studyGuide.entryId,
+      'providerKey': studyGuide.providerKey,
+      'generatedAt': studyGuide.generatedAt.toUtc().toIso8601String(),
+      'overview': studyGuide.overview,
+      'previewText': studyGuide.previewText,
+      'items': studyGuide.items
+          .map(_studyGuideItemToRow)
+          .toList(growable: false),
+      'reflectionPrompt': {'text': studyGuide.reflectionPrompt.text},
+    };
+  }
+
+  Map<String, Object?> _studyGuideItemToRow(StudyGuideItem item) {
+    return {
+      'id': item.id,
+      'kind': item.kind,
+      'title': item.title,
+      'contextLine': item.contextLine,
+      'position': item.position,
+      'destination': _studyGuideDestinationToRow(item.destination),
+      if (item.focusText != null) 'focusText': item.focusText,
+      if (item.quote != null) 'quote': item.quote,
+      if (item.author != null) 'author': item.author,
+      if (item.publishedContext != null)
+        'publishedContext': item.publishedContext,
+    };
+  }
+
+  Map<String, Object?> _studyGuideDestinationToRow(
+    StudyGuideDestination destination,
+  ) {
+    return {
+      'providerKey': destination.providerKey,
+      'contentType': destination.contentType,
+      'reference': destination.reference,
+      if (destination.url != null) 'url': destination.url.toString(),
+      'precision': destination.precision.name,
+    };
+  }
+
+  StudyGuide _studyGuideFromRow(Map<String, dynamic> row) {
+    final items = (row['items'] as List<Object?>? ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .toList(growable: false);
+    final reflectionPrompt = row['reflectionPrompt'] as Map<String, dynamic>?;
+
+    return StudyGuide(
+      id: row['id'] as String,
+      entryId: row['entryId'] as String,
+      providerKey: row['providerKey'] as String,
+      generatedAt: DateTime.parse(row['generatedAt'] as String).toUtc(),
+      overview: row['overview'] as String,
+      previewText: row['previewText'] as String,
+      items: items.map(_studyGuideItemFromRow).toList(growable: false),
+      reflectionPrompt: StudyGuidePrompt(
+        text: reflectionPrompt?['text'] as String? ?? '',
+      ),
+    );
+  }
+
+  StudyGuideItem _studyGuideItemFromRow(Map<String, dynamic> row) {
+    return StudyGuideItem(
+      id: row['id'] as String,
+      kind: row['kind'] as String,
+      title: row['title'] as String,
+      contextLine: row['contextLine'] as String,
+      position: row['position'] as int,
+      destination: _studyGuideDestinationFromRow(
+        row['destination'] as Map<String, dynamic>,
+      ),
+      focusText: row['focusText'] as String?,
+      quote: row['quote'] as String?,
+      author: row['author'] as String?,
+      publishedContext: row['publishedContext'] as String?,
+    );
+  }
+
+  StudyGuideDestination _studyGuideDestinationFromRow(
+    Map<String, dynamic> row,
+  ) {
+    return StudyGuideDestination(
+      providerKey: row['providerKey'] as String,
+      contentType: row['contentType'] as String,
+      reference: row['reference'] as String,
+      url: row['url'] == null ? null : Uri.parse(row['url'] as String),
+      precision: StudyGuideDestinationPrecision.values.byName(
+        row['precision'] as String,
+      ),
     );
   }
 }

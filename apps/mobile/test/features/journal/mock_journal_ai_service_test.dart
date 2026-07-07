@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lumen/src/features/journal/data/mock_journal_ai_service.dart';
 import 'package:lumen/src/features/journal/domain/journal_ai_service.dart';
+import 'package:lumen/src/features/journal/domain/journal_theme.dart';
 
 void main() {
   test('generates deterministic summary output', () async {
@@ -70,5 +71,23 @@ void main() {
     final result = await service.detectThemes(text: 'A quiet ordinary day.');
 
     expect(result.themes.single.displayName, 'Reflection');
+  });
+
+  test('generates a deterministic study guide', () async {
+    const service = MockJournalAiService();
+
+    final guide = await service.generateStudyGuide(
+      entryId: 'entry-1',
+      originalText: 'I feel stressed about work and want help staying steady.',
+      themes: const [
+        JournalTheme(id: 'work', name: 'work', displayName: 'Work'),
+        JournalTheme(id: 'faith', name: 'faith', displayName: 'Faith'),
+      ],
+      providerKey: 'gospel_library',
+    );
+
+    expect(guide.entryId, 'entry-1');
+    expect(guide.items, isNotEmpty);
+    expect(guide.reflectionPrompt.text, contains('work'));
   });
 }

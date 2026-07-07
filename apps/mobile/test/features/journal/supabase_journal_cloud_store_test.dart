@@ -5,6 +5,7 @@ import 'package:lumen/src/features/journal/domain/entry_source.dart';
 import 'package:lumen/src/features/journal/domain/journal_entry.dart';
 import 'package:lumen/src/features/journal/domain/journal_theme.dart';
 import 'package:lumen/src/features/journal/domain/related_resource.dart';
+import 'package:lumen/src/features/journal/domain/study_guide.dart';
 
 void main() {
   test('reads entries for the authenticated user', () async {
@@ -20,6 +21,33 @@ void main() {
           'title': 'Title',
           'summary': 'Summary',
           'last_regenerated_at': null,
+          'study_guide': {
+            'id': 'study-guide-1',
+            'entryId': 'entry-1',
+            'providerKey': 'gospel_library',
+            'generatedAt': '2026-05-25T20:30:00Z',
+            'overview': 'A short guide for steady study.',
+            'previewText': 'Psalm 46:10',
+            'items': [
+              {
+                'id': 'study-item-1',
+                'kind': 'scripture',
+                'title': 'Psalm 46:10',
+                'contextLine': 'A quiet anchor when you need steadiness.',
+                'position': 0,
+                'destination': {
+                  'providerKey': 'gospel_library',
+                  'contentType': 'scripture',
+                  'reference': 'Psalm 46:10',
+                  'precision': 'chapter',
+                  'url':
+                      'https://www.churchofjesuschrist.org/study/scriptures/ot/ps/46?lang=eng',
+                },
+                'focusText': 'Focus on verse 10.',
+              },
+            ],
+            'reflectionPrompt': {'text': 'Reflect on this'},
+          },
           'journal_themes': const <Map<String, Object?>>[],
           'related_resources': const <Map<String, Object?>>[],
         },
@@ -34,6 +62,7 @@ void main() {
 
     expect(entries.single.id, 'entry-1');
     expect(entries.single.originalText, 'Original');
+    expect(entries.single.studyGuide?.items.single.title, 'Psalm 46:10');
   });
 
   test('rejects reads for another user id', () async {
@@ -131,7 +160,39 @@ JournalEntry _sampleEntry() {
         type: 'reflection_prompt',
       ),
     ],
+    studyGuide: _studyGuide(),
     title: 'Title',
     summary: 'Summary',
+  );
+}
+
+StudyGuide _studyGuide() {
+  return StudyGuide(
+    id: 'study-guide-1',
+    entryId: 'entry-1',
+    providerKey: 'gospel_library',
+    generatedAt: DateTime.utc(2026, 5, 25, 20, 30),
+    overview: 'A short guide for steady study.',
+    previewText: 'Psalm 46:10',
+    items: [
+      StudyGuideItem(
+        id: 'study-item-1',
+        kind: 'scripture',
+        title: 'Psalm 46:10',
+        contextLine: 'A quiet anchor when you need steadiness.',
+        position: 0,
+        destination: StudyGuideDestination(
+          providerKey: 'gospel_library',
+          contentType: 'scripture',
+          reference: 'Psalm 46:10',
+          precision: StudyGuideDestinationPrecision.chapter,
+          url: Uri.parse(
+            'https://www.churchofjesuschrist.org/study/scriptures/ot/ps/46?lang=eng',
+          ),
+        ),
+        focusText: 'Focus on verse 10.',
+      ),
+    ],
+    reflectionPrompt: const StudyGuidePrompt(text: 'Reflect on this'),
   );
 }

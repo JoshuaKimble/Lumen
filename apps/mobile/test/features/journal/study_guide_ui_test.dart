@@ -9,8 +9,7 @@ import 'package:lumen/src/features/journal/data/resource_suggestion_service_prov
 import 'package:lumen/src/features/journal/domain/entry_source.dart';
 import 'package:lumen/src/features/journal/domain/journal_entry.dart';
 import 'package:lumen/src/features/journal/domain/journal_theme.dart';
-import 'package:lumen/src/features/journal/domain/related_resource.dart';
-import 'package:lumen/src/features/journal/domain/resource_suggestion_service.dart';
+import 'package:lumen/src/features/journal/domain/study_guide.dart';
 import 'package:lumen/src/features/settings/data/scripture_app_preference_provider.dart';
 import 'package:lumen/src/features/settings/domain/scripture_app_preference.dart';
 import 'package:lumen/src/features/settings/domain/scripture_app_preference_repository.dart';
@@ -30,10 +29,7 @@ void main() {
   testWidgets(
     'entry detail shows study guide preview CTA and opens dedicated study guide page',
     (tester) async {
-      await _pumpStudyGuideApp(
-        tester,
-        suggestionService: const _StudyGuideSuggestionService(),
-      );
+      await _pumpStudyGuideApp(tester);
 
       await tester.tap(find.text('Faith in a difficult week'));
       await tester.pumpAndSettle();
@@ -43,18 +39,16 @@ void main() {
         find.text('A gospel study guide built from this reflection.'),
         findsOneWidget,
       );
-      expect(
-        find.text('Includes Psalm 46:10 and one more resource.'),
-        findsOneWidget,
-      );
-      expect(find.text('Resources'), findsNothing);
+      expect(find.text('Psalm 46:10 and one more resource'), findsOneWidget);
 
       await tester.tap(find.text('Open study guide'));
       await tester.pumpAndSettle();
 
-      expect(find.text('A few places to begin'), findsOneWidget);
+      expect(
+        find.text('A gospel study guide built from this reflection.'),
+        findsOneWidget,
+      );
       expect(find.text('Psalm 46:10'), findsOneWidget);
-      expect(find.text('Endure Well'), findsOneWidget);
       expect(find.text('Reflect on this'), findsOneWidget);
     },
   );
@@ -64,11 +58,7 @@ void main() {
     (tester) async {
       final opener = _FakeResourceLinkOpener();
 
-      await _pumpStudyGuideApp(
-        tester,
-        suggestionService: const _SingleScriptureStudyGuideSuggestionService(),
-        opener: opener,
-      );
+      await _pumpStudyGuideApp(tester, opener: opener);
 
       await tester.tap(find.text('Faith in a difficult week'));
       await tester.pumpAndSettle();
@@ -118,11 +108,7 @@ void main() {
     (tester) async {
       final opener = _FakeResourceLinkOpener();
 
-      await _pumpStudyGuideApp(
-        tester,
-        suggestionService: const _SingleScriptureStudyGuideSuggestionService(),
-        opener: opener,
-      );
+      await _pumpStudyGuideApp(tester, opener: opener);
 
       await tester.tap(find.text('Faith in a difficult week'));
       await tester.pumpAndSettle();
@@ -144,7 +130,6 @@ void main() {
 
 Future<void> _pumpStudyGuideApp(
   WidgetTester tester, {
-  required ResourceSuggestionService suggestionService,
   ResourceLinkOpener? opener,
 }) async {
   tester.view.physicalSize = const Size(1200, 2200);
@@ -158,7 +143,6 @@ Future<void> _pumpStudyGuideApp(
     ProviderScope(
       overrides: [
         journalRepositoryProvider.overrideWithValue(repository),
-        resourceSuggestionServiceProvider.overrideWithValue(suggestionService),
         scriptureAppPreferenceRepositoryProvider.overrideWithValue(
           _InMemoryScriptureAppPreferenceRepository(
             initial: ScriptureAppPreference.gospelLibrary,
@@ -186,100 +170,43 @@ final _sampleEntry = JournalEntry(
     JournalTheme(id: 'stress', name: 'stress', displayName: 'Stress'),
   ],
   resources: const [],
+  studyGuide: _studyGuide(),
   title: 'Faith in a difficult week',
   summary: 'A reflection on faith, stress, and turning back to scripture.',
 );
 
-class _StudyGuideSuggestionService implements ResourceSuggestionService {
-  const _StudyGuideSuggestionService();
-
-  @override
-  Future<List<RelatedResource>> suggest({
-    required String text,
-    List<String> themeIds = const [],
-    ScriptureAppPreference preference = ScriptureAppPreference.none,
-  }) async {
-    return const [
-      RelatedResource(
+StudyGuide _studyGuide() {
+  return StudyGuide(
+    id: 'study-guide-entry-study-guide',
+    entryId: 'entry-study-guide',
+    providerKey: 'gospel_library',
+    generatedAt: DateTime.utc(2026, 6, 11, 14, 30),
+    overview: 'A gospel study guide built from this reflection.',
+    previewText: 'Psalm 46:10 and one more resource',
+    items: [
+      StudyGuideItem(
         id: 'faith-scripture-psalm-46-10',
+        kind: 'scripture',
         title: 'Psalm 46:10',
-        scriptureReference: 'Psalm 46:10',
-        type: 'scripture',
-        sourceType: 'curated',
-        matchReason: 'This passage connects to the trust you are seeking.',
-        confidence: 0.92,
+        contextLine: 'A quiet anchor when you need steadiness.',
+        position: 0,
+        destination: StudyGuideDestination(
+          providerKey: 'gospel_library',
+          contentType: 'scripture',
+          reference: 'Psalm 46:10',
+          url: Uri.parse(
+            'https://www.churchofjesuschrist.org/study/scriptures/ot/ps/46?lang=eng',
+          ),
+          precision: StudyGuideDestinationPrecision.chapter,
+        ),
+        focusText: 'Focus on the reminder to be still and trust God.',
       ),
-      RelatedResource(
-        id: 'faith-talk-endure-well',
-        title: 'Endure Well',
-        type: 'talk_or_article',
-        sourceType: 'curated',
-        matchReason: 'This talk supports steady discipleship during strain.',
-        confidence: 0.82,
-        description: 'General conference talk',
-      ),
-      RelatedResource(
-        id: 'faith-prompt',
-        title: 'What do these resources invite you to remember today?',
-        type: 'reflection_prompt',
-        sourceType: 'curated',
-        matchReason: 'reflection prompt',
-        confidence: 0.88,
-        description:
-            'As you study, what feels most worth carrying into the rest of your day?',
-      ),
-    ];
-  }
-
-  @override
-  Future<void> submitFeedback({
-    required String resourceId,
-    required ResourceFeedbackAction action,
-    String? entryId,
-    String? themeId,
-  }) async {}
-}
-
-class _SingleScriptureStudyGuideSuggestionService
-    implements ResourceSuggestionService {
-  const _SingleScriptureStudyGuideSuggestionService();
-
-  @override
-  Future<List<RelatedResource>> suggest({
-    required String text,
-    List<String> themeIds = const [],
-    ScriptureAppPreference preference = ScriptureAppPreference.none,
-  }) async {
-    return const [
-      RelatedResource(
-        id: 'faith-scripture-psalm-46-10',
-        title: 'Psalm 46:10',
-        scriptureReference: 'Psalm 46:10',
-        type: 'scripture',
-        sourceType: 'curated',
-        matchReason: 'This passage connects to the trust you are seeking.',
-        confidence: 0.92,
-      ),
-      RelatedResource(
-        id: 'faith-prompt',
-        title: 'What do these resources invite you to remember today?',
-        type: 'reflection_prompt',
-        sourceType: 'curated',
-        matchReason: 'reflection prompt',
-        confidence: 0.88,
-        description:
-            'As you study, what feels most worth carrying into the rest of your day?',
-      ),
-    ];
-  }
-
-  @override
-  Future<void> submitFeedback({
-    required String resourceId,
-    required ResourceFeedbackAction action,
-    String? entryId,
-    String? themeId,
-  }) async {}
+    ],
+    reflectionPrompt: const StudyGuidePrompt(
+      text:
+          'As you study these resources, what feels most worth carrying into the rest of your day?',
+    ),
+  );
 }
 
 class _InMemoryScriptureAppPreferenceRepository

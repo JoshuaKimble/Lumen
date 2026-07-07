@@ -52,6 +52,17 @@ class LumenApiClient {
     return DetectThemesResponse.fromJson(response);
   }
 
+  Future<GenerateStudyGuideResponse> generateStudyGuide(
+    GenerateStudyGuideRequest request,
+  ) async {
+    final response = await _postJson(
+      '/v1/study-guides/generate',
+      request.toJson(),
+    );
+
+    return GenerateStudyGuideResponse.fromJson(response);
+  }
+
   Future<SuggestResourcesResponse> suggestResources(
     SuggestResourcesRequest request,
   ) async {
@@ -271,6 +282,161 @@ class DetectThemesResponse {
   }
 
   final List<ApiJournalTheme> themes;
+}
+
+class GenerateStudyGuideRequest {
+  const GenerateStudyGuideRequest({
+    required this.entryId,
+    required this.originalText,
+    required this.providerKey,
+    this.themeIds,
+  });
+
+  final String entryId;
+  final String originalText;
+  final String providerKey;
+  final List<String>? themeIds;
+
+  Map<String, Object?> toJson() {
+    return {
+      'entryId': entryId,
+      'originalText': originalText,
+      'providerKey': providerKey,
+      if (themeIds != null) 'themeIds': themeIds,
+    };
+  }
+}
+
+class GenerateStudyGuideResponse {
+  const GenerateStudyGuideResponse({
+    required this.guideId,
+    required this.entryId,
+    required this.providerKey,
+    required this.generatedAt,
+    required this.overview,
+    required this.previewText,
+    required this.items,
+    required this.reflectionPrompt,
+  });
+
+  factory GenerateStudyGuideResponse.fromJson(Map<String, Object?> json) {
+    final items = json['items'];
+    final reflectionPrompt = json['reflectionPrompt'];
+
+    if (items is! List<Object?>) {
+      throw const FormatException('Expected study guide items array.');
+    }
+
+    if (reflectionPrompt is! Map<String, Object?>) {
+      throw const FormatException('Expected reflection prompt object.');
+    }
+
+    return GenerateStudyGuideResponse(
+      guideId: _requiredString(json, 'guideId'),
+      entryId: _requiredString(json, 'entryId'),
+      providerKey: _requiredString(json, 'providerKey'),
+      generatedAt: DateTime.parse(_requiredString(json, 'generatedAt')),
+      overview: _requiredString(json, 'overview'),
+      previewText: _requiredString(json, 'previewText'),
+      items: items
+          .whereType<Map<String, Object?>>()
+          .map(GenerateStudyGuideItem.fromJson)
+          .toList(growable: false),
+      reflectionPrompt: GenerateStudyGuidePrompt.fromJson(reflectionPrompt),
+    );
+  }
+
+  final String guideId;
+  final String entryId;
+  final String providerKey;
+  final DateTime generatedAt;
+  final String overview;
+  final String previewText;
+  final List<GenerateStudyGuideItem> items;
+  final GenerateStudyGuidePrompt reflectionPrompt;
+}
+
+class GenerateStudyGuideItem {
+  const GenerateStudyGuideItem({
+    required this.id,
+    required this.kind,
+    required this.title,
+    required this.contextLine,
+    required this.position,
+    required this.destination,
+    this.focusText,
+    this.quote,
+    this.author,
+    this.publishedContext,
+  });
+
+  factory GenerateStudyGuideItem.fromJson(Map<String, Object?> json) {
+    final destination = json['destination'];
+
+    if (destination is! Map<String, Object?>) {
+      throw const FormatException('Expected study guide destination object.');
+    }
+
+    return GenerateStudyGuideItem(
+      id: _requiredString(json, 'id'),
+      kind: _requiredString(json, 'kind'),
+      title: _requiredString(json, 'title'),
+      contextLine: _requiredString(json, 'contextLine'),
+      position: _requiredInt(json, 'position'),
+      destination: GenerateStudyGuideDestination.fromJson(destination),
+      focusText: _optionalString(json, 'focusText'),
+      quote: _optionalString(json, 'quote'),
+      author: _optionalString(json, 'author'),
+      publishedContext: _optionalString(json, 'publishedContext'),
+    );
+  }
+
+  final String id;
+  final String kind;
+  final String title;
+  final String contextLine;
+  final int position;
+  final GenerateStudyGuideDestination destination;
+  final String? focusText;
+  final String? quote;
+  final String? author;
+  final String? publishedContext;
+}
+
+class GenerateStudyGuideDestination {
+  const GenerateStudyGuideDestination({
+    required this.providerKey,
+    required this.contentType,
+    required this.reference,
+    required this.precision,
+    this.url,
+  });
+
+  factory GenerateStudyGuideDestination.fromJson(Map<String, Object?> json) {
+    return GenerateStudyGuideDestination(
+      providerKey: _requiredString(json, 'providerKey'),
+      contentType: _requiredString(json, 'contentType'),
+      reference: _requiredString(json, 'reference'),
+      precision: _requiredString(json, 'precision'),
+      url: _optionalString(json, 'url'),
+    );
+  }
+
+  final String providerKey;
+  final String contentType;
+  final String reference;
+  final String precision;
+  final String? url;
+}
+
+class GenerateStudyGuidePrompt {
+  const GenerateStudyGuidePrompt({required this.text});
+
+  factory GenerateStudyGuidePrompt.fromJson(Map<String, Object?> json) {
+    return GenerateStudyGuidePrompt(text: _requiredString(json, 'text'));
+  }
+
+  final String text;
 }
 
 class ApiJournalTheme {
@@ -522,4 +688,14 @@ double _requiredNumber(Map<String, Object?> json, String key) {
   }
 
   throw FormatException('Expected number "$key".');
+}
+
+int _requiredInt(Map<String, Object?> json, String key) {
+  final value = json[key];
+
+  if (value is int) {
+    return value;
+  }
+
+  throw FormatException('Expected int "$key".');
 }

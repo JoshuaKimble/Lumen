@@ -33,7 +33,7 @@ test('orchestrator ranks curated candidates for requested themes', async () => {
   assert.equal(result.suggestions[0]?.themeId, 'work');
 });
 
-test('orchestrator preserves scripture references for downstream routing', async () => {
+test('orchestrator falls back when only Gospel Library resources match', async () => {
   const orchestrator = new CatalogResourceSuggestionOrchestrator({
     themeDetector: {
       async detectThemes(): Promise<ThemeDetectionResult> {
@@ -52,8 +52,8 @@ test('orchestrator preserves scripture references for downstream routing', async
     themeIds: ['faith'],
   });
 
-  assert.equal(result.suggestions[0]?.id, 'catalog:scripture:psalm-46-10');
-  assert.equal(result.suggestions[0]?.scriptureReference, 'Psalm 46:10');
+  assert.equal(result.suggestions[0]?.id, 'fallback-reflection-prompt');
+  assert.equal(result.suggestions[0]?.themeId, 'reflection');
 });
 
 test('orchestrator falls back when no curated candidate clears threshold', async () => {

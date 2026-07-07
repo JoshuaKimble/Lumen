@@ -64,6 +64,7 @@ class SupabaseClientJournalCloudAdapter implements SupabaseJournalCloudAdapter {
             display_name,
             weight
           ),
+          study_guide,
           related_resources (
             resource_id,
             entry_id,

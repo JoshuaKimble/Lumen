@@ -7,6 +7,7 @@ import 'package:lumen/src/api/generated/lumen_api_client.dart';
 import 'package:lumen/src/features/journal/data/api_journal_ai_service.dart';
 import 'package:lumen/src/features/journal/data/api_voice_transcription_service.dart';
 import 'package:lumen/src/features/journal/data/voice_recording_audio_reader.dart';
+import 'package:lumen/src/features/journal/domain/journal_theme.dart';
 import 'package:lumen/src/features/journal/domain/rewrite_personalization.dart';
 import 'package:lumen/src/features/journal/domain/voice_recording.dart';
 import 'package:lumen/src/features/journal/domain/voice_recording_audio.dart';
@@ -201,12 +202,22 @@ void main() {
         baseUri: Uri.parse('http://localhost:3000'),
         httpClient: MockClient((request) async {
           if (request.url.path.endsWith('/summarize')) {
-            return http.Response('{"title":"Generated","summary":"Short"}', 200);
+            return http.Response(
+              '{"title":"Generated","summary":"Short"}',
+              200,
+            );
           }
 
           if (request.url.path.endsWith('/rewrite')) {
             return http.Response(
               '{"rewrittenText":"clear note","title":"Generated","summary":"Short"}',
+              200,
+            );
+          }
+
+          if (request.url.path.endsWith('/study-guides/generate')) {
+            return http.Response(
+              '{"guideId":"guide-1","entryId":"entry-1","providerKey":"gospel_library","generatedAt":"2026-06-11T12:00:00.000Z","overview":"overview","previewText":"Psalm 46:10","items":[{"id":"item-1","kind":"scripture","title":"Psalm 46:10","contextLine":"A quiet anchor.","position":0,"destination":{"providerKey":"gospel_library","contentType":"scripture","reference":"Psalm 46:10","precision":"chapter","url":"https://www.churchofjesuschrist.org/study/scriptures/ot/ps/46?lang=eng"},"focusText":"Focus on verse 10."}],"reflectionPrompt":{"text":"Reflect on this"}}',
               200,
             );
           }
@@ -228,11 +239,20 @@ void main() {
       ),
     );
     final themes = await service.detectThemes(text: 'work note');
+    final guide = await service.generateStudyGuide(
+      entryId: 'entry-1',
+      originalText: 'work note',
+      themes: const [
+        JournalTheme(id: 'work', name: 'work', displayName: 'Work'),
+      ],
+      providerKey: 'gospel_library',
+    );
 
     expect(summary.title, 'Generated');
     expect(rewrite.rewrittenText, 'clear note');
     expect(rewrite.title, 'Generated');
     expect(themes.themes.single.displayName, 'Work');
+    expect(guide.items.single.title, 'Psalm 46:10');
   });
 
   test('defaults rewrite personalization when none is provided', () async {

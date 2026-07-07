@@ -75,8 +75,10 @@ export class CatalogResourceSuggestionOrchestrator
       text: request.text,
     });
     const effectiveThemes = buildEffectiveThemes(detectedThemes, request.themeIds);
-    const candidates = await this._catalogStore.listCandidatesByThemeIds(
+    const candidates = (await this._catalogStore.listCandidatesByThemeIds(
       effectiveThemes.map((theme) => theme.id),
+    )).filter(
+      (candidate) => normalizeProviderKey(candidate.providerKey) !== 'gospel_library',
     );
     const ranked = rankCandidates({
       requestText: request.text,
@@ -320,4 +322,8 @@ function toDisplayName(themeId: string): string {
     .filter(Boolean)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ');
+}
+
+function normalizeProviderKey(providerKey: string | undefined): string {
+  return providerKey?.trim().toLowerCase() ?? '';
 }

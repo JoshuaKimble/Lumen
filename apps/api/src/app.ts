@@ -52,6 +52,8 @@ import type { ResourceSuggestionOrchestrator } from './resourceSuggestions/catal
 import { InMemoryCuratedResourceCatalogStore } from './resourceSuggestions/inMemoryCuratedResourceCatalogStore.js';
 import { SupabaseCuratedResourceCatalogStore } from './resourceSuggestions/supabaseCuratedResourceCatalogStore.js';
 import type { CuratedResourceCatalogStore } from './resourceSuggestions/curatedResourceCatalogStore.js';
+import { CatalogStudyGuideGenerationOrchestrator } from './studyGuides/studyGuideGenerationOrchestrator.js';
+import type { StudyGuideGenerationOrchestrator } from './studyGuides/studyGuideGenerationOrchestrator.js';
 
 export interface AppDependencies {
   readonly aiProvider?: AiGatewayProvider;
@@ -60,6 +62,7 @@ export interface AppDependencies {
   readonly accountDeletionStore?: AccountDeletionStore;
   readonly curatedResourceCatalogStore?: CuratedResourceCatalogStore;
   readonly resourceSuggestionOrchestrator?: ResourceSuggestionOrchestrator;
+  readonly studyGuideGenerationOrchestrator?: StudyGuideGenerationOrchestrator;
 }
 
 const acceptedAudioMimeTypes = new Set([
@@ -101,6 +104,11 @@ export function createApiServer(dependencies: AppDependencies = {}): Server {
       themeDetector: aiProvider,
       catalogStore: curatedResourceCatalogStore,
     });
+  const studyGuideGenerationOrchestrator =
+    dependencies.studyGuideGenerationOrchestrator ??
+    new CatalogStudyGuideGenerationOrchestrator({
+      catalogStore: curatedResourceCatalogStore,
+    });
 
   return createServer(async (request, response) => {
     applyCorsHeaders(request, response);
@@ -111,6 +119,7 @@ export function createApiServer(dependencies: AppDependencies = {}): Server {
         response,
         aiProvider,
         resourceSuggestionOrchestrator,
+        studyGuideGenerationOrchestrator,
         authVerifier,
         resourceFeedbackStore,
         accountDeletionStore,
@@ -193,6 +202,7 @@ async function routeRequest(
   response: Parameters<typeof sendJson>[0],
   aiProvider: AiGatewayProvider,
   resourceSuggestionOrchestrator: ResourceSuggestionOrchestrator,
+  studyGuideGenerationOrchestrator: StudyGuideGenerationOrchestrator,
   authVerifier?: AuthVerifier,
   resourceFeedbackStore?: ResourceFeedbackStore,
   accountDeletionStore?: AccountDeletionStore,
@@ -253,6 +263,21 @@ async function routeRequest(
     const result = validateThemeDetectionResult(
       await aiProvider.detectThemes(requestBody),
     );
+
+    sendJson(response, 200, result);
+    return;
+  }
+
+  if (request.method === 'POST' && request.url === '/v1/study-guides/generate') {
+    const body = requireObject(await readJsonBody(request));
+    rejectUnknownKeys(body, ['entryId', 'originalText', 'themeIds', 'providerKey']);
+    const requestBody = {
+      entryId: requireNonEmptyString(body, 'entryId'),
+      originalText: requireNonEmptyString(body, 'originalText'),
+      themeIds: requireOptionalStringArray(body, 'themeIds') ?? [],
+      providerKey: requireNonEmptyString(body, 'providerKey'),
+    };
+    const result = await studyGuideGenerationOrchestrator.generate(requestBody);
 
     sendJson(response, 200, result);
     return;

@@ -14,6 +14,8 @@ import '../data/voice_recorder_provider.dart';
 import '../domain/voice_recording.dart';
 import '../domain/voice_recording_attempt.dart';
 import '../domain/voice_transcription_exception.dart';
+import '../../settings/data/scripture_app_preference_provider.dart';
+import '../../settings/domain/scripture_app_preference.dart';
 import 'voice_recording_history_controller.dart';
 import 'journal_entries_provider.dart';
 import 'journal_entry_provider.dart';
@@ -371,7 +373,9 @@ class _VoiceRecordingScreenState extends ConsumerState<VoiceRecordingScreen> {
     );
 
     try {
-      final summary = await aiService.summarizeEntry(originalText: originalText);
+      final summary = await aiService.summarizeEntry(
+        originalText: originalText,
+      );
       final themeDetection = await aiService.detectThemes(text: originalText);
       entry = entry.applyGeneratedInsights(
         summaryResult: summary,
@@ -381,6 +385,23 @@ class _VoiceRecordingScreenState extends ConsumerState<VoiceRecordingScreen> {
       );
     } catch (_) {
       entry = entry.withoutAiResults(updatedAt: now);
+    }
+
+    if (entry.summary != null || entry.themes.isNotEmpty) {
+      try {
+        final preference =
+            ref.read(scriptureAppPreferenceControllerProvider).asData?.value ??
+            ScriptureAppPreference.none;
+        final studyGuide = await aiService.generateStudyGuide(
+          entryId: entry.id,
+          originalText: originalText,
+          themes: entry.themes,
+          providerKey: preference.guideProviderKey,
+        );
+        entry = entry.replaceStudyGuide(studyGuide: studyGuide, updatedAt: now);
+      } catch (_) {
+        entry = entry.replaceStudyGuide(studyGuide: null, updatedAt: now);
+      }
     }
 
     await repository.saveEntry(entry);

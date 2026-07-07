@@ -35,6 +35,14 @@ extension ScriptureAppPreferenceX on ScriptureAppPreference {
       'Prefer Catholic-friendly resources (USCCB/Vatican fallbacks).',
   };
 
+  String get guideProviderKey => switch (this) {
+    ScriptureAppPreference.none => 'gospel_library',
+    ScriptureAppPreference.gospelLibrary => 'gospel_library',
+    ScriptureAppPreference.youVersion => 'you_version',
+    ScriptureAppPreference.bibleGateway => 'bible_gateway',
+    ScriptureAppPreference.catholic => 'catholic',
+  };
+
   static ScriptureAppPreference fromStorageValue(String? value) {
     return switch (value) {
       'none' => ScriptureAppPreference.none,

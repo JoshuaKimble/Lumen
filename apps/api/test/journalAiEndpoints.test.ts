@@ -200,6 +200,24 @@ test('theme endpoint returns OpenAPI response shape', async () => {
   });
 });
 
+test('study guide endpoint returns Gospel Library guide payload', async () => {
+  const response = await postJson('/v1/study-guides/generate', {
+    entryId: 'entry-study-guide',
+    originalText: 'I feel stretched at work and want to stay faithful.',
+    providerKey: 'gospel_library',
+    themeIds: ['work', 'faith'],
+  });
+  const body = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(body.entryId, 'entry-study-guide');
+  assert.equal(body.providerKey, 'gospel_library');
+  assert.ok(Array.isArray(body.items));
+  assert.ok(body.items.length >= 1);
+  assert.equal(body.items[0].destination.providerKey, 'gospel_library');
+  assert.equal(typeof body.reflectionPrompt.text, 'string');
+});
+
 test('transcription endpoint returns OpenAPI response shape', async () => {
   const response = await postJson('/v1/transcriptions', {
     audioBase64: Buffer.from('recorded audio').toString('base64'),

@@ -132,7 +132,8 @@ class JournalHydrationController {
         left.rewrittenText != right.rewrittenText ||
         left.title != right.title ||
         left.summary != right.summary ||
-        left.lastRegeneratedAt != right.lastRegeneratedAt) {
+        left.lastRegeneratedAt != right.lastRegeneratedAt ||
+        left.studyGuide != right.studyGuide) {
       return false;
     }
 

@@ -9,6 +9,8 @@ import '../domain/entry_source.dart';
 import '../domain/journal_entry.dart';
 import 'journal_entries_provider.dart';
 import 'journal_entry_provider.dart';
+import '../../settings/data/scripture_app_preference_provider.dart';
+import '../../settings/domain/scripture_app_preference.dart';
 
 class JournalEntryEditorScreen extends ConsumerWidget {
   const JournalEntryEditorScreen({this.entryId, super.key});
@@ -192,6 +194,29 @@ class _JournalEntryEditorScaffoldState
       } catch (_) {
         entry = entry.withoutAiResults(updatedAt: now);
       }
+
+      if (entry.summary != null || entry.themes.isNotEmpty) {
+        try {
+          final preference =
+              ref
+                  .read(scriptureAppPreferenceControllerProvider)
+                  .asData
+                  ?.value ??
+              ScriptureAppPreference.none;
+          final studyGuide = await aiService.generateStudyGuide(
+            entryId: entry.id,
+            originalText: originalText,
+            themes: entry.themes,
+            providerKey: preference.guideProviderKey,
+          );
+          entry = entry.replaceStudyGuide(
+            studyGuide: studyGuide,
+            updatedAt: now,
+          );
+        } catch (_) {
+          entry = entry.replaceStudyGuide(studyGuide: null, updatedAt: now);
+        }
+      }
     }
 
     await repository.saveEntry(entry);
@@ -246,6 +271,7 @@ class _JournalEntryEditorScaffoldState
       rewrittenText: existingEntry.rewrittenText,
       themes: existingEntry.themes,
       resources: existingEntry.resources,
+      studyGuide: existingEntry.studyGuide,
       title: title,
       summary: existingEntry.summary,
       lastRegeneratedAt: existingEntry.lastRegeneratedAt,

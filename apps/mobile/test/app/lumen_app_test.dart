@@ -21,6 +21,7 @@ import 'package:lumen/src/features/journal/domain/journal_entry.dart';
 import 'package:lumen/src/features/journal/domain/journal_theme.dart';
 import 'package:lumen/src/features/journal/domain/related_resource.dart';
 import 'package:lumen/src/features/journal/domain/rewrite_personalization.dart';
+import 'package:lumen/src/features/journal/domain/study_guide.dart';
 import 'package:lumen/src/features/journal/domain/voice_recorder.dart';
 import 'package:lumen/src/features/journal/domain/voice_recording.dart';
 import 'package:lumen/src/features/journal/domain/voice_recording_attempt.dart';
@@ -231,7 +232,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Journal entry'), findsOneWidget);
-    expect(find.text('Theme source text.'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Original entry'), 120);
+    expect(find.text('Theme source text.'), findsWidgets);
   });
 
   testWidgets('shows navigation on entry detail pages', (tester) async {
@@ -309,17 +311,17 @@ void main() {
       ),
       findsOneWidget,
     );
-    expect(find.text('Original entry'), findsOneWidget);
+    expect(find.text('Study guide'), findsOneWidget);
+    expect(
+      find.text('A study guide is not available for this entry yet.'),
+      findsOneWidget,
+    );
+    await tester.scrollUntilVisible(find.text('Original entry'), 120);
     expect(find.text('Preserved exactly as you saved it.'), findsOneWidget);
     expect(
       find.text('I was irritated and rushed this morning.'),
       findsOneWidget,
     );
-    await tester.scrollUntilVisible(
-      find.text('Morning reflection prompt'),
-      120,
-    );
-    expect(find.text('Morning reflection prompt'), findsOneWidget);
     expect(find.text('Regenerate AI'), findsNothing);
   });
 
@@ -372,7 +374,10 @@ void main() {
     expect(entries.single.summary, 'These are my exact typed words.');
     expect(entries.single.themes.single.displayName, 'Reflection');
     expect(find.text('Typed entry'), findsOneWidget);
-    expect(find.text(originalText), findsOneWidget);
+    expect(
+      find.textContaining('These are my exact typed words.'),
+      findsOneWidget,
+    );
     expect(find.text('These are my exact typed words.'), findsOneWidget);
   });
 
@@ -487,6 +492,42 @@ void main() {
     expect(entry?.themes.single.displayName, 'Stress');
     expect(find.text('Updated generated summary'), findsOneWidget);
     expect(find.text('Stress'), findsOneWidget);
+  });
+
+  testWidgets('retains an existing study guide when editing only the title', (
+    tester,
+  ) async {
+    final repository = InMemoryJournalRepository(
+      seedEntries: [_entryWithStudyGuide()],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [journalRepositoryProvider.overrideWithValue(repository)],
+        child: const LumenApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('A difficult but honest morning'));
+    await tester.pumpAndSettle();
+    expect(find.text('Psalm 46:10 and one more resource'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Edit entry'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byType(TextFormField).at(0),
+      'Updated title only',
+    );
+    await tester.tap(find.text('Save entry'));
+    await tester.pumpAndSettle();
+
+    final entry = await repository.getEntry('entry-1');
+
+    expect(entry?.title, 'Updated title only');
+    expect(entry?.studyGuide?.previewText, 'Psalm 46:10 and one more resource');
+    expect(find.text('Updated title only'), findsOneWidget);
+    expect(find.text('Psalm 46:10 and one more resource'), findsOneWidget);
   });
 
   testWidgets('deletes a journal entry', (tester) async {
@@ -833,6 +874,25 @@ final _sampleEntry = JournalEntry(
   summary: 'A morning reflection about family stress.',
 );
 
+JournalEntry _entryWithStudyGuide() {
+  return JournalEntry(
+    id: _sampleEntry.id,
+    createdAt: _sampleEntry.createdAt,
+    updatedAt: _sampleEntry.updatedAt,
+    source: _sampleEntry.source,
+    originalText: _sampleEntry.originalText,
+    rewrittenText: _sampleEntry.rewrittenText,
+    themes: _sampleEntry.themes,
+    resources: _sampleEntry.resources,
+    studyGuide: _studyGuide(
+      entryId: _sampleEntry.id,
+      providerKey: 'gospel_library',
+    ),
+    title: _sampleEntry.title,
+    summary: _sampleEntry.summary,
+  );
+}
+
 final _unprocessedEntry = JournalEntry(
   id: 'entry-2',
   createdAt: DateTime.utc(2026, 5, 8, 16),
@@ -886,6 +946,40 @@ JournalEntry _themeEntry({
   );
 }
 
+StudyGuide _studyGuide({required String entryId, required String providerKey}) {
+  return StudyGuide(
+    id: 'guide-$entryId',
+    entryId: entryId,
+    providerKey: providerKey,
+    generatedAt: DateTime.utc(2026, 5, 9, 16),
+    overview: 'A gospel study guide built from this reflection.',
+    previewText: 'Psalm 46:10 and one more resource',
+    items: [
+      StudyGuideItem(
+        id: 'item-1',
+        kind: 'scripture',
+        title: 'Psalm 46:10',
+        contextLine: 'A quiet anchor when you need steadiness.',
+        position: 0,
+        destination: StudyGuideDestination(
+          providerKey: providerKey,
+          contentType: 'scripture',
+          reference: 'Psalm 46:10',
+          precision: StudyGuideDestinationPrecision.chapter,
+          url: Uri.parse(
+            'https://www.churchofjesuschrist.org/study/scriptures/ot/ps/46?lang=eng',
+          ),
+        ),
+        focusText: 'Focus on the reminder to be still and trust God.',
+      ),
+    ],
+    reflectionPrompt: const StudyGuidePrompt(
+      text:
+          'As you study these resources, what feels most worth carrying into the rest of your day?',
+    ),
+  );
+}
+
 class _ControlledAiService implements JournalAiService {
   final _summary = Completer<EntrySummaryResult>();
 
@@ -906,7 +1000,19 @@ class _ControlledAiService implements JournalAiService {
   }
 
   @override
-  Future<EntrySummaryResult> summarizeEntry({required String originalText}) async {
+  Future<StudyGuide> generateStudyGuide({
+    required String entryId,
+    required String originalText,
+    required List<JournalTheme> themes,
+    required String providerKey,
+  }) async {
+    return _studyGuide(entryId: entryId, providerKey: providerKey);
+  }
+
+  @override
+  Future<EntrySummaryResult> summarizeEntry({
+    required String originalText,
+  }) async {
     return _summary.future;
   }
 
@@ -934,7 +1040,19 @@ class _ImmediateAiService implements JournalAiService {
   }
 
   @override
-  Future<EntrySummaryResult> summarizeEntry({required String originalText}) async {
+  Future<StudyGuide> generateStudyGuide({
+    required String entryId,
+    required String originalText,
+    required List<JournalTheme> themes,
+    required String providerKey,
+  }) async {
+    return _studyGuide(entryId: entryId, providerKey: providerKey);
+  }
+
+  @override
+  Future<EntrySummaryResult> summarizeEntry({
+    required String originalText,
+  }) async {
     return const EntrySummaryResult(
       title: 'Updated generated title',
       summary: 'Updated generated summary',
@@ -976,7 +1094,19 @@ class _FailingAiService implements JournalAiService {
   }
 
   @override
-  Future<EntrySummaryResult> summarizeEntry({required String originalText}) async {
+  Future<StudyGuide> generateStudyGuide({
+    required String entryId,
+    required String originalText,
+    required List<JournalTheme> themes,
+    required String providerKey,
+  }) async {
+    return _studyGuide(entryId: entryId, providerKey: providerKey);
+  }
+
+  @override
+  Future<EntrySummaryResult> summarizeEntry({
+    required String originalText,
+  }) async {
     throw StateError('AI unavailable');
   }
 
